@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Logo } from '@/components/shared/Logo';
 import { Button } from '@/components/ui/button';
-import { Package, Home, Users, Settings, BarChart3, LogOut, Loader2 } from 'lucide-react'; // LayoutGrid removed
+// Ensured Loader2 is present in this import line
+import { Package, Home, Users, Settings, BarChart3, LogOut, Loader2 } from 'lucide-react'; 
 import { cn } from '@/lib/utils';
 import { useEffect, useState, useCallback } from 'react';
 import type { UserAppRole } from '@/lib/types';
@@ -37,10 +38,9 @@ export function AdminSidebar() {
     if (storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
-        if (parsedUser && typeof parsedUser.id === 'string') { // Check for id property
+        if (parsedUser && typeof parsedUser.id === 'string') { 
           setMockUser(parsedUser);
         } else {
-          // console.error("Parsed user from localStorage is missing 'id' property or is invalid for (auth)/layout AdminSidebar.");
           localStorage.removeItem('mockUser'); 
           setMockUser(null);
         }

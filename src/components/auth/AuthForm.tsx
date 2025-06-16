@@ -30,7 +30,6 @@ export function AuthForm() {
   const [hostname, setHostname] = useState('');
 
   useEffect(() => {
-    // Ensure this runs only on the client
     if (typeof window !== 'undefined') {
       setHostname(window.location.hostname);
     }
@@ -46,17 +45,17 @@ export function AuthForm() {
 
     let cookieString = name + "=" + (value || "")  + expires + "; path=/";
 
-    if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
-      // For deployed (HTTPS) environments
+    // Check if running on the specific Cloud Workstations domain
+    if (hostname && hostname.endsWith('.cloudworkstations.dev')) {
+      // For Cloud Workstations (HTTPS), try with just Secure first as a diagnostic.
+      // This is less strict but might bypass proxy issues with SameSite=None/Partitioned.
+      cookieString += "; Secure";
+    } else if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      // For other deployed (HTTPS) environments, use the stricter attributes
       cookieString += "; SameSite=None; Secure; Partitioned";
     } else {
-      // For localhost (HTTP or HTTPS)
+      // For localhost (HTTP usually)
       cookieString += "; SameSite=Lax";
-      // If localhost is running on HTTPS, you could also add Secure here,
-      // but SameSite=Lax usually works well without it on localhost.
-      // if (typeof window !== 'undefined' && window.location.protocol === "https:") {
-      //   cookieString += "; Secure";
-      // }
     }
     document.cookie = cookieString;
   };
@@ -79,6 +78,7 @@ export function AuthForm() {
       userId = 'mock-mod-id';
       userName = 'Moderator';
     } else if (normalizedInput.toLowerCase() === '@user') {
+      // This condition was missing, added it back.
       role = 'usuario';
       userId = 'mock-user-id';
       userName = 'User';

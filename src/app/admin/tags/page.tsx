@@ -1,113 +1,12 @@
-"use client";
+// This file is intended for deletion as the "Manage Tags" functionality was removed.
+// If the build system requires a file to exist, this can serve as a placeholder.
+// Ideally, this file should be deleted from the project structure.
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Logo } from '@/components/shared/Logo';
-import { Button } from '@/components/ui/button';
-import { Package, LayoutGrid, Users, Settings, Home, BarChart3, LogOut, Loader2, Tags } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useEffect, useState, useCallback } from 'react';
-import type { UserAppRole } from '@/lib/types';
-
-interface MockUser {
-  usertag: string;
-  name: string;
-  role: UserAppRole;
-}
-
-const sidebarNavItems = [
-  { title: 'Dashboard', href: '/admin', icon: Home },
-  { title: 'Projects', href: '/admin/projects', icon: Package },
-  // { title: 'Manage Tags', href: '/admin/tags', icon: Tags, adminOnly: true }, // Removed
-  { title: 'Users', href: '/admin/users', icon: Users, disabled: true, adminOnly: true },
-  { title: 'Analytics', href: '/admin/analytics', icon: BarChart3, disabled: true, adminOnly: true },
-  { title: 'Settings', href: '/admin/settings', icon: Settings, disabled: true, adminOnly: true },
-];
-
-export function AdminSidebar() {
-  const pathname = usePathname();
-  const [mockUser, setMockUser] = useState<MockUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const loadUserFromStorage = useCallback(() => {
-    setIsLoading(true);
-    const storedUser = localStorage.getItem('mockUser');
-    if (storedUser) {
-      try {
-        setMockUser(JSON.parse(storedUser));
-      } catch (e) {
-        console.error("Failed to parse mockUser from localStorage for AdminSidebar", e);
-        setMockUser(null);
-      }
-    } else {
-      setMockUser(null);
-    }
-    setIsLoading(false);
-  }, []);
-
-  useEffect(() => {
-    loadUserFromStorage();
-    window.addEventListener('storage', loadUserFromStorage);
-    return () => {
-      window.removeEventListener('storage', loadUserFromStorage);
-    };
-  }, [loadUserFromStorage]);
-
-  if (isLoading) {
-    return (
-        <aside className="sticky top-0 h-screen w-64 bg-background border-r border-border flex flex-col p-4 shadow-lg items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </aside>
-    );
-  }
-
-  if (!mockUser || (mockUser.role !== 'admin' && mockUser.role !== 'mod')) {
-     return (
-        <aside className="sticky top-0 h-screen w-64 bg-background border-r border-border flex flex-col p-4 shadow-lg">
-            <div className="p-2 mb-6"> <Logo /> </div>
-            <div className="flex-grow space-y-1">
-                <p className="text-muted-foreground text-sm p-2">Acceso restringido al panel de administración.</p>
-                 <Button variant="outline" className="w-full justify-start text-sm mt-4" asChild>
-                    <Link href="/"> <LogOut className="mr-2 h-4 w-4" /> Volver al Inicio </Link>
-                </Button>
-            </div>
-        </aside>
-     );
-  }
-
+export default function AdminTagsPage_ToDelete() {
   return (
-    <aside className="sticky top-0 h-screen w-64 bg-background border-r border-border flex flex-col p-4 shadow-lg">
-      <div className="p-2 mb-6"> <Logo /> </div>
-      <nav className="flex-grow space-y-1">
-        {sidebarNavItems.map((item) => {
-          if (item.adminOnly && mockUser?.role !== 'admin') {
-            return null;
-          }
-          return (
-            <Button
-              key={item.title}
-              variant={pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href)) ? 'default' : 'ghost'}
-              className={cn(
-                "w-full justify-start text-sm",
-                (pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href))) && "bg-primary text-primary-foreground hover:bg-primary/90",
-                item.disabled && "cursor-not-allowed opacity-50"
-              )}
-              asChild
-              disabled={item.disabled}
-            >
-              <Link href={item.disabled ? "#" : item.href}>
-                <item.icon className="mr-2 h-4 w-4" />
-                {item.title}
-              </Link>
-            </Button>
-          );
-        })}
-      </nav>
-      <div className="mt-auto">
-        <Button variant="outline" className="w-full justify-start text-sm" asChild>
-          <Link href="/"> <LogOut className="mr-2 h-4 w-4" /> Exit Admin </Link>
-        </Button>
-      </div>
-    </aside>
+    <div>
+      <h1>Manage Tags - DEPRECATED</h1>
+      <p>This page is no longer in use and should be removed.</p>
+    </div>
   );
 }

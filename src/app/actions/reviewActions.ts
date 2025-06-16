@@ -11,7 +11,7 @@ interface ActionResult<T = null> {
   success: boolean;
   data?: T;
   error?: string;
-  errorCode?: 'AUTH_REQUIRED' | 'NOT_AUTHOR' | 'ALREADY_REVIEWED' | 'DB_ERROR' | 'VALIDATION_ERROR' | 'UNKNOWN_ERROR' | 'NOT_FOUND' | 'FORBIDDEN';
+  errorCode?: 'AUTH_REQUIRED' | 'NOT_AUTHOR' | 'ALREADY_REVIEWED' | 'DB_ERROR' | 'VALIDATION_ERROR' | 'UNKNOWN_ERROR' | 'NOT_FOUND' | 'FORBIDDEN' | 'COOKIE_INVALID_JSON' | 'COOKIE_MISSING_ID';
 }
 
 interface UpdateReviewInteractionResult {
@@ -22,11 +22,10 @@ interface UpdateReviewInteractionResult {
 
 
 async function verifyUserAndGetId(): Promise<{ userId: string; role: UserAppRole } | { error: string, errorCode: ActionResult['errorCode'] }> {
-  let determinedRole: UserAppRole = 'usuario';
-  let mockUserId: string | undefined;
-
   const cookieStore = cookies();
   const mockUserCookie = cookieStore.get('mockUser');
+  let determinedRole: UserAppRole | undefined;
+  let mockUserId: string | undefined;
 
   if (mockUserCookie && typeof mockUserCookie.value === 'string' && mockUserCookie.value.trim() !== '') {
     try {
@@ -35,18 +34,20 @@ async function verifyUserAndGetId(): Promise<{ userId: string; role: UserAppRole
       if (storedUser && typeof storedUser.id === 'string' && storedUser.id.trim() !== '') {
         mockUserId = storedUser.id.trim();
         determinedRole = (storedUser.role && USER_APP_ROLES_CONST.includes(storedUser.role)) ? storedUser.role : 'usuario';
+        // If we got a valid ID and role from cookie, use it and return
         return { userId: mockUserId, role: determinedRole };
       } else {
-        // console.warn("[ServerAction Review Cookie Auth] Cookie 'mockUser' parsed, but 'id' is missing or invalid.", storedUser);
+        // Cookie was present and parsed, but ID was missing or invalid
+        return { error: "Mock user cookie is missing a valid 'id' property.", errorCode: 'COOKIE_MISSING_ID' };
       }
     } catch (e) {
-      // console.warn("[ServerAction Review Cookie Auth] Error parsing 'mockUser' cookie. Value:", mockUserCookie.value, "Error:", e);
+      // Cookie was present but JSON parsing failed
+      return { error: "Failed to parse mock user cookie: Invalid JSON.", errorCode: 'COOKIE_INVALID_JSON' };
     }
-  } else {
-    // console.log("[ServerAction Review Cookie Auth] 'mockUser' cookie not found or has no value.");
   }
 
-  // Fallback to MOCK_ROLE environment variable
+  // If we reach here, it means the cookie was not present, empty, or processing it failed before returning.
+  // Now, try the environment variable fallback.
   const roleFromEnv = process.env.MOCK_ROLE as UserAppRole | undefined;
   if (roleFromEnv && USER_APP_ROLES_CONST.includes(roleFromEnv)) {
     determinedRole = roleFromEnv;
@@ -54,12 +55,13 @@ async function verifyUserAndGetId(): Promise<{ userId: string; role: UserAppRole
     else if (determinedRole === 'mod') mockUserId = 'mock-mod-id';
     else if (determinedRole === 'usuario') mockUserId = 'mock-user-id';
     
-    if (mockUserId) {
+    if (mockUserId && determinedRole) { // Ensure both are set from ENV var
       return { userId: mockUserId, role: determinedRole };
     }
   }
   
-  return { error: "User not authenticated. Mock user ID is missing.", errorCode: 'AUTH_REQUIRED' };
+  // If neither cookie nor ENV var provided a valid user ID and role
+  return { error: "User not authenticated. Mock user ID is missing and no valid ENV fallback.", errorCode: 'AUTH_REQUIRED' };
 }
 
 
@@ -327,13 +329,18 @@ export async function getUserSentimentForReviewAction(
 ): Promise<ActionResult<{ sentiment: 'helpful' | 'unhelpful' | null; isFunny: boolean }>> {
   const authCheck = await verifyUserAndGetId();
   if ('error'in authCheck) {
-    // If auth fails here, it means the user isn't logged in or identifiable server-side.
-    // In this specific case, it's not an error for the caller, but means no sentiment exists for *this* unauthenticated user.
-    // Return success: false but with a specific errorCode that the client can interpret as "no user, so no sentiment".
-    // However, the current ActionResult type doesn't easily distinguish "auth error" from "no sentiment for this user".
-    // For simplicity, if authCheck fails, we'll return success: false with AUTH_REQUIRED.
-    // The client will then know not to try and show specific user sentiment.
-    return { success: false, error: authCheck.error, errorCode: authCheck.errorCode };
+    // If user is not authenticated server-side, they have no specific sentiment.
+    // This is not an "error" for the caller in terms of DB operation, but indicates no user-specific data.
+    // We return success: true with default (null/false) sentiment values.
+    // The `authCheck.errorCode` could be 'AUTH_REQUIRED', 'COOKIE_INVALID_JSON', etc.
+    // For this specific action, if auth fails for any reason, it implies no specific user sentiment.
+    if (authCheck.errorCode === 'AUTH_REQUIRED') {
+        return { success: true, data: { sentiment: null, isFunny: false } };
+    }
+    // If cookie was invalid, it's still a form of "no user" for this purpose.
+    // However, to be more explicit, we could return the auth error if it's not 'AUTH_REQUIRED'.
+    // For now, simplifying: any auth failure means "no specific sentiment for this (unidentified) user".
+    return { success: true, data: { sentiment: null, isFunny: false } };
   }
   const { userId } = authCheck;
   const db = await getDb();
@@ -361,4 +368,3 @@ export async function getUserSentimentForReviewAction(
     return { success: false, error: "Failed to fetch user sentiment due to a database error.", errorCode: 'DB_ERROR' };
   }
 }
-

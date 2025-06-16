@@ -11,7 +11,7 @@ import { useEffect, useState, useCallback } from 'react';
 import type { UserAppRole } from '@/lib/types';
 
 interface MockUser {
-  id: string; // Added id based on AuthForm
+  id: string; 
   usertag: string;
   name: string;
   role: UserAppRole; 
@@ -40,7 +40,9 @@ export function AdminSidebar() {
         if (parsedUser && typeof parsedUser.id === 'string') {
           setMockUser(parsedUser);
         } else {
-          throw new Error("Parsed user from localStorage is missing 'id' property for (auth)/layout AdminSidebar.");
+          // console.error("Parsed user from localStorage is missing 'id' property or is invalid for (auth)/layout AdminSidebar.");
+          localStorage.removeItem('mockUser'); 
+          setMockUser(null);
         }
       } catch (e) {
         console.error("Failed to parse mockUser from localStorage for (auth)/layout AdminSidebar", e);
@@ -132,8 +134,6 @@ export default function AuthLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // The actual Header and Footer from RootLayout are implicitly not included
-  // because this layout renders its own structure.
   return (
     <div className="flex min-h-screen">
       <AdminSidebar />

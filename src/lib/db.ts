@@ -58,9 +58,9 @@ async function initDbSchema(db: Database): Promise<void> {
     ');' +
 
     'CREATE TABLE IF NOT EXISTS profiles (' +
-    '  id TEXT PRIMARY KEY, ' + // Will store 'mock-admin-id', 'mock-user-id', etc.
+    '  id TEXT PRIMARY KEY, ' + 
     '  name TEXT,' +
-    '  usertag TEXT UNIQUE, ' + // e.g., '@admin', '@user'
+    '  usertag TEXT UNIQUE, ' + 
     '  avatar_url TEXT,' +
     '  banner_url TEXT,' +
     '  bio TEXT,' +
@@ -76,7 +76,7 @@ async function initDbSchema(db: Database): Promise<void> {
     '  slug TEXT NOT NULL,' +
     '  parent_item_id TEXT NOT NULL,' +
     '  category_id TEXT NOT NULL,' +
-    '  author_id TEXT NOT NULL,' + // This will store 'mock-admin-id', 'mock-user-id' etc.
+    '  author_id TEXT NOT NULL,' + 
     '  version TEXT, ' +
     '  description TEXT NOT NULL, ' + 
     '  detailed_description TEXT, ' + 
@@ -120,7 +120,6 @@ async function initDbSchema(db: Database): Promise<void> {
     '    resource_id TEXT NOT NULL,' +
     '    author_id TEXT NOT NULL,' + 
     '    resource_version TEXT NOT NULL, ' + 
-    // '    rating REAL, ' + // Rating is now on the resource table
     '    is_recommended BOOLEAN NOT NULL,' +
     '    comment TEXT NOT NULL,' +
     '    interaction_counts TEXT, ' + 
@@ -196,7 +195,6 @@ async function initDbSchema(db: Database): Promise<void> {
     if (tableName === 'resource_files' && !tableInfo.some(col => col.name === 'downloads')) {
         await db.exec('ALTER TABLE resource_files ADD COLUMN downloads INTEGER DEFAULT 0 NOT NULL;');
     }
-    // The rating column was removed from reviews table, no need to check/add it.
     
     if (!tableInfo.some(col => col.name === 'updated_at')) { await db.exec('ALTER TABLE ' + tableName + ' ADD COLUMN updated_at TEXT;'); }
     if (!tableInfo.some(col => col.name === 'created_at')) { await db.exec('ALTER TABLE ' + tableName + ' ADD COLUMN created_at TEXT DEFAULT CURRENT_TIMESTAMP;'); }
@@ -214,11 +212,40 @@ async function initDbSchema(db: Database): Promise<void> {
     );
   }
   
-  // Ensure mock profiles exist
-  await db.run("INSERT OR IGNORE INTO profiles (id, name, usertag, role, avatar_url, banner_url, bio) VALUES ('mock-admin-id', 'Administrator', '@admin', 'admin', 'https://placehold.co/128x128/E91E63/FFFFFF?text=A', 'https://placehold.co/1200x300/1a1a1a/E91E63?text=Admin+Banner', 'Overseeing the PinkStar realm. Ensuring all systems are go and content is top-notch. If you see something, say something (to a mod first, probably).')");
-  await db.run("INSERT OR IGNORE INTO profiles (id, name, usertag, role, avatar_url, banner_url, bio) VALUES ('mock-mod-id', 'Moderator', '@mod', 'mod', 'https://placehold.co/128x128/2196F3/FFFFFF?text=M', 'https://placehold.co/1200x300/1a1a1a/2196F3?text=Mod+Banner', 'Keeping PinkStar friendly and fun! Reach out if you need assistance or spot any troublemakers. Happy gaming and creating!')");
-  await db.run("INSERT OR IGNORE INTO profiles (id, name, usertag, role, avatar_url, banner_url, bio) VALUES ('mock-user-id', 'Regular User', '@user', 'usuario', 'https://placehold.co/128x128/4CAF50/FFFFFF?text=U', 'https://placehold.co/1200x300/1a1a1a/4CAF50?text=User+Banner', 'Just a regular PinkStar enthusiast, exploring awesome games, web projects, apps, and art. Always on the lookout for the next cool thing!')");
-  await db.run("INSERT OR IGNORE INTO profiles (id, name, usertag, role, avatar_url, banner_url, bio) VALUES ('another-user-id', 'CreativeCat', '@creativecat', 'usuario', 'https://placehold.co/128x128/FF9800/FFFFFF?text=C', 'https://placehold.co/1200x300/1a1a1a/FF9800?text=CreativeCat', 'Digital artist and indie game admirer. Sharing my creations and discovering gems on PinkStar. Let us connect!')");
+  // Ensure mock profiles exist with social links
+  const adminSocialLinks = JSON.stringify({ github: 'https://github.com/admin', discord: 'https://discord.gg/adminchannel' });
+  const modSocialLinks = JSON.stringify({ twitter: 'https://twitter.com/mod', website: 'https://moderator.example.com' });
+  const userSocialLinks = JSON.stringify({ website: 'https://userpage.example.com' });
+  const creativeCatSocialLinks = JSON.stringify({ github: 'https://github.com/creativecat', twitter: 'https://twitter.com/creativecat_art' });
+
+  await db.run("INSERT OR IGNORE INTO profiles (id, name, usertag, role, avatar_url, banner_url, bio, social_links) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
+    'mock-admin-id', 'Administrator', '@admin', 'admin', 
+    'https://placehold.co/128x128/E91E63/FFFFFF?text=A', 
+    'https://placehold.co/1200x300/1a1a1a/E91E63?text=Admin+Banner', 
+    'Overseeing the PinkStar realm. Ensuring all systems are go and content is top-notch. If you see something, say something (to a mod first, probably).',
+    adminSocialLinks
+  );
+  await db.run("INSERT OR IGNORE INTO profiles (id, name, usertag, role, avatar_url, banner_url, bio, social_links) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+    'mock-mod-id', 'Moderator', '@mod', 'mod', 
+    'https://placehold.co/128x128/2196F3/FFFFFF?text=M', 
+    'https://placehold.co/1200x300/1a1a1a/2196F3?text=Mod+Banner', 
+    'Keeping PinkStar friendly and fun! Reach out if you need assistance or spot any troublemakers. Happy gaming and creating!',
+    modSocialLinks
+  );
+  await db.run("INSERT OR IGNORE INTO profiles (id, name, usertag, role, avatar_url, banner_url, bio, social_links) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+    'mock-user-id', 'Regular User', '@user', 'usuario', 
+    'https://placehold.co/128x128/4CAF50/FFFFFF?text=U', 
+    'https://placehold.co/1200x300/1a1a1a/4CAF50?text=User+Banner', 
+    'Just a regular PinkStar enthusiast, exploring awesome games, web projects, apps, and art. Always on the lookout for the next cool thing!',
+    userSocialLinks
+  );
+  await db.run("INSERT OR IGNORE INTO profiles (id, name, usertag, role, avatar_url, banner_url, bio, social_links) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+    'another-user-id', 'CreativeCat', '@creativecat', 'usuario', 
+    'https://placehold.co/128x128/FF9800/FFFFFF?text=C', 
+    'https://placehold.co/1200x300/1a1a1a/FF9800?text=CreativeCat', 
+    'Digital artist and indie game admirer. Sharing my creations and discovering gems on PinkStar. Let us connect!',
+    creativeCatSocialLinks
+  );
 
   const firstRunCheck = await db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='_first_run_check_stats_v3_review_fix'");
   if (!firstRunCheck) {
@@ -251,5 +278,5 @@ async function initDbSchema(db: Database): Promise<void> {
     console.log("First run (v3 - review fix): Initialized resource downloads, follower counts, and review aggregates.");
   }
 
-  console.log("SQLite database schema initialized/verified. Mock profiles ensured.");
+  console.log("SQLite database schema initialized/verified. Mock profiles ensured (with social links).");
 }

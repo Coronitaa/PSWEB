@@ -35,7 +35,9 @@ export function AuthForm() {
       date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
       expires = "; expires=" + date.toUTCString();
     }
-    document.cookie = name + "=" + (value || "")  + expires + "; path=/";
+    // Add SameSite=None, Secure, and Partitioned attributes
+    // This requires the site to be served over HTTPS.
+    document.cookie = name + "=" + (value || "")  + expires + "; path=/; SameSite=None; Secure; Partitioned";
   };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {

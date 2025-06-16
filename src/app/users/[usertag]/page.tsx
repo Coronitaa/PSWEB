@@ -4,7 +4,7 @@ import { getUserProfileByUsertag, getUserStats, getTopUserResources, getRecentUs
 import type { Author as UserProfile, UserStats, RankedResource, Resource } from '@/lib/types';
 import { UserProfilePageContent } from '@/components/user/UserProfilePageContent';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { createSupabaseClient } from '@/lib/supabase/client'; // Import Supabase client
+import { getDb } from '@/lib/db'; // Importar getDb para la base de datos local
 
 interface UserProfilePageProps {
   params: { usertag: string };
@@ -40,25 +40,18 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
 }
 
 export async function generateStaticParams() {
-  const supabase = createSupabaseClient();
-  const { data: profilesData, error } = await supabase
-    .from('profiles')
-    .select('usertag')
-    .filter('usertag', 'isnot', null); // Ensure usertag is not null
-
-  if (error) {
-    console.error("Error fetching profiles for generateStaticParams:", error);
-    return [];
-  }
+  const db = await getDb(); // Usar la base de datos local
+  const profilesData = await db.all("SELECT usertag FROM profiles WHERE usertag IS NOT NULL");
 
   if (!profilesData) {
+    console.warn("generateStaticParams: No profiles data found from local DB.");
     return [];
   }
 
   return profilesData
-    .filter(p => p.usertag) // Double check usertag exists
+    .filter(p => p.usertag) 
     .map(profile => ({
-      usertag: profile.usertag!, // usertag should be defined due to filter
+      usertag: profile.usertag, 
     }));
 }
 

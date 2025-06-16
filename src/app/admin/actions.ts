@@ -2,7 +2,6 @@
 "use server";
 
 import { revalidatePath } from 'next/cache';
-import { cookies } from 'next/headers';
 import {
     addProjectToDb,
     updateProjectInDb,
@@ -14,13 +13,12 @@ import {
     getItemBySlugGeneric,
     getProjectCategoryTagConfigurations as getProjectCategoryTagConfigurationsFromDb,
     getResourceForEdit,
-    // Section Tag specific imports
     createSectionTagDefinition,
     updateSectionTagDefinition,
     deleteSectionTagDefinition,
 } from '@/lib/data';
-import type { ProjectFormData, CategoryFormData, GenericListItem, Category, ItemType, UserAppRole, CategoryTagGroupConfig, ProjectCategoryTagConfigurations, ResourceFormData, Resource, ResourceFileFormData, SectionTagFormData, Tag } from '@/lib/types';
-import { ITEM_TYPES_CONST, PROJECT_STATUSES_CONST, USER_APP_ROLES_CONST } from '@/lib/types';
+import type { ProjectFormData, CategoryFormData, GenericListItem, Category, ItemType, UserAppRole, CategoryTagGroupConfig, ProjectCategoryTagConfigurations, ResourceFormData, Resource, SectionTagFormData, Tag } from '@/lib/types';
+import { ITEM_TYPES_CONST, USER_APP_ROLES_CONST } from '@/lib/types';
 import { getDb } from '@/lib/db';
 import { generateSlugLocal } from '@/lib/data'; 
 
@@ -28,11 +26,10 @@ interface ActionResult<T = null> {
   success: boolean;
   data?: T;
   error?: string;
-  errorCode?: 'PERMISSION_DENIED' | 'COOKIE_INVALID_JSON' | 'COOKIE_MISSING_ID' | 'AUTH_FALLBACK_FAILED' | 'DB_ERROR' | 'UNKNOWN_ERROR';
+  errorCode?: 'PERMISSION_DENIED' | 'DB_ERROR' | 'UNKNOWN_ERROR' | 'AUTH_REQUIRED';
 }
 
 const TAG_CONFIG_SEPARATOR = ":::CONFIG_JSON:::";
-
 
 const combineDescriptionAndConfig = (textDescription: string | null | undefined, config: CategoryTagGroupConfig[] | null | undefined): string | null => {
   const descPart = textDescription || "";
@@ -52,63 +49,52 @@ const combineDescriptionAndConfig = (textDescription: string | null | undefined,
   }
 };
 
-
-async function verifyPermission(allowedRoles: UserAppRole[]): Promise<{ user: { id: string; role: UserAppRole }; profile: { role: UserAppRole } } | { error: string; errorCode: ActionResult['errorCode'] }> {
-  const cookieStore = cookies();
-  const mockUserCookie = cookieStore.get('mockUser');
-  let determinedRole: UserAppRole | undefined;
-  let mockUserId: string | undefined;
-
-  if (mockUserCookie && typeof mockUserCookie.value === 'string' && mockUserCookie.value.trim() !== '') {
-    try {
-      const storedUser = JSON.parse(mockUserCookie.value) as { id?: string; role?: UserAppRole; name?: string; usertag?: string };
-      
-      if (storedUser && typeof storedUser.id === 'string' && storedUser.id.trim() !== '') {
-        mockUserId = storedUser.id.trim();
-        determinedRole = (storedUser.role && USER_APP_ROLES_CONST.includes(storedUser.role)) ? storedUser.role : 'usuario';
-        
-        if (allowedRoles.includes(determinedRole)) {
-          return { user: { id: mockUserId, role: determinedRole }, profile: { role: determinedRole } };
-        } else {
-          return { error: `MOCK AUTH (Cookie): Permission denied. Role '${determinedRole}' not in allowed: ${allowedRoles.join(' or ')}.`, errorCode: 'PERMISSION_DENIED' };
-        }
-      } else {
-        // Cookie was present and parsed, but ID was missing or invalid
-        return { error: "Mock user cookie is missing a valid 'id' property for admin action.", errorCode: 'COOKIE_MISSING_ID' };
-      }
-    } catch (e) {
-      // Cookie was present but JSON parsing failed
-      return { error: "Failed to parse mock user cookie for admin action: Invalid JSON.", errorCode: 'COOKIE_INVALID_JSON' };
-    }
-  }
-
-  // Fallback to MOCK_ROLE environment variable if cookie path failed
-  const roleFromEnv = process.env.MOCK_ROLE as UserAppRole | undefined;
-  if (roleFromEnv && USER_APP_ROLES_CONST.includes(roleFromEnv)) {
-    determinedRole = roleFromEnv;
-    if (determinedRole === 'admin') mockUserId = 'mock-admin-id';
-    else if (determinedRole === 'mod') mockUserId = 'mock-mod-id';
-    else mockUserId = 'mock-user-id'; // Standard user from ENV
-
-    if (mockUserId && determinedRole) { // Ensure both are set
-      if (allowedRoles.includes(determinedRole)) {
-        return { user: { id: mockUserId, role: determinedRole }, profile: { role: determinedRole } };
-      } else {
-        return { error: `MOCK AUTH (ENV): Permission denied. Role '${determinedRole}' not in allowed: ${allowedRoles.join(' or ')}.`, errorCode: 'PERMISSION_DENIED' };
-      }
-    }
-  }
+async function verifyPermission(
+  allowedRoles: UserAppRole[],
+  clientProvidedUserId?: string 
+): Promise<{ user: { id: string; role: UserAppRole }; profile: { role: UserAppRole } } | { error: string; errorCode: ActionResult['errorCode'] }> {
   
-  return { error: `MOCK AUTH: Permission denied. No valid user session found meeting criteria: ${allowedRoles.join(' or ')}.`, errorCode: 'AUTH_FALLBACK_FAILED' };
+  let userIdToUse: string;
+  let roleToUse: UserAppRole;
+
+  if (clientProvidedUserId) {
+    if (clientProvidedUserId === 'mock-admin-id') roleToUse = 'admin';
+    else if (clientProvidedUserId === 'mock-mod-id') roleToUse = 'mod';
+    else roleToUse = 'usuario';
+    
+    if (!['mock-admin-id', 'mock-mod-id', 'mock-user-id'].includes(clientProvidedUserId)) {
+        // console.warn(`[adminActions] verifyPermission received an unrecognized clientProvidedUserId: ${clientProvidedUserId}. Defaulting to 'admin' for admin actions if role matches.`);
+        // For admin actions, if an unknown ID is passed, it's safer to deny unless the role from env is admin.
+        // However, the logic below will handle the role check. For safety, maybe default to 'usuario' if ID is unknown.
+        roleToUse = 'usuario'; // Or deny outright
+    }
+    userIdToUse = clientProvidedUserId;
+  } else {
+    // Fallback to MOCK_USER_ROLE from environment if no client ID is provided
+    // console.warn(`[adminActions] verifyPermission: No clientProvidedUserId. Falling back to MOCK_USER_ROLE environment variable.`);
+    const roleFromEnv = process.env.MOCK_USER_ROLE as UserAppRole | undefined;
+    roleToUse = (roleFromEnv && USER_APP_ROLES_CONST.includes(roleFromEnv)) ? roleFromEnv : 'admin'; // Default to 'admin' for admin panel actions
+    
+    if (roleToUse === 'admin') userIdToUse = 'mock-admin-id';
+    else if (roleToUse === 'mod') userIdToUse = 'mock-mod-id';
+    else userIdToUse = 'mock-user-id';
+  }
+
+  if (allowedRoles.includes(roleToUse)) {
+    return { user: { id: userIdToUse, role: roleToUse }, profile: { role: roleToUse } };
+  } else {
+    return { error: `Mock Auth (Admin): Permission denied. Role '${roleToUse}' not in allowed: ${allowedRoles.join(' or ')}.`, errorCode: 'PERMISSION_DENIED' };
+  }
 }
 
 
 export async function saveProjectAction(
   projectIdFromForm: string | undefined, 
   data: ProjectFormData,
-  isNew: boolean
+  isNew: boolean,
+  clientMockUserId?: string
 ): Promise<ActionResult<{ project: GenericListItem }>> {
-  const authCheck = await verifyPermission(['admin', 'mod']);
+  const authCheck = await verifyPermission(['admin', 'mod'], clientMockUserId);
   if ('error' in authCheck) {
     return { success: false, error: authCheck.error, errorCode: authCheck.errorCode };
   }
@@ -140,8 +126,8 @@ export async function saveProjectAction(
   }
 }
 
-export async function deleteProjectAction(projectId: string): Promise<ActionResult> {
-    const authCheck = await verifyPermission(['admin']);
+export async function deleteProjectAction(projectId: string, clientMockUserId?: string): Promise<ActionResult> {
+    const authCheck = await verifyPermission(['admin'], clientMockUserId);
     if ('error' in authCheck) {
       return { success: false, error: authCheck.error, errorCode: authCheck.errorCode };
     }
@@ -164,9 +150,8 @@ export async function deleteProjectAction(projectId: string): Promise<ActionResu
     }
 }
 
-// --- Section Tag CRUD Actions ---
-export async function createSectionTagAction(itemType: ItemType, name: string, description?: string): Promise<ActionResult<Tag>> {
-  const authCheck = await verifyPermission(['admin', 'mod']);
+export async function createSectionTagAction(itemType: ItemType, name: string, description?: string, clientMockUserId?: string): Promise<ActionResult<Tag>> {
+  const authCheck = await verifyPermission(['admin', 'mod'], clientMockUserId);
   if ('error' in authCheck) {
     return { success: false, error: authCheck.error, errorCode: authCheck.errorCode };
   }
@@ -180,8 +165,8 @@ export async function createSectionTagAction(itemType: ItemType, name: string, d
   }
 }
 
-export async function updateSectionTagAction(tagId: string, newName: string, newDescription?: string): Promise<ActionResult<Tag>> {
-  const authCheck = await verifyPermission(['admin', 'mod']);
+export async function updateSectionTagAction(tagId: string, newName: string, newDescription?: string, clientMockUserId?: string): Promise<ActionResult<Tag>> {
+  const authCheck = await verifyPermission(['admin', 'mod'], clientMockUserId);
   if ('error' in authCheck) {
     return { success: false, error: authCheck.error, errorCode: authCheck.errorCode };
   }
@@ -198,8 +183,8 @@ export async function updateSectionTagAction(tagId: string, newName: string, new
   }
 }
 
-export async function deleteSectionTagAction(tagId: string): Promise<ActionResult> {
-  const authCheck = await verifyPermission(['admin', 'mod']);
+export async function deleteSectionTagAction(tagId: string, clientMockUserId?: string): Promise<ActionResult> {
+  const authCheck = await verifyPermission(['admin', 'mod'], clientMockUserId);
   if ('error' in authCheck) {
     return { success: false, error: authCheck.error, errorCode: authCheck.errorCode };
   }
@@ -224,15 +209,14 @@ export async function deleteSectionTagAction(tagId: string): Promise<ActionResul
   }
 }
 
-
-// --- Category Actions ---
 export async function saveCategoryAction(
   categoryId: string | undefined,
   data: CategoryFormData,
   isNew: boolean,
-  parentItemTypeFromProps: ItemType 
+  parentItemTypeFromProps: ItemType,
+  clientMockUserId?: string
 ): Promise<ActionResult<{ category: Category }>> {
-  const authCheck = await verifyPermission(['admin', 'mod']);
+  const authCheck = await verifyPermission(['admin', 'mod'], clientMockUserId);
   if ('error' in authCheck) {
     return { success: false, error: authCheck.error, errorCode: authCheck.errorCode };
   }
@@ -272,8 +256,8 @@ export async function saveCategoryAction(
   }
 }
 
-export async function deleteCategoryAction(categoryId: string, parentItemId: string): Promise<ActionResult> {
-  const authCheck = await verifyPermission(['admin', 'mod']);
+export async function deleteCategoryAction(categoryId: string, parentItemId: string, clientMockUserId?: string): Promise<ActionResult> {
+  const authCheck = await verifyPermission(['admin', 'mod'], clientMockUserId);
   if ('error' in authCheck) {
     return { success: false, error: authCheck.error, errorCode: authCheck.errorCode };
   }
@@ -301,8 +285,8 @@ export async function deleteCategoryAction(categoryId: string, parentItemId: str
   }
 }
 
-export async function updateCategoryOrderInMemoryAction(itemId: string, orderedCategoryIds: string[]): Promise<ActionResult> {
-    const authCheck = await verifyPermission(['admin', 'mod']);
+export async function updateCategoryOrderInMemoryAction(itemId: string, orderedCategoryIds: string[], clientMockUserId?: string): Promise<ActionResult> {
+    const authCheck = await verifyPermission(['admin', 'mod'], clientMockUserId);
     if ('error' in authCheck) {
       return { success: false, error: authCheck.error, errorCode: authCheck.errorCode };
     }
@@ -329,8 +313,8 @@ export async function updateCategoryOrderInMemoryAction(itemId: string, orderedC
     }
 }
 
-export async function fetchProjectCategoryTagConfigurationsAction(projectId: string): Promise<ActionResult<ProjectCategoryTagConfigurations>> {
-  const authCheck = await verifyPermission(['admin', 'mod']);
+export async function fetchProjectCategoryTagConfigurationsAction(projectId: string, clientMockUserId?: string): Promise<ActionResult<ProjectCategoryTagConfigurations>> {
+  const authCheck = await verifyPermission(['admin', 'mod'], clientMockUserId);
   if ('error' in authCheck) {
     return { success: false, error: authCheck.error, errorCode: authCheck.errorCode };
   }
@@ -343,20 +327,20 @@ export async function fetchProjectCategoryTagConfigurationsAction(projectId: str
   }
 }
 
-// --- Resource Actions ---
 export async function saveResourceAction(
   resourceIdFromForm: string | undefined, 
   data: ResourceFormData,
   isNewResource: boolean,
   parentItemId: string, 
   categoryId: string,   
-  authorIdProp: string | undefined 
+  authorIdProp: string | undefined, 
+  clientMockUserId?: string
 ): Promise<ActionResult<{ resource: Resource }>> {
-  const authResult = await verifyPermission(['usuario', 'mod', 'admin']); 
+  const authResult = await verifyPermission(['usuario', 'mod', 'admin'], clientMockUserId); 
   if ('error' in authResult) {
     return { success: false, error: authResult.error, errorCode: authResult.errorCode };
   }
-  const { user: authUser } = authResult; // authUser.id is the authenticated user's ID
+  const { user: authUser } = authResult;
   const userRole = authUser.role;
   const db = await getDb();
 
@@ -369,23 +353,18 @@ export async function saveResourceAction(
   try {
     await db.exec('BEGIN TRANSACTION');
 
-    // --- Handle Main Resource Record First for New Resources to get ID ---
     if (isNewResource) {
       if (!resourceSlug) {
         resourceSlug = await generateSlugLocal(data.name, 'resources', { parent_item_id: parentItemId, category_id: categoryId });
       }
       resourceId = 'res_' + resourceSlug.replace(/-/g, '_') + '_' + Date.now().toString(36); 
       
-      // For a new resource, finalResourceVersion determined by new files (if any) will be used here if logic is adjusted,
-      // or just the initial form version if files are added after this initial insert.
-      // Current logic: uses form's version initially, then files might update it.
-      
       await db.run(
         'INSERT INTO resources (id, name, slug, parent_item_id, category_id, author_id, version, description, detailed_description, image_url, image_gallery, links, requirements, status, selected_dynamic_tags_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         resourceId, data.name, resourceSlug, parentItemId, categoryId, authUser.id, finalResourceVersion, data.description,
-        data.detailedDescription || null, data.imageUrl || null, JSON.stringify(data.imageGallery || []),
+        data.detailedDescription || null, data.imageUrl || 'https://placehold.co/800x450.png', JSON.stringify(data.imageGallery || []),
         data.links ? JSON.stringify(data.links) : null, data.requirements || null, 
-        (userRole === 'admin' || userRole === 'mod') ? data.status : 'published', // Default to published for users
+        (userRole === 'admin' || userRole === 'mod') ? data.status : 'published', 
         data.selectedDynamicTags ? JSON.stringify(data.selectedDynamicTags) : null,
         overallOperationTimestamp, 
         overallOperationTimestamp 
@@ -394,11 +373,8 @@ export async function saveResourceAction(
       throw new Error("Resource ID is missing for an update operation.");
     }
 
-
-    // --- Handle Resource Files ---
     const submittedFileIds = new Set(data.files.map(f => f.id).filter(id => id));
-    const existingDbFilesResult = resourceId ? await db.all("SELECT id, name, url, version_name, size, channel_id, selected_file_tags_json, created_at, updated_at FROM resource_files WHERE resource_id = ?", resourceId) : [];
-    const existingDbFilesMap = new Map(existingDbFilesResult.map(f => [f.id, f]));
+    const existingDbFilesResult = resourceId ? await db.all("SELECT id FROM resource_files WHERE resource_id = ?", resourceId) : [];
     
     if (!isNewResource && resourceId) {
         for (const existingFile of existingDbFilesResult) {
@@ -413,18 +389,13 @@ export async function saveResourceAction(
       const fileId = fileData.id || 'rfile_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 7);
       const fileTagsJson = JSON.stringify(fileData.selectedFileTags || {});
       const fileCreationTimestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
-      const isNewFileForThisSubmission = !fileData.id || !existingDbFilesMap.has(fileData.id);
+      const isNewFileForThisSubmission = !fileData.id || !existingDbFilesResult.find(f => f.id === fileData.id);
 
       if (isNewFileForThisSubmission && (!fileData.channelId || fileData.channelId === 'release') && fileData.versionName) {
         finalResourceVersion = fileData.versionName; 
       }
 
-      if (fileData.id && existingDbFilesMap.has(fileData.id)) { 
-        const currentDbFile = existingDbFilesMap.get(fileData.id);
-        if (!currentDbFile) {
-            console.warn(`[saveResourceAction] Submitted file with ID ${fileData.id} not found in DB for resource ${resourceId}. Skipping update for this file.`);
-            continue;
-        }
+      if (fileData.id && !isNewFileForThisSubmission) { 
         await db.run(
           "UPDATE resource_files SET name = ?, url = ?, version_name = ?, size = ?, channel_id = ?, selected_file_tags_json = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND resource_id = ?",
           fileData.name, fileData.url, fileData.versionName, fileData.size || null, fileData.channelId || null, fileTagsJson, fileData.id, resourceId
@@ -459,12 +430,10 @@ export async function saveResourceAction(
       }
     }
 
-    // --- Update Main Resource Record if it's an existing resource ---
     if (!isNewResource && resourceId) { 
       const currentResource = await db.get("SELECT * FROM resources WHERE id = ?", resourceId);
       if (!currentResource) throw new Error("Resource not found for update.");
 
-      // Authorization check for editing existing resource
       if (userRole !== 'admin' && userRole !== 'mod' && currentResource.author_id !== authUser.id) {
         await db.exec('ROLLBACK');
         return { success: false, error: "Permission denied: You are not the author or an administrator.", errorCode: 'PERMISSION_DENIED' };
@@ -497,7 +466,10 @@ export async function saveResourceAction(
     
     await db.exec('COMMIT');
 
-    const finalSlugToFetch = isNewResource ? resourceSlug : (resourceSlug || initialData!.slug);
+    // After commit, fetch the potentially updated/created resource by its final slug
+    const finalSlugToFetch = isNewResource ? resourceSlug : (resourceSlug || (await db.get('SELECT slug FROM resources WHERE id = ?', resourceId!))?.slug);
+    if (!finalSlugToFetch) throw new Error("Could not determine slug to fetch resource after saving.");
+
     const savedResource = await getResourceForEdit(finalSlugToFetch, false); 
     if (!savedResource) throw new Error("Failed to retrieve resource after saving.");
     
@@ -521,11 +493,25 @@ export async function saveResourceAction(
 }
 
 
-export async function deleteResourceAction(resourceId: string): Promise<ActionResult> {
-  const authCheck = await verifyPermission(['admin', 'mod']); 
-  if ('error' in authCheck) {
-    return { success: false, error: authCheck.error, errorCode: authCheck.errorCode };
+export async function deleteResourceAction(resourceId: string, clientMockUserId?: string): Promise<ActionResult> {
+  const authResult = await verifyPermission(['admin', 'mod'], clientMockUserId);
+  let isAuthorized = !('error' in authResult);
+
+  if (!isAuthorized) { // If not admin/mod, check if user is the author
+    const authorAuthResult = await verifyPermission(['usuario'], clientMockUserId); // Check if it's any logged-in user
+    if (!('error' in authorAuthResult)) {
+      const db = await getDb();
+      const resource = await db.get("SELECT author_id FROM resources WHERE id = ?", resourceId);
+      if (resource && resource.author_id === authorAuthResult.user.id) {
+        isAuthorized = true; // User is the author
+      }
+    }
   }
+  
+  if (!isAuthorized) {
+    return { success: false, error: "Permission denied. You are not an admin, mod, or the author of this resource.", errorCode: 'PERMISSION_DENIED' };
+  }
+
   try {
     const db = await getDb();
     const resourceToDelete = await db.get("SELECT r.parent_item_id, r.category_id, i.slug as item_slug, i.item_type, c.slug as category_slug FROM resources r JOIN items i ON r.parent_item_id = i.id JOIN categories c ON r.category_id = c.id WHERE r.id = ?", resourceId);
@@ -537,6 +523,8 @@ export async function deleteResourceAction(resourceId: string): Promise<ActionRe
     await db.exec('BEGIN TRANSACTION');
     await db.run("DELETE FROM changelog_entries WHERE resource_id = ?", resourceId);
     await db.run("DELETE FROM resource_files WHERE resource_id = ?", resourceId);
+    await db.run('DELETE FROM user_review_sentiments WHERE review_id IN (SELECT id FROM reviews WHERE resource_id = ?)', resourceId);
+    await db.run('DELETE FROM reviews WHERE resource_id = ?', resourceId);
     const result = await db.run('DELETE FROM resources WHERE id = ?', resourceId);
     await db.exec('COMMIT');
 
@@ -557,12 +545,3 @@ export async function deleteResourceAction(resourceId: string): Promise<ActionRe
     return { success: false, error: e.message || "An unknown error occurred during resource deletion.", errorCode: 'UNKNOWN_ERROR' };
   }
 }
-    
-
-    
-
-
-    
-
-
-

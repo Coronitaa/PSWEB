@@ -36,20 +36,21 @@ export function Header() {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  const eraseCookie = (name: string) => {
-    document.cookie = name +'=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-  };
-
   const loadMockUser = useCallback(() => {
     setIsLoading(true);
     const storedUser = localStorage.getItem('mockUser');
     if (storedUser) {
       try {
-        setMockUser(JSON.parse(storedUser));
+        const parsedUser = JSON.parse(storedUser);
+        if (parsedUser && typeof parsedUser.id === 'string' && typeof parsedUser.usertag === 'string') {
+          setMockUser(parsedUser);
+        } else {
+          localStorage.removeItem('mockUser'); // Clear invalid stored data
+          setMockUser(null);
+        }
       } catch (e) {
         console.error("Failed to parse mockUser from localStorage", e);
         localStorage.removeItem('mockUser');
-        eraseCookie('mockUser'); 
         setMockUser(null);
       }
     } else {
@@ -62,7 +63,7 @@ export function Header() {
     loadMockUser();
     
     const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === 'mockUser' || event.key === null) { // Also listen for direct localStorage.clear()
+      if (event.key === 'mockUser' || event.key === null) { 
         loadMockUser();
       }
     };
@@ -75,18 +76,14 @@ export function Header() {
 
   const handleLogout = () => {
     localStorage.removeItem('mockUser');
-    eraseCookie('mockUser'); 
-    setMockUser(null);
+    // setMockUser(null); // loadMockUser via storage event will handle this
     toast({ title: "Logout Successful", description: "You have been logged out." });
     
-    // Dispatch storage event immediately to alert any listening components
-    window.dispatchEvent(new Event('storage'));
-
-    // Navigate after a very short delay to allow potential listeners to react
-    // and to ensure localStorage changes are flushed.
+    // Dispatch storage event immediately to ensure all components (like AdminSidebar) react
+    window.dispatchEvent(new StorageEvent('storage', { key: 'mockUser', oldValue: JSON.stringify(mockUser), newValue: null }));
+    
     setTimeout(() => {
         router.push('/login'); 
-        // router.refresh(); // Consider if refresh is still needed or if component remount on /login is enough
     }, 50);
   };
 
@@ -126,11 +123,11 @@ export function Header() {
               <DropdownMenuTrigger asChild draggable="false">
                 <Button
                   variant="ghost"
-                  className="relative h-14 w-14 rounded-full p-0 focus-visible:ring-0 focus-visible:ring-offset-0 button-follow-sheen mt-3"
+                  className="relative h-10 w-10 rounded-full p-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                 >
-                  <Avatar className="h-14 w-14 border-2 border-primary/50">
+                  <Avatar className="h-9 w-9 border-2 border-primary/50">
                     <AvatarImage src={mockUser.avatarUrl || undefined} alt={mockUser.name} />
-                    <AvatarFallback>{mockUser.name ? mockUser.name.substring(0, 2).toUpperCase() : <UserCircle className="w-7 h-7"/>}</AvatarFallback>
+                    <AvatarFallback>{mockUser.name ? mockUser.name.substring(0, 1).toUpperCase() : <UserCircle className="w-6 h-6"/>}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
@@ -162,14 +159,20 @@ export function Header() {
                  {(mockUser.role === 'admin' || mockUser.role === 'mod') && (
                     <DropdownMenuItem asChild draggable="false">
                        <Link href="/admin" className="flex items-center cursor-pointer">
-                        <Cog className="mr-2" />
+                        <Cog className="mr-2 h-4 w-4" />
                         Admin Panel
                       </Link>
                     </DropdownMenuItem>
                  )}
+                 <DropdownMenuItem asChild draggable="false">
+                    <Link href={`/users/${mockUser.usertag.substring(1)}`} className="flex items-center cursor-pointer">
+                      <UserCircle className="mr-2 h-4 w-4" />
+                      My Profile
+                    </Link>
+                  </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:bg-destructive/10 focus:text-destructive flex items-center cursor-pointer" draggable="false">
-                  <LogOut className="mr-2" />
+                  <LogOut className="mr-2 h-4 w-4" />
                   Logout
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -177,10 +180,10 @@ export function Header() {
           ) : (
             <>
               <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex" draggable="false">
-                <Link href="/login"><LogIn className="mr-2" /> Login</Link>
+                <Link href="/login"><LogIn className="mr-2 h-4 w-4" /> Login</Link>
               </Button>
-               <Button asChild variant="outline" size="sm" className="sm:hidden" draggable="false">
-                  <Link href="/login"><LogIn /></Link>
+               <Button asChild variant="ghost" size="icon" className="sm:hidden rounded-full h-9 w-9" draggable="false">
+                  <Link href="/login" aria-label="Login"><LogIn className="h-5 w-5"/></Link>
               </Button>
             </>
           )}

@@ -1,19 +1,18 @@
 
 "use client";
 
-import React, { useState, useEffect }
-from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { AtSign, LogIn, RefreshCw } from 'lucide-react';
+import { AtSign, LogIn, RefreshCw, UserCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { UserAppRole } from '@/lib/types';
 
-const validUsertags = ['@admin', '@user', '@mod'];
+const validUsertagsForLogin = ['@admin', '@mod', '@user'];
 
 interface MockUser {
   id: string;
@@ -21,88 +20,62 @@ interface MockUser {
   name: string;
   role: UserAppRole;
   avatarUrl?: string;
+  bannerUrl?: string; 
 }
 
 export function AuthForm() {
   const [usertagInput, setUsertagInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const [hostname, setHostname] = useState('');
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setHostname(window.location.hostname);
-    }
-  }, []);
-
-  const setCookie = (name: string, value: string, days: number) => {
-    let expires = "";
-    if (days) {
-      const date = new Date();
-      date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-      expires = "; expires=" + date.toUTCString();
-    }
-
-    let cookieString = name + "=" + (value || "")  + expires + "; path=/";
-
-    // Check if running on the specific Cloud Workstations domain
-    if (hostname && hostname.endsWith('.cloudworkstations.dev')) {
-      // For Cloud Workstations (HTTPS), try with just Secure first as a diagnostic.
-      // This is less strict but might bypass proxy issues with SameSite=None/Partitioned.
-      cookieString += "; Secure";
-    } else if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
-      // For other deployed (HTTPS) environments, use the stricter attributes
-      cookieString += "; SameSite=None; Secure; Partitioned";
-    } else {
-      // For localhost (HTTP usually)
-      cookieString += "; SameSite=Lax";
-    }
-    document.cookie = cookieString;
-  };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsLoading(true);
 
-    const normalizedInput = usertagInput.startsWith('@') ? usertagInput : `@${usertagInput}`;
-    let role: UserAppRole = 'usuario';
-    let userId: string = 'mock-user-id';
-    let userName: string = 'User';
+    const normalizedInput = usertagInput.startsWith('@') ? usertagInput.toLowerCase() : `@${usertagInput.toLowerCase()}`;
+    let mockUserToStore: MockUser | null = null;
 
-    if (normalizedInput.toLowerCase() === '@admin') {
-      role = 'admin';
-      userId = 'mock-admin-id';
-      userName = 'Administrator';
-    } else if (normalizedInput.toLowerCase() === '@mod') {
-      role = 'mod';
-      userId = 'mock-mod-id';
-      userName = 'Moderator';
-    } else if (normalizedInput.toLowerCase() === '@user') {
-      // This condition was missing, added it back.
-      role = 'usuario';
-      userId = 'mock-user-id';
-      userName = 'User';
+    if (normalizedInput === '@admin') {
+      mockUserToStore = {
+        id: 'mock-admin-id',
+        usertag: '@admin',
+        name: 'Administrator',
+        role: 'admin',
+        avatarUrl: `https://placehold.co/128x128/E91E63/FFFFFF?text=A`,
+        bannerUrl: `https://placehold.co/1200x300/1a1a1a/E91E63?text=Admin+Banner`
+      };
+    } else if (normalizedInput === '@mod') {
+      mockUserToStore = {
+        id: 'mock-mod-id',
+        usertag: '@mod',
+        name: 'Moderator',
+        role: 'mod',
+        avatarUrl: `https://placehold.co/128x128/2196F3/FFFFFF?text=M`,
+        bannerUrl: `https://placehold.co/1200x300/1a1a1a/2196F3?text=Mod+Banner`
+      };
+    } else if (normalizedInput === '@user') {
+      mockUserToStore = {
+        id: 'mock-user-id',
+        usertag: '@user',
+        name: 'Regular User',
+        role: 'usuario',
+        avatarUrl: `https://placehold.co/128x128/4CAF50/FFFFFF?text=U`,
+        bannerUrl: `https://placehold.co/1200x300/1a1a1a/4CAF50?text=User+Banner`
+      };
     }
 
-
-    if (validUsertags.includes(normalizedInput.toLowerCase())) {
-      const mockUser: MockUser = {
-        id: userId,
-        usertag: normalizedInput.toLowerCase(),
-        name: userName,
-        role: role,
-        avatarUrl: `https://placehold.co/128x128/${role === 'admin' ? 'E91E63' : role === 'mod' ? '2196F3' : '4CAF50'}/FFFFFF?text=${userName.substring(0,1).toUpperCase()}`
-      };
-      localStorage.setItem('mockUser', JSON.stringify(mockUser));
-      setCookie('mockUser', JSON.stringify(mockUser), 1);
-
-      toast({ title: "Login Successful", description: `Welcome ${mockUser.name}!` });
-      
-      window.dispatchEvent(new Event('storage'));
+    if (mockUserToStore) {
+      localStorage.setItem('mockUser', JSON.stringify(mockUserToStore));
+      toast({ title: "Login Successful", description: `Welcome ${mockUserToStore.name}!` });
+      window.dispatchEvent(new StorageEvent('storage', { key: 'mockUser', newValue: JSON.stringify(mockUserToStore) }));
       
       setTimeout(() => {
-        router.push('/');
-      }, 50);
+        if (mockUserToStore?.role === 'admin' || mockUserToStore?.role === 'mod') {
+            router.push('/admin');
+        } else {
+            router.push('/');
+        }
+      }, 100);
 
     } else {
       toast({ title: "Login Error", description: "Invalid usertag. Try @admin, @mod, or @user.", variant: "destructive" });
@@ -114,10 +87,10 @@ export function AuthForm() {
     <Card className="w-full max-w-md shadow-2xl bg-card/80 backdrop-blur-lg border-border/50">
       <CardHeader className="text-center p-6 pb-4">
         <div className="mx-auto mb-4 p-3 bg-primary/10 rounded-full border-2 border-primary shadow-inner">
-          <LogIn className="w-8 h-8 text-primary" />
+          <UserCircle className="w-10 h-10 text-primary" />
         </div>
         <CardTitle className="text-3xl font-bold text-primary">Mock Login</CardTitle>
-        <CardDescription className="text-muted-foreground">Enter @admin, @mod, or @user to continue.</CardDescription>
+        <CardDescription className="text-muted-foreground">Enter @admin, @mod, or @user to simulate login.</CardDescription>
       </CardHeader>
       <CardContent className="p-6 pt-2 space-y-5">
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -138,7 +111,7 @@ export function AuthForm() {
         </form>
       </CardContent>
       <CardFooter className="p-6 pt-2 flex flex-col items-center">
-        <p className="text-xs text-muted-foreground">This is a mock login system.</p>
+        <p className="text-xs text-muted-foreground">This is a simplified mock login for testing.</p>
       </CardFooter>
     </Card>
   );

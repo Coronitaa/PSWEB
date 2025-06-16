@@ -2,7 +2,6 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { cookies } from 'next/headers';
 import { getDb } from '@/lib/db';
 import type { ReviewFormData, UserAppRole, ReviewInteractionCounts, Review } from '@/lib/types';
 import { USER_APP_ROLES_CONST } from '@/lib/types';
@@ -11,7 +10,7 @@ interface ActionResult<T = null> {
   success: boolean;
   data?: T;
   error?: string;
-  errorCode?: 'AUTH_REQUIRED' | 'NOT_AUTHOR' | 'ALREADY_REVIEWED' | 'DB_ERROR' | 'VALIDATION_ERROR' | 'UNKNOWN_ERROR' | 'NOT_FOUND' | 'FORBIDDEN' | 'COOKIE_INVALID_JSON' | 'COOKIE_MISSING_ID';
+  errorCode?: 'AUTH_REQUIRED' | 'NOT_AUTHOR' | 'ALREADY_REVIEWED' | 'DB_ERROR' | 'VALIDATION_ERROR' | 'UNKNOWN_ERROR' | 'NOT_FOUND' | 'FORBIDDEN';
 }
 
 interface UpdateReviewInteractionResult {
@@ -20,60 +19,48 @@ interface UpdateReviewInteractionResult {
   currentUserIsFunny: boolean;
 }
 
-
-async function verifyUserAndGetId(): Promise<{ userId: string; role: UserAppRole } | { error: string, errorCode: ActionResult['errorCode'] }> {
-  const cookieStore = cookies();
-  const mockUserCookie = cookieStore.get('mockUser');
-  let determinedRole: UserAppRole | undefined;
-  let mockUserId: string | undefined;
-
-  if (mockUserCookie && typeof mockUserCookie.value === 'string' && mockUserCookie.value.trim() !== '') {
-    try {
-      const storedUser = JSON.parse(mockUserCookie.value) as { id?: string; role?: UserAppRole; name?: string; usertag?: string };
-      
-      if (storedUser && typeof storedUser.id === 'string' && storedUser.id.trim() !== '') {
-        mockUserId = storedUser.id.trim();
-        determinedRole = (storedUser.role && USER_APP_ROLES_CONST.includes(storedUser.role)) ? storedUser.role : 'usuario';
-        // If we got a valid ID and role from cookie, use it and return
-        return { userId: mockUserId, role: determinedRole };
-      } else {
-        // Cookie was present and parsed, but ID was missing or invalid
-        return { error: "Mock user cookie is missing a valid 'id' property.", errorCode: 'COOKIE_MISSING_ID' };
-      }
-    } catch (e) {
-      // Cookie was present but JSON parsing failed
-      return { error: "Failed to parse mock user cookie: Invalid JSON.", errorCode: 'COOKIE_INVALID_JSON' };
-    }
-  }
-
-  // If we reach here, it means the cookie was not present, empty, or processing it failed before returning.
-  // Now, try the environment variable fallback.
-  const roleFromEnv = process.env.MOCK_ROLE as UserAppRole | undefined;
-  if (roleFromEnv && USER_APP_ROLES_CONST.includes(roleFromEnv)) {
-    determinedRole = roleFromEnv;
-    if (determinedRole === 'admin') mockUserId = 'mock-admin-id';
-    else if (determinedRole === 'mod') mockUserId = 'mock-mod-id';
-    else if (determinedRole === 'usuario') mockUserId = 'mock-user-id';
-    
-    if (mockUserId && determinedRole) { // Ensure both are set from ENV var
-      return { userId: mockUserId, role: determinedRole };
-    }
-  }
+async function verifyUserAndGetId(
+  clientProvidedUserId?: string
+): Promise<{ userId: string; role: UserAppRole } | { error: string, errorCode: ActionResult['errorCode'] }> {
   
-  // If neither cookie nor ENV var provided a valid user ID and role
-  return { error: "User not authenticated. Mock user ID is missing and no valid ENV fallback.", errorCode: 'AUTH_REQUIRED' };
+  if (clientProvidedUserId) {
+    let role: UserAppRole = 'usuario';
+    if (clientProvidedUserId === 'mock-admin-id') role = 'admin';
+    else if (clientProvidedUserId === 'mock-mod-id') role = 'mod';
+    
+    // Validate if the provided ID corresponds to a known mock user ID structure
+    if (!['mock-admin-id', 'mock-mod-id', 'mock-user-id'].includes(clientProvidedUserId)) {
+        // console.warn(`[reviewActions] verifyUserAndGetId received an unrecognized clientProvidedUserId: ${clientProvidedUserId}. Defaulting to 'usuario'.`);
+        // To be safe, if ID isn't recognized, default to least privileged or treat as unauthenticated.
+        // For this mock system, let's default to 'mock-user-id' and 'usuario' role if ID is unknown.
+        return { userId: 'mock-user-id', role: 'usuario' };
+    }
+    return { userId: clientProvidedUserId, role };
+  }
+
+  // Fallback to MOCK_ROLE from environment if no client ID is provided
+  // console.warn(`[reviewActions] verifyUserAndGetId: No clientProvidedUserId. Falling back to MOCK_USER_ROLE environment variable.`);
+  const roleFromEnv = process.env.MOCK_USER_ROLE as UserAppRole | undefined; // Ensure this env var name is consistent
+  const determinedRole = (roleFromEnv && USER_APP_ROLES_CONST.includes(roleFromEnv)) ? roleFromEnv : 'usuario'; // Default to 'usuario'
+  
+  let mockUserId = 'mock-user-id'; 
+  if (determinedRole === 'admin') mockUserId = 'mock-admin-id';
+  else if (determinedRole === 'mod') mockUserId = 'mock-mod-id';
+  
+  return { userId: mockUserId, role: determinedRole };
 }
 
 
 export async function addReviewAction(
   resourceId: string,
-  data: ReviewFormData
+  data: ReviewFormData,
+  clientMockUserId?: string 
 ): Promise<ActionResult<{ reviewId: string }>> {
-  const authCheck = await verifyUserAndGetId();
-  if ('error'in authCheck) {
-    return { success: false, error: authCheck.error, errorCode: authCheck.errorCode };
+  const authDetails = await verifyUserAndGetId(clientMockUserId);
+  if ('error' in authDetails) { // Should not happen with current simplified logic, but good practice
+    return { success: false, error: authDetails.error, errorCode: authDetails.errorCode };
   }
-  const { userId } = authCheck;
+  const { userId } = authDetails;
 
   const db = await getDb();
 
@@ -132,13 +119,14 @@ export async function addReviewAction(
 
 export async function updateReviewAction(
   reviewId: string,
-  data: ReviewFormData
+  data: ReviewFormData,
+  clientMockUserId?: string
 ): Promise<ActionResult<{ reviewId: string }>> {
-  const authCheck = await verifyUserAndGetId();
-  if ('error' in authCheck) {
-    return { success: false, error: authCheck.error, errorCode: authCheck.errorCode };
+  const authDetails = await verifyUserAndGetId(clientMockUserId);
+  if ('error' in authDetails) {
+    return { success: false, error: authDetails.error, errorCode: authDetails.errorCode };
   }
-  const { userId } = authCheck;
+  const { userId } = authDetails;
 
   const db = await getDb();
   try {
@@ -186,12 +174,12 @@ export async function updateReviewAction(
   }
 }
 
-export async function deleteReviewAction(reviewId: string): Promise<ActionResult> {
-  const authCheck = await verifyUserAndGetId();
-  if ('error' in authCheck) {
-    return { success: false, error: authCheck.error, errorCode: authCheck.errorCode };
+export async function deleteReviewAction(reviewId: string, clientMockUserId?: string): Promise<ActionResult> {
+  const authDetails = await verifyUserAndGetId(clientMockUserId);
+   if ('error' in authDetails) {
+    return { success: false, error: authDetails.error, errorCode: authDetails.errorCode };
   }
-  const { userId } = authCheck;
+  const { userId } = authDetails;
 
   const db = await getDb();
   try {
@@ -246,13 +234,15 @@ export async function deleteReviewAction(reviewId: string): Promise<ActionResult
 
 export async function updateReviewInteractionAction(
   reviewId: string,
-  interactionType: 'helpful' | 'unhelpful' | 'funny'
+  interactionType: 'helpful' | 'unhelpful' | 'funny',
+  clientMockUserId?: string
 ): Promise<ActionResult<UpdateReviewInteractionResult>> {
-  const authCheck = await verifyUserAndGetId();
-  if ('error'in authCheck) {
-    return { success: false, error: authCheck.error, errorCode: authCheck.errorCode, data: undefined };
+  const authDetails = await verifyUserAndGetId(clientMockUserId);
+   if ('error' in authDetails) {
+    return { success: false, error: authDetails.error, errorCode: authDetails.errorCode };
   }
-  const { userId } = authCheck;
+  const { userId } = authDetails;
+  
   const db = await getDb();
 
   try {
@@ -325,24 +315,21 @@ export async function updateReviewInteractionAction(
 }
 
 export async function getUserSentimentForReviewAction(
-  reviewId: string
+  reviewId: string,
+  clientMockUserId?: string
 ): Promise<ActionResult<{ sentiment: 'helpful' | 'unhelpful' | null; isFunny: boolean }>> {
-  const authCheck = await verifyUserAndGetId();
-  if ('error'in authCheck) {
-    // If user is not authenticated server-side, they have no specific sentiment.
-    // This is not an "error" for the caller in terms of DB operation, but indicates no user-specific data.
-    // We return success: true with default (null/false) sentiment values.
-    // The `authCheck.errorCode` could be 'AUTH_REQUIRED', 'COOKIE_INVALID_JSON', etc.
-    // For this specific action, if auth fails for any reason, it implies no specific user sentiment.
-    if (authCheck.errorCode === 'AUTH_REQUIRED') {
-        return { success: true, data: { sentiment: null, isFunny: false } };
-    }
-    // If cookie was invalid, it's still a form of "no user" for this purpose.
-    // However, to be more explicit, we could return the auth error if it's not 'AUTH_REQUIRED'.
-    // For now, simplifying: any auth failure means "no specific sentiment for this (unidentified) user".
-    return { success: true, data: { sentiment: null, isFunny: false } };
+  if (!clientMockUserId) {
+      // If no client-provided ID, assume anonymous user for this specific read-only action
+      return { success: true, data: { sentiment: null, isFunny: false } };
   }
-  const { userId } = authCheck;
+  const authDetails = await verifyUserAndGetId(clientMockUserId);
+   if ('error' in authDetails) { 
+    // This path should ideally not be hit if clientMockUserId is provided,
+    // but if verifyUserAndGetId fails for some reason with a provided ID.
+    return { success: false, error: authDetails.error, errorCode: authDetails.errorCode };
+  }
+  const { userId } = authDetails;
+  
   const db = await getDb();
 
   try {
@@ -360,7 +347,6 @@ export async function getUserSentimentForReviewAction(
         }
       };
     } else {
-      // Successfully checked, but no record found for this user and review
       return { success: true, data: { sentiment: null, isFunny: false } };
     }
   } catch (error: any) {

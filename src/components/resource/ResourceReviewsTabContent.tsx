@@ -4,9 +4,9 @@
 import type React from 'react';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { Resource, Review, UserAppRole } from '@/lib/types';
-import { ReviewCard } from './ReviewCard';
+import { ReviewCard } from './ReviewCard'; // Corrected path
 import { Button } from '@/components/ui/button';
-import { MessageSquarePlus, ListOrdered, Info, Star } from 'lucide-react';
+import { MessageSquarePlus, ListOrdered, Info, Star, Loader2 } from 'lucide-react'; // Ensured Loader2 is here
 import {
   Select,
   SelectContent,

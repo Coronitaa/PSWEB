@@ -54,49 +54,47 @@ const combineDescriptionAndConfig = (textDescription: string | null | undefined,
 
 
 async function verifyPermission(allowedRoles: UserAppRole[]): Promise<{ user: { id: string; role: UserAppRole }; profile: { role: UserAppRole } } | { error: string }> {
-  let determinedRole: UserAppRole = 'usuario'; // Default to lowest permission
+  let determinedRole: UserAppRole = 'usuario';
   let mockUserId: string | undefined;
 
-  // 1. Attempt to get user details from 'mockUser' cookie
-  try {
-    const cookieStore = cookies();
-    const storedUserJson = cookieStore.get('mockUser')?.value;
+  const cookieStore = cookies();
+  const mockUserCookie = cookieStore.get('mockUser');
 
-    if (storedUserJson) {
-      const storedUser = JSON.parse(storedUserJson) as { id?: string; role?: UserAppRole };
-      if (storedUser.id) { // Crucially check if ID exists
-        mockUserId = storedUser.id;
-        if (storedUser.role && USER_APP_ROLES_CONST.includes(storedUser.role)) {
-          determinedRole = storedUser.role;
-        } else {
-          determinedRole = 'usuario'; // Default role if not in cookie or invalid
-        }
-        // Successfully got role and ID from cookie
+  if (mockUserCookie && typeof mockUserCookie.value === 'string' && mockUserCookie.value.trim() !== '') {
+    try {
+      const storedUser = JSON.parse(mockUserCookie.value) as { id?: string; role?: UserAppRole; name?: string; usertag?: string };
+      
+      if (storedUser && typeof storedUser.id === 'string' && storedUser.id.trim() !== '') {
+        mockUserId = storedUser.id.trim();
+        determinedRole = (storedUser.role && USER_APP_ROLES_CONST.includes(storedUser.role)) ? storedUser.role : 'usuario';
+        
         if (allowedRoles.includes(determinedRole)) {
           return {
             user: { id: mockUserId, role: determinedRole },
             profile: { role: determinedRole }
           };
         } else {
-          // Role from cookie not allowed
           const errorMsg = `MOCK AUTH (Cookie): Permission denied. Role '${determinedRole}' not in allowed: ${allowedRoles.join(' or ')}.`;
+          // console.warn(errorMsg);
           return { error: errorMsg };
         }
+      } else {
+        // console.warn("[ServerAction Admin Cookie Auth] Cookie 'mockUser' parsed, but 'id' is missing or invalid.", storedUser);
       }
+    } catch (e) {
+      // console.warn("[ServerAction Admin Cookie Auth] Error parsing 'mockUser' cookie. Value:", mockUserCookie.value, "Error:", e);
     }
-  } catch (e) {
-    // console.warn("[verifyPermission ACTION] Error parsing 'mockUser' cookie:", e);
-    // Continue to ENV fallback
+  } else {
+    // console.log("[ServerAction Admin Cookie Auth] 'mockUser' cookie not found or has no value.");
   }
 
-  // 2. Fallback to MOCK_ROLE environment variable if cookie didn't yield a user
+  // Fallback to MOCK_ROLE environment variable
   const roleFromEnv = process.env.MOCK_ROLE as UserAppRole | undefined;
   if (roleFromEnv && USER_APP_ROLES_CONST.includes(roleFromEnv)) {
     determinedRole = roleFromEnv;
-    // Assign a mockUserId based on the ENV role
     if (determinedRole === 'admin') mockUserId = 'mock-admin-id';
     else if (determinedRole === 'mod') mockUserId = 'mock-mod-id';
-    else mockUserId = 'mock-user-id'; // Default for 'usuario' from ENV
+    else mockUserId = 'mock-user-id';
 
     if (mockUserId) {
       if (allowedRoles.includes(determinedRole)) {
@@ -105,15 +103,15 @@ async function verifyPermission(allowedRoles: UserAppRole[]): Promise<{ user: { 
           profile: { role: determinedRole }
         };
       } else {
-        // Role from ENV not allowed
         const errorMsg = `MOCK AUTH (ENV): Permission denied. Role '${determinedRole}' not in allowed: ${allowedRoles.join(' or ')}.`;
+        // console.warn(errorMsg);
         return { error: errorMsg };
       }
     }
   }
   
-  // 3. If neither cookie nor ENV var provided a valid user/role combination for allowed roles
   const errorMsg = `MOCK AUTH: Permission denied. No valid user session found meeting criteria: ${allowedRoles.join(' or ')}.`;
+  // console.error(errorMsg);
   return { error: errorMsg };
 }
 
@@ -603,4 +601,5 @@ export async function deleteResourceAction(resourceId: string): Promise<ActionRe
 
 
     
+
 

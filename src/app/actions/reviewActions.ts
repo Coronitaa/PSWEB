@@ -25,44 +25,40 @@ async function verifyUserAndGetId(): Promise<{ userId: string; role: UserAppRole
   let determinedRole: UserAppRole = 'usuario';
   let mockUserId: string | undefined;
 
-  // 1. Attempt to get user details from 'mockUser' cookie
-  try {
-    const cookieStore = cookies();
-    const storedUserJson = cookieStore.get('mockUser')?.value;
+  const cookieStore = cookies();
+  const mockUserCookie = cookieStore.get('mockUser');
 
-    if (storedUserJson) {
-      const storedUser = JSON.parse(storedUserJson) as { id?: string; role?: UserAppRole };
-      if (storedUser.id) { // Crucially check if ID exists in the parsed cookie
-        mockUserId = storedUser.id;
-        if (storedUser.role && USER_APP_ROLES_CONST.includes(storedUser.role)) {
-          determinedRole = storedUser.role;
-        } else {
-          determinedRole = 'usuario'; // Default role if not specified or invalid in cookie
-        }
-        // If we found a valid ID from the cookie, we're good. Return immediately.
+  if (mockUserCookie && typeof mockUserCookie.value === 'string' && mockUserCookie.value.trim() !== '') {
+    try {
+      const storedUser = JSON.parse(mockUserCookie.value) as { id?: string; role?: UserAppRole; name?: string; usertag?: string };
+      
+      if (storedUser && typeof storedUser.id === 'string' && storedUser.id.trim() !== '') {
+        mockUserId = storedUser.id.trim();
+        determinedRole = (storedUser.role && USER_APP_ROLES_CONST.includes(storedUser.role)) ? storedUser.role : 'usuario';
         return { userId: mockUserId, role: determinedRole };
+      } else {
+        // console.warn("[ServerAction Review Cookie Auth] Cookie 'mockUser' parsed, but 'id' is missing or invalid.", storedUser);
       }
+    } catch (e) {
+      // console.warn("[ServerAction Review Cookie Auth] Error parsing 'mockUser' cookie. Value:", mockUserCookie.value, "Error:", e);
     }
-  } catch (e) {
-    // console.warn("[verifyUserAndGetId REVIEW_ACTION] Error parsing 'mockUser' cookie:", e);
-    // Continue to ENV fallback if cookie parsing failed or ID was missing
+  } else {
+    // console.log("[ServerAction Review Cookie Auth] 'mockUser' cookie not found or has no value.");
   }
 
-  // 2. Fallback to MOCK_ROLE environment variable if cookie didn't yield a user ID
+  // Fallback to MOCK_ROLE environment variable
   const roleFromEnv = process.env.MOCK_ROLE as UserAppRole | undefined;
   if (roleFromEnv && USER_APP_ROLES_CONST.includes(roleFromEnv)) {
     determinedRole = roleFromEnv;
     if (determinedRole === 'admin') mockUserId = 'mock-admin-id';
     else if (determinedRole === 'mod') mockUserId = 'mock-mod-id';
     else if (determinedRole === 'usuario') mockUserId = 'mock-user-id';
-    // Add more mock user IDs if needed for other roles via ENV
-
-    if (mockUserId) { // If ENV var yielded a user ID
+    
+    if (mockUserId) {
       return { userId: mockUserId, role: determinedRole };
     }
   }
   
-  // 3. If neither cookie nor ENV var provided a user ID
   return { error: "User not authenticated. Mock user ID is missing.", errorCode: 'AUTH_REQUIRED' };
 }
 
@@ -331,6 +327,12 @@ export async function getUserSentimentForReviewAction(
 ): Promise<ActionResult<{ sentiment: 'helpful' | 'unhelpful' | null; isFunny: boolean }>> {
   const authCheck = await verifyUserAndGetId();
   if ('error'in authCheck) {
+    // If auth fails here, it means the user isn't logged in or identifiable server-side.
+    // In this specific case, it's not an error for the caller, but means no sentiment exists for *this* unauthenticated user.
+    // Return success: false but with a specific errorCode that the client can interpret as "no user, so no sentiment".
+    // However, the current ActionResult type doesn't easily distinguish "auth error" from "no sentiment for this user".
+    // For simplicity, if authCheck fails, we'll return success: false with AUTH_REQUIRED.
+    // The client will then know not to try and show specific user sentiment.
     return { success: false, error: authCheck.error, errorCode: authCheck.errorCode };
   }
   const { userId } = authCheck;
@@ -351,6 +353,7 @@ export async function getUserSentimentForReviewAction(
         }
       };
     } else {
+      // Successfully checked, but no record found for this user and review
       return { success: true, data: { sentiment: null, isFunny: false } };
     }
   } catch (error: any) {

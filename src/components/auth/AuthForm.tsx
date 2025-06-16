@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState }
+import React, { useState, useEffect }
 from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -27,6 +27,14 @@ export function AuthForm() {
   const [usertagInput, setUsertagInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const [hostname, setHostname] = useState('');
+
+  useEffect(() => {
+    // Ensure this runs only on the client
+    if (typeof window !== 'undefined') {
+      setHostname(window.location.hostname);
+    }
+  }, []);
 
   const setCookie = (name: string, value: string, days: number) => {
     let expires = "";
@@ -35,9 +43,14 @@ export function AuthForm() {
       date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
       expires = "; expires=" + date.toUTCString();
     }
-    // Add SameSite=None, Secure, and Partitioned attributes
-    // This requires the site to be served over HTTPS.
-    document.cookie = name + "=" + (value || "")  + expires + "; path=/; SameSite=None; Secure; Partitioned";
+
+    let cookieString = name + "=" + (value || "")  + expires + "; path=/";
+
+    // Only add Secure, SameSite=None, and Partitioned if not on localhost/127.0.0.1 (likely HTTPS)
+    if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      cookieString += "; SameSite=None; Secure; Partitioned";
+    }
+    document.cookie = cookieString;
   };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -47,7 +60,7 @@ export function AuthForm() {
     const normalizedInput = usertagInput.startsWith('@') ? usertagInput : `@${usertagInput}`;
     let role: UserAppRole = 'usuario';
     let userId: string = 'mock-user-id';
-    let userName: string = 'User'; 
+    let userName: string = 'User';
 
     if (normalizedInput.toLowerCase() === '@admin') {
       role = 'admin';

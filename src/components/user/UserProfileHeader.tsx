@@ -46,8 +46,8 @@ export function UserProfileHeader({ profile }: UserProfileHeaderProps) {
     <section className="relative -mx-4 -mt-8 rounded-b-xl overflow-hidden">
       <div className="relative h-48 md:h-64 w-full">
         <Image
-          src={profile.bannerUrl || `https://placehold.co/1200x300/1f1f1f/E64A8B?text=${profile.name.substring(0,1)}`}
-          alt={`${profile.name}'s banner`}
+          src={profile.bannerUrl || `https://placehold.co/1200x300/1f1f1f/E64A8B?text=${profile.name ? profile.name.substring(0,1) : 'P'}`}
+          alt={`${profile.name || 'User'}'s banner`}
           fill
           style={{objectFit:"cover"}}
           priority
@@ -62,8 +62,8 @@ export function UserProfileHeader({ profile }: UserProfileHeaderProps) {
           <div className="flex items-end gap-4">
             <div className="relative w-24 h-24 md:w-32 md:h-32 shrink-0">
               <Image
-                src={profile.avatarUrl || `https://placehold.co/128x128/E64A8B/FFFFFF?text=${profile.name.substring(0,1)}`}
-                alt={`${profile.name}'s avatar`}
+                src={profile.avatarUrl || `https://placehold.co/128x128/E64A8B/FFFFFF?text=${profile.name ? profile.name.substring(0,1) : 'U'}`}
+                alt={`${profile.name || 'User'}'s avatar`}
                 fill
                 style={{objectFit:"cover"}}
                 className="rounded-full border-4 border-background shadow-xl bg-muted"
@@ -72,14 +72,15 @@ export function UserProfileHeader({ profile }: UserProfileHeaderProps) {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-3xl md:text-4xl font-bold text-foreground drop-shadow-md">{profile.name}</h1>
+                <h1 className="text-3xl md:text-4xl font-bold text-foreground drop-shadow-md">{profile.name || 'User'}</h1>
                 {verifiedBadge && (
-                  <div className="self-center mt-1"> {/* Adjusted margin for better alignment */}
+                  <div className="self-center mt-1"> 
                     <UserProfileBadge badge={verifiedBadge} isInline />
                   </div>
                 )}
               </div>
-              <p className="text-base text-muted-foreground">@{profile.usertag}</p>
+              {/* Display usertag as it comes from the database (already includes '@') */}
+              <p className="text-base text-muted-foreground">{profile.usertag || '@unknown'}</p>
               {otherBadges && otherBadges.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {otherBadges.map(badge => (

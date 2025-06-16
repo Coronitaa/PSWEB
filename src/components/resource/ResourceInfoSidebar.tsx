@@ -133,10 +133,6 @@ export function ResourceInfoSidebar({ resource }: ResourceInfoSidebarProps) {
   const [displayDateFormatted, setDisplayDateFormatted] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    // Determine the date to display as "Updated"
-    // Prioritize latest file's upload date (updatedAt/createdAt for file)
-    // Fallback to resource's creation date if no files
-    // The resource's own updatedAt is for internal tracking of any change (metadata, config, etc.)
     const dateToFormat = latestFile?.updatedAt || latestFile?.createdAt || resource.createdAt;
     setDisplayDateFormatted(formatTimeAgo(dateToFormat));
   }, [resource.createdAt, latestFile]);
@@ -188,6 +184,8 @@ export function ResourceInfoSidebar({ resource }: ResourceInfoSidebarProps) {
   };
 
   const parentItemPath = `/${resource.parentItemType === 'art-music' ? 'art-music' : resource.parentItemType + 's'}/${resource.parentItemSlug}`;
+  const authorProfilePath = resource.author.usertag ? `/users/${resource.author.usertag.startsWith('@') ? resource.author.usertag.substring(1) : resource.author.usertag}` : '#';
+
 
   const positiveReviewsCount = resource.reviews?.filter(r => r.isRecommended).length || 0;
   const negativeReviewsCount = (resource.reviewCount || 0) - positiveReviewsCount;
@@ -263,7 +261,7 @@ export function ResourceInfoSidebar({ resource }: ResourceInfoSidebarProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             {resource.author.avatarUrl && (
-              <Link href={`/users/${resource.author.usertag}`}>
+              <Link href={authorProfilePath}>
                 <img
                   src={resource.author.avatarUrl}
                   alt={resource.author.name || ''}
@@ -273,7 +271,7 @@ export function ResourceInfoSidebar({ resource }: ResourceInfoSidebarProps) {
               </Link>
             )}
             <div>
-              <Link href={`/users/${resource.author.usertag}`} className="hover:text-primary transition-colors">
+              <Link href={authorProfilePath} className="hover:text-primary transition-colors">
                 <p className="font-semibold text-foreground">{resource.author.name}</p>
               </Link>
               <p className="text-xs text-muted-foreground">Creator of this resource</p>
@@ -306,11 +304,14 @@ export function ResourceInfoSidebar({ resource }: ResourceInfoSidebarProps) {
                     {tagsInGroup.map(tag => {
                       const queryParam = getFilterQueryParamForTagType(tag.type);
                       const categoryPath = `${parentItemPath}/${resource.categorySlug}`;
-                      if (queryParam) {
+                      // Note: For dynamic tags, the query param would be the group ID
+                      // This current logic is more for predefined Tag types.
+                      // If these 'tags' are from dynamicTagGroups, this link logic might need adjustment.
+                      if (queryParam) { 
                         return (
                           <Link
                             key={tag.id}
-                            href={`${categoryPath}?${queryParam}=${tag.id}`}
+                            href={`${categoryPath}?${queryParam}=${tag.id}`} // Example query
                             className="hover:opacity-80 transition-opacity"
                           >
                             <TagBadge tag={tag} />
@@ -350,4 +351,3 @@ export function ResourceInfoSidebar({ resource }: ResourceInfoSidebarProps) {
     </div>
   );
 }
-    

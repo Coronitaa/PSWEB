@@ -46,9 +46,17 @@ export function AuthForm() {
 
     let cookieString = name + "=" + (value || "")  + expires + "; path=/";
 
-    // Only add Secure, SameSite=None, and Partitioned if not on localhost/127.0.0.1 (likely HTTPS)
     if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      // For deployed (HTTPS) environments
       cookieString += "; SameSite=None; Secure; Partitioned";
+    } else {
+      // For localhost (HTTP or HTTPS)
+      cookieString += "; SameSite=Lax";
+      // If localhost is running on HTTPS, you could also add Secure here,
+      // but SameSite=Lax usually works well without it on localhost.
+      // if (typeof window !== 'undefined' && window.location.protocol === "https:") {
+      //   cookieString += "; Secure";
+      // }
     }
     document.cookie = cookieString;
   };

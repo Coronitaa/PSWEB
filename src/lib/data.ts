@@ -798,7 +798,7 @@ export const getResourceBySlug = async (slug: string): Promise<Resource | undefi
             name: revRow.author_name,
             usertag: revRow.author_usertag,
             avatarUrl: revRow.author_avatar_url,
-            role: 'usuario', 
+            role: 'usuario',
         }
     }));
 
@@ -817,7 +817,7 @@ export const getResourceBySlug = async (slug: string): Promise<Resource | undefi
           }
         }
       });
-      if (mostHelpfulIdx !== -1 && maxHelpfulCount > 0) { 
+      if (mostHelpfulIdx !== -1 && maxHelpfulCount > 0) {
         reviews = reviews.map((rev, idx) => ({ ...rev, isMostHelpful: idx === mostHelpfulIdx }));
       }
     }
@@ -838,7 +838,7 @@ export const getResourceBySlug = async (slug: string): Promise<Resource | undefi
     status: row.status as ProjectStatus,
     tags: resourceDisplayTags,
     files,
-    reviews, 
+    reviews,
     selectedDynamicTagsJson: row.selected_dynamic_tags_json,
     mainFileDetailsJson: row.main_file_details_json,
   } as Resource;
@@ -876,9 +876,10 @@ export const getAvailableFilterTags = async (parentItemSlug: string, parentItemT
 
 
 // --- User/Profile Functions ---
-export const getUserProfileByUsertag = async (usertag: string): Promise<Author | undefined> => {
+export const getUserProfileByUsertag = async (usertagWithoutAt: string): Promise<Author | undefined> => {
   const db = await getDb();
-  const profileRow = await db.get("SELECT * FROM profiles WHERE usertag = ?", usertag);
+  const usertagWithAt = usertagWithoutAt.startsWith('@') ? usertagWithoutAt : `@${usertagWithoutAt}`;
+  const profileRow = await db.get("SELECT * FROM profiles WHERE usertag = ?", usertagWithAt);
   if (!profileRow) return undefined;
 
   const mockBadges: UserBadge[] = [];
@@ -890,7 +891,7 @@ export const getUserProfileByUsertag = async (usertag: string): Promise<Author |
   return {
     id: profileRow.id,
     name: profileRow.name,
-    usertag: profileRow.usertag,
+    usertag: profileRow.usertag, // Store with @ from DB
     avatarUrl: profileRow.avatar_url,
     bannerUrl: profileRow.banner_url,
     bio: profileRow.bio,
@@ -1083,5 +1084,6 @@ export const incrementResourceFileDownloadCount = async (fileId: string): Promis
   return (result.changes ?? 0) > 0;
 };
     
+
 
 

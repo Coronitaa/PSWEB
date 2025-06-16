@@ -4,7 +4,7 @@ import { getUserProfileByUsertag, getUserStats, getTopUserResources, getRecentUs
 import type { Author as UserProfile, UserStats, RankedResource, Resource } from '@/lib/types';
 import { UserProfilePageContent } from '@/components/user/UserProfilePageContent';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { getDb } from '@/lib/db'; // Importar getDb para la base de datos local
+import { getDb } from '@/lib/db';
 
 interface UserProfilePageProps {
   params: { usertag: string };
@@ -13,6 +13,7 @@ interface UserProfilePageProps {
 const RECENT_RESOURCES_COUNT = 6;
 
 export default async function UserProfilePage({ params }: UserProfilePageProps) {
+  // params.usertag will be "admin", "mod", "user", etc. (without "@")
   const profile = await getUserProfileByUsertag(params.usertag);
   if (!profile) {
     notFound();
@@ -40,19 +41,20 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
 }
 
 export async function generateStaticParams() {
-  const db = await getDb(); // Usar la base de datos local
+  const db = await getDb();
   const profilesData = await db.all("SELECT usertag FROM profiles WHERE usertag IS NOT NULL");
 
   if (!profilesData) {
-    console.warn("generateStaticParams: No profiles data found from local DB.");
+    console.warn("generateStaticParams for UserProfilePage: No profiles data found from local DB.");
     return [];
   }
 
   return profilesData
-    .filter(p => p.usertag) 
+    .filter(p => p.usertag && p.usertag.startsWith('@')) // Ensure it starts with @
     .map(profile => ({
-      usertag: profile.usertag, 
+      usertag: profile.usertag.substring(1), // Remove the "@" for the route parameter
     }));
 }
 
 export const revalidate = 3600; // Revalidate profile pages every hour
+

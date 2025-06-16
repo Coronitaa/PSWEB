@@ -24,7 +24,7 @@ import type { UserAppRole } from '@/lib/types';
 
 interface MockUser {
   id: string;
-  usertag: string;
+  usertag: string; // This will now be stored WITH "@" in localStorage
   name: string;
   role: UserAppRole;
   avatarUrl?: string;
@@ -42,10 +42,11 @@ export function Header() {
     if (storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
-        if (parsedUser && typeof parsedUser.id === 'string' && typeof parsedUser.usertag === 'string') {
+        // Ensure usertag still has "@" when read from localStorage
+        if (parsedUser && typeof parsedUser.id === 'string' && typeof parsedUser.usertag === 'string' && parsedUser.usertag.startsWith('@')) {
           setMockUser(parsedUser);
         } else {
-          localStorage.removeItem('mockUser'); // Clear invalid stored data
+          localStorage.removeItem('mockUser'); 
           setMockUser(null);
         }
       } catch (e) {
@@ -76,12 +77,8 @@ export function Header() {
 
   const handleLogout = () => {
     localStorage.removeItem('mockUser');
-    // setMockUser(null); // loadMockUser via storage event will handle this
-    toast({ title: "Logout Successful", description: "You have been logged out." });
-    
-    // Dispatch storage event immediately to ensure all components (like AdminSidebar) react
     window.dispatchEvent(new StorageEvent('storage', { key: 'mockUser', oldValue: JSON.stringify(mockUser), newValue: null }));
-    
+    toast({ title: "Logout Successful", description: "You have been logged out." });
     setTimeout(() => {
         router.push('/login'); 
     }, 50);
@@ -165,6 +162,7 @@ export function Header() {
                     </DropdownMenuItem>
                  )}
                  <DropdownMenuItem asChild draggable="false">
+                    {/* Link to profile page using usertag without the leading '@' */}
                     <Link href={`/users/${mockUser.usertag.substring(1)}`} className="flex items-center cursor-pointer">
                       <UserCircle className="mr-2 h-4 w-4" />
                       My Profile
@@ -192,3 +190,4 @@ export function Header() {
     </header>
   );
 }
+

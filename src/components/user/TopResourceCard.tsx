@@ -9,7 +9,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Badge } from '@/components/ui/badge';
 import { Carousel, CarouselItem } from '@/components/shared/Carousel';
 import { Download, Package, Gamepad2, Code, TabletSmartphone, Music as MusicIcon, Star as StarIcon, Layers } from 'lucide-react';
-import { formatNumberWithSuffix } from '@/lib/utils'; // Updated import
+import { formatNumberWithSuffix } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import GlareHover from '@/components/effects/GlareHover';
 
@@ -47,12 +47,12 @@ export function TopResourceCard({ resource }: TopResourceCardProps) {
         className={cn(
           "rounded-lg h-full group/glare", 
           "transition-all duration-300 ease-in-out", 
-          "group-hover/glare:transform group-hover/glare:-translate-y-1" // Transform on GlareHover
+          "group-hover/glare:transform group-hover/glare:-translate-y-1"
         )}
       >
         <Card className={cn(
             "flex flex-col overflow-visible h-full bg-card/80 backdrop-blur-sm shadow-xl transition-all duration-300 ease-in-out border-border/30 rounded-lg",
-            "group-hover/glare:border-primary/50 group-hover/glare:shadow-primary/40" // Border and shadow on Card
+            "group-hover/glare:border-primary/50 group-hover/glare:shadow-primary/40"
         )}>
           <CardHeader className="p-0 relative">
             <div className="block aspect-video overflow-hidden rounded-t-lg">
@@ -79,7 +79,7 @@ export function TopResourceCard({ resource }: TopResourceCardProps) {
                 </Carousel>
               ) : (
                 <Image
-                  src={resource.imageUrl}
+                  src={resource.imageUrl || 'https://placehold.co/800x450.png'}
                   alt={`${resource.name} banner`}
                   fill
                   style={{ objectFit: "cover" }}
@@ -112,7 +112,7 @@ export function TopResourceCard({ resource }: TopResourceCardProps) {
                 <Download className="w-3.5 h-3.5 mr-1 text-accent" />
                 <span>{formatNumberWithSuffix(resource.downloads)}</span>
               </div>
-              <div className="flex items-center" title={resource.rating ? `${resource.rating.toFixed(1)} (${formatNumberWithSuffix(resource.reviewCount)} reviews)` : 'No reviews'}>
+              <div className="flex items-center" title={resource.rating ? `${resource.rating.toFixed(1)} (${formatNumberWithSuffix(resource.reviewCount || 0)} reviews)` : 'No reviews'}>
                 <StarIcon className={cn("w-3.5 h-3.5 mr-1", resource.rating ? "text-amber-400 fill-amber-400" : "text-muted-foreground/50")} />
                 <span>{resource.rating ? resource.rating.toFixed(1) : 'N/A'}</span>
               </div>

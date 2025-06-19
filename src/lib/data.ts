@@ -22,7 +22,7 @@ const mapConfigToTagInterface = (config: TagInGroupConfig, slugPrefix: string = 
   hover_text_color: config.hover_text_color,
   hover_border_color: config.hover_border_color,
   icon_svg: config.icon_svg,
-  type: 'misc',
+  type: 'misc', // Default type, can be overridden if group info is available
 });
 
 export const mapFileChannelToTagInterface = async (channelId: FileChannelId | string | undefined | null): Promise<Tag | null> => {
@@ -38,10 +38,10 @@ export const mapFileChannelToTagInterface = async (channelId: FileChannelId | st
     color: channelInfo.color,
     text_color: channelInfo.textColor,
     border_color: channelInfo.borderColor,
-    hover_bg_color: channelInfo.color,
+    hover_bg_color: channelInfo.color, // Or a slightly different hover variant
     hover_text_color: channelInfo.textColor,
     hover_border_color: channelInfo.borderColor,
-    icon_svg: undefined,
+    icon_svg: undefined, // Channels don't have icons by default
     type: 'channel',
   };
 };
@@ -885,6 +885,7 @@ export const getUserProfileByUsertag = async (usertagWithoutAt: string): Promise
   const mockBadges: UserBadge[] = [];
   if (profileRow.role === 'admin') mockBadges.push({ id: 'badge-admin', name: 'Admin', icon: 'ShieldCheck', color: 'hsl(var(--destructive))', textColor: 'hsl(var(--destructive-foreground))' });
   if (profileRow.role === 'mod') mockBadges.push({ id: 'badge-mod', name: 'Moderator', icon: 'Shield', color: 'hsl(var(--primary))', textColor: 'hsl(var(--primary-foreground))' });
+  // All users get a "verified" badge for now as part of mock data
   mockBadges.push({id: 'badge-verified', name: 'Verified', icon: 'CheckCircle', color: 'hsl(var(--accent))', textColor: 'hsl(var(--accent-foreground))' });
 
 
@@ -904,39 +905,49 @@ export const getUserProfileByUsertag = async (usertagWithoutAt: string): Promise
 };
 
 export const getUserStats = async (userId: string): Promise<UserStats> => {
-  return { followersCount: Math.floor(Math.random() * 1000), resourcesPublishedCount: Math.floor(Math.random() * 50), reviewsPublishedCount: Math.floor(Math.random() * 20), overallResourceRating: Math.random() * 5, overallResourceReviewCount: Math.floor(Math.random() * 100) };
-};
-export const getTopUserResources = async (userId: string, count: number = 3): Promise<RankedResource[]> => { return []; };
-
-export async function getAuthorPublishedResources(userId: string, limit?: number): Promise<Resource[]> {
   const db = await getDb();
-  let sql = `
-    SELECT r.*,
-           p.name as author_name, p.usertag as author_usertag, p.avatar_url as author_avatar_url,
-           pi.name as parent_item_name, pi.slug as parent_item_slug, pi.item_type as parent_item_type,
-           c.name as category_name, c.slug as category_slug
-    FROM resources r
-    JOIN profiles p ON r.author_id = p.id
-    JOIN items pi ON r.parent_item_id = pi.id
-    JOIN categories c ON r.category_id = c.id
-    WHERE r.author_id = ? AND r.status = 'published'
-    ORDER BY r.updated_at DESC
-  `;
-  const queryParams: any[] = [userId];
 
-  if (limit) {
-    sql += ` LIMIT ?`;
-    queryParams.push(limit);
-  }
+  const resourcesPublishedResult = await db.get(
+    "SELECT COUNT(*) as count FROM resources WHERE author_id = ? AND status = 'published'",
+    userId
+  );
+  const resourcesPublishedCount = resourcesPublishedResult?.count || 0;
 
-  const resourceRows = await db.all(sql, ...queryParams);
-  if (!resourceRows) return [];
+  const reviewsPublishedResult = await db.get(
+    "SELECT COUNT(*) as count FROM reviews WHERE author_id = ?",
+    userId
+  );
+  const reviewsPublishedCount = reviewsPublishedResult?.count || 0;
 
-  const hydratedResources = await Promise.all(resourceRows.map(async (row) => {
+  const userPublishedResources = await db.all(
+    "SELECT rating, review_count FROM resources WHERE author_id = ? AND status = 'published' AND rating IS NOT NULL AND review_count > 0",
+    userId
+  );
+
+  let totalWeightedRating = 0;
+  let totalReviewCountForAllResources = 0;
+  userPublishedResources.forEach(res => {
+    totalWeightedRating += (res.rating * res.review_count);
+    totalReviewCountForAllResources += res.review_count;
+  });
+
+  const overallResourceRating = totalReviewCountForAllResources > 0 ? (totalWeightedRating / totalReviewCountForAllResources) : null;
+
+  return {
+    followersCount: 0, // Placeholder as user followers are not tracked directly
+    resourcesPublishedCount,
+    reviewsPublishedCount,
+    overallResourceRating,
+    overallResourceReviewCount: totalReviewCountForAllResources,
+  };
+};
+
+const hydrateResourceRows = async (rows: any[]): Promise<Resource[]> => {
+  return Promise.all(rows.map(async (row) => {
     const categoryForResource = await getCategoryDetails(row.parent_item_slug, row.parent_item_type as ItemType, row.category_slug);
-
     let resourceDisplayTags: Tag[] = [];
     const selectedTagGroups: DynamicTagSelection = row.selected_dynamic_tags_json ? JSON.parse(row.selected_dynamic_tags_json) : {};
+
     if (categoryForResource && categoryForResource.tagGroupConfigs) {
       categoryForResource.tagGroupConfigs.forEach(group => {
         const selectedTagIdsInGroup = selectedTagGroups[group.id];
@@ -950,41 +961,42 @@ export async function getAuthorPublishedResources(userId: string, limit?: number
         }
       });
     }
-
+    
+    const db = await getDb();
     const filesDb = await db.all("SELECT rf.*, ce.notes as changelog_notes FROM resource_files rf LEFT JOIN changelog_entries ce ON ce.resource_file_id = rf.id WHERE rf.resource_id = ? ORDER BY rf.updated_at DESC, rf.created_at DESC", row.id);
     const files: ResourceFile[] = [];
-    for (const fileRow of filesDb) {
-      let parsedSelectedFileTags: DynamicTagSelection = {};
-      let fileDisplayTags: Tag[] = [];
-      if (fileRow.selected_file_tags_json) {
-          try {
-              parsedSelectedFileTags = JSON.parse(fileRow.selected_file_tags_json);
-              if (categoryForResource && categoryForResource.tagGroupConfigs) {
-                categoryForResource.tagGroupConfigs.forEach(groupConfig => {
-                    if (groupConfig.appliesToFiles && parsedSelectedFileTags[groupConfig.id]) {
-                    parsedSelectedFileTags[groupConfig.id]?.forEach(tagId => {
-                        const tagConfig = (groupConfig.tags || []).find(t => t.id === tagId);
-                        if (tagConfig) {
-                        fileDisplayTags.push(mapConfigToTagInterface(tagConfig, groupConfig.groupDisplayName.toLowerCase().replace(/\s+/g, '-')));
+      for (const fileRow of filesDb) {
+          let parsedSelectedFileTags: DynamicTagSelection = {};
+          let fileDisplayTags: Tag[] = [];
+          if (fileRow.selected_file_tags_json) {
+              try {
+                  parsedSelectedFileTags = JSON.parse(fileRow.selected_file_tags_json);
+                  if (categoryForResource && categoryForResource.tagGroupConfigs) {
+                    categoryForResource.tagGroupConfigs.forEach(groupConfig => {
+                        if (groupConfig.appliesToFiles && parsedSelectedFileTags[groupConfig.id]) {
+                        parsedSelectedFileTags[groupConfig.id]?.forEach(tagId => {
+                            const tagConfig = (groupConfig.tags || []).find(t => t.id === tagId);
+                            if (tagConfig) {
+                            fileDisplayTags.push(mapConfigToTagInterface(tagConfig, groupConfig.groupDisplayName.toLowerCase().replace(/\s+/g, '-')));
+                            }
+                        });
                         }
                     });
-                    }
-                });
-              }
-          } catch (e) { console.error(`Error parsing selected_file_tags_json for file ${fileRow.id}:`, e); }
+                  }
+              } catch (e) { console.error(`Error parsing selected_file_tags_json for file ${fileRow.id}:`, e); }
+          }
+          files.push({
+              id: fileRow.id, resourceId: fileRow.resource_id, name: fileRow.name, url: fileRow.url,
+              versionName: fileRow.version_name, size: fileRow.size, channelId: fileRow.channel_id,
+              channel: await mapFileChannelToTagInterface(fileRow.channel_id),
+              downloads: fileRow.downloads || 0, createdAt: fileRow.created_at, updatedAt: fileRow.updated_at,
+              changelogNotes: fileRow.changelog_notes || undefined,
+              supportedVersions: [], supportedLoaders: [],
+              selectedFileTags: parsedSelectedFileTags,
+              selectedFileTagsJson: fileRow.selected_file_tags_json,
+              fileDisplayTags: fileDisplayTags,
+          });
       }
-      files.push({
-          id: fileRow.id, resourceId: fileRow.resource_id, name: fileRow.name, url: fileRow.url,
-          versionName: fileRow.version_name, size: fileRow.size, channelId: fileRow.channel_id,
-          channel: await mapFileChannelToTagInterface(fileRow.channel_id),
-          downloads: fileRow.downloads || 0, createdAt: fileRow.created_at, updatedAt: fileRow.updated_at,
-          changelogNotes: fileRow.changelog_notes || undefined,
-          supportedVersions: [], supportedLoaders: [],
-          selectedFileTags: parsedSelectedFileTags,
-          selectedFileTagsJson: fileRow.selected_file_tags_json,
-          fileDisplayTags: fileDisplayTags,
-      });
-    }
 
     return {
       id: row.id, name: row.name, slug: row.slug,
@@ -1001,13 +1013,81 @@ export async function getAuthorPublishedResources(userId: string, limit?: number
       status: row.status as ProjectStatus,
       tags: resourceDisplayTags,
       files: files,
-      reviews: [], // Reviews not typically shown in bulk resource listings on profile
+      reviews: [], // Reviews not hydrated here for performance on lists
       selectedDynamicTagsJson: row.selected_dynamic_tags_json,
       mainFileDetailsJson: row.main_file_details_json,
     } as Resource;
   }));
+};
 
-  return hydratedResources;
+
+export const getTopUserResources = async (userId: string, count: number = 3): Promise<RankedResource[]> => {
+  const db = await getDb();
+  const resourceRows = await db.all(`
+    SELECT r.*,
+           p.name as author_name, p.usertag as author_usertag, p.avatar_url as author_avatar_url,
+           pi.name as parent_item_name, pi.slug as parent_item_slug, pi.item_type as parent_item_type,
+           c.name as category_name, c.slug as category_slug
+    FROM resources r
+    JOIN profiles p ON r.author_id = p.id
+    JOIN items pi ON r.parent_item_id = pi.id
+    JOIN categories c ON r.category_id = c.id
+    WHERE r.author_id = ? AND r.status = 'published'
+    ORDER BY r.downloads DESC, r.rating DESC, r.updated_at DESC
+    LIMIT ?
+  `, userId, count);
+
+  if (!resourceRows) return [];
+  const hydratedResources = await hydrateResourceRows(resourceRows);
+  return hydratedResources.map((res, index) => ({ ...res, rank: index + 1 }));
+};
+
+export async function getAuthorPublishedResources(
+  userId: string,
+  options: {
+    limit?: number;
+    sortBy?: 'updated_at' | 'created_at' | 'downloads' | 'rating';
+    order?: 'ASC' | 'DESC';
+    excludeIds?: string[];
+  } = {}
+): Promise<Resource[]> {
+  const db = await getDb();
+  const { limit, sortBy = 'created_at', order = 'DESC', excludeIds = [] } = options;
+
+  let sql = `
+    SELECT r.*,
+           p.name as author_name, p.usertag as author_usertag, p.avatar_url as author_avatar_url,
+           pi.name as parent_item_name, pi.slug as parent_item_slug, pi.item_type as parent_item_type,
+           c.name as category_name, c.slug as category_slug
+    FROM resources r
+    JOIN profiles p ON r.author_id = p.id
+    JOIN items pi ON r.parent_item_id = pi.id
+    JOIN categories c ON r.category_id = c.id
+    WHERE r.author_id = ? AND r.status = 'published'
+  `;
+  const queryParams: any[] = [userId];
+
+  if (excludeIds.length > 0) {
+    sql += ` AND r.id NOT IN (${excludeIds.map(() => '?').join(',')})`;
+    queryParams.push(...excludeIds);
+  }
+
+  let orderByField = 'r.created_at';
+  if (sortBy === 'updated_at') orderByField = 'r.updated_at';
+  else if (sortBy === 'downloads') orderByField = 'r.downloads';
+  else if (sortBy === 'rating') orderByField = 'r.rating';
+
+  sql += ` ORDER BY ${orderByField} ${order === 'ASC' ? 'ASC' : 'DESC'}`;
+
+  if (limit) {
+    sql += ` LIMIT ?`;
+    queryParams.push(limit);
+  }
+
+  const resourceRows = await db.all(sql, ...queryParams);
+  if (!resourceRows) return [];
+
+  return hydrateResourceRows(resourceRows);
 }
 
 
@@ -1185,3 +1265,4 @@ export const incrementResourceFileDownloadCount = async (fileId: string): Promis
   const result = await db.run('UPDATE resource_files SET downloads = downloads + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?', fileId);
   return (result.changes ?? 0) > 0;
 };
+

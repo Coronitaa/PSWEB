@@ -10,18 +10,24 @@ interface UserProfilePageProps {
   params: { usertag: string };
 }
 
-const PUBLISHED_RESOURCES_COUNT_ON_PROFILE = 9;
+const RECENT_RESOURCES_CAROUSEL_COUNT = 5;
 
 export default async function UserProfilePage({ params }: UserProfilePageProps) {
   // params.usertag will be the usertag WITHOUT the "@" symbol due to generateStaticParams
-  const profile = await getUserProfileByUsertag(params.usertag); // Expects usertag without "@"
+  const profile = await getUserProfileByUsertag(params.usertag);
   if (!profile) {
     notFound();
   }
 
   const stats = await getUserStats(profile.id);
   const topResources = await getTopUserResources(profile.id, 3);
-  const publishedResources = await getAuthorPublishedResources(profile.id, PUBLISHED_RESOURCES_COUNT_ON_PROFILE);
+  const topResourceIds = topResources.map(r => r.id);
+  const recentResourcesForCarousel = await getAuthorPublishedResources(profile.id, {
+    limit: RECENT_RESOURCES_CAROUSEL_COUNT,
+    sortBy: 'created_at',
+    order: 'DESC',
+    excludeIds: topResourceIds,
+  });
 
 
   return (
@@ -35,7 +41,12 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
           <BreadcrumbItem><BreadcrumbPage>{profile.name}</BreadcrumbPage></BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <UserProfilePageContent profile={profile} stats={stats} topResources={topResources} publishedResources={publishedResources} />
+      <UserProfilePageContent
+        profile={profile}
+        stats={stats}
+        topResources={topResources}
+        recentResourcesForCarousel={recentResourcesForCarousel}
+      />
     </div>
   );
 }
@@ -50,10 +61,11 @@ export async function generateStaticParams() {
   }
 
   return profilesData
-    .filter(p => p.usertag && p.usertag.startsWith('@')) // Ensure it starts with @
+    .filter(p => p.usertag && p.usertag.startsWith('@'))
     .map(profile => ({
       usertag: profile.usertag.substring(1), // Remove the "@" for the route parameter
     }));
 }
 
 export const revalidate = 3600; // Revalidate profile pages every hour
+

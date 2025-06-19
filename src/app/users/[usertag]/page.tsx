@@ -1,6 +1,6 @@
 
 import { notFound } from 'next/navigation';
-import { getUserProfileByUsertag, getUserStats, getTopUserResources, getRecentUserResources } from '@/lib/data';
+import { getUserProfileByUsertag, getUserStats, getTopUserResources, getAuthorPublishedResources } from '@/lib/data';
 import type { Author as UserProfile, UserStats, RankedResource, Resource } from '@/lib/types';
 import { UserProfilePageContent } from '@/components/user/UserProfilePageContent';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
@@ -10,18 +10,18 @@ interface UserProfilePageProps {
   params: { usertag: string };
 }
 
-const RECENT_RESOURCES_COUNT = 6;
+const PUBLISHED_RESOURCES_COUNT_ON_PROFILE = 9;
 
 export default async function UserProfilePage({ params }: UserProfilePageProps) {
   // params.usertag will be the usertag WITHOUT the "@" symbol due to generateStaticParams
-  const profile = await getUserProfileByUsertag(params.usertag); // getUserProfileByUsertag expects it without "@" now
+  const profile = await getUserProfileByUsertag(params.usertag); // Expects usertag without "@"
   if (!profile) {
     notFound();
   }
 
   const stats = await getUserStats(profile.id);
   const topResources = await getTopUserResources(profile.id, 3);
-  const recentResources = await getRecentUserResources(profile.id, RECENT_RESOURCES_COUNT);
+  const publishedResources = await getAuthorPublishedResources(profile.id, PUBLISHED_RESOURCES_COUNT_ON_PROFILE);
 
 
   return (
@@ -35,7 +35,7 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
           <BreadcrumbItem><BreadcrumbPage>{profile.name}</BreadcrumbPage></BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <UserProfilePageContent profile={profile} stats={stats} topResources={topResources} recentResources={recentResources} />
+      <UserProfilePageContent profile={profile} stats={stats} topResources={topResources} publishedResources={publishedResources} />
     </div>
   );
 }

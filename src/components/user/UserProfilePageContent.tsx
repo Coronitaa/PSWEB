@@ -10,25 +10,28 @@ import { TopResourceCard } from './TopResourceCard';
 import { ResourceCard } from '@/components/resource/ResourceCard';
 import { Carousel, CarouselItem } from '@/components/shared/Carousel';
 import { Separator } from '@/components/ui/separator';
-import { useState } from 'react'; // Import useState
+import { useState } from 'react'; 
+import { PackageOpen } from 'lucide-react';
 
 interface UserProfilePageContentProps {
   profile: UserProfile;
   stats: UserStats;
   topResources: RankedResource[];
-  recentResources: Resource[];
+  publishedResources: Resource[]; // Changed from recentResources
 }
 
-const CAROUSEL_ITEMS_TO_SHOW_RECENT = 3;
+const CAROUSEL_ITEMS_TO_SHOW_RECENT = 3; // This was for recent, might not be used or repurposed
 
-export function UserProfilePageContent({ profile, stats, topResources, recentResources }: UserProfilePageContentProps) {
+export function UserProfilePageContent({ profile, stats, topResources, publishedResources }: UserProfilePageContentProps) {
   const [carouselAllowOverflow, setCarouselAllowOverflow] = useState(false);
-  const [isRecentCarouselHovered, setIsRecentCarouselHovered] = useState(false);
+  const [isRecentCarouselHovered, setIsRecentCarouselHovered] = useState(false); // May not be needed if recent carousel is removed
 
-  const handleRecentResourceCardHover = (hovering: boolean) => {
-    setIsRecentCarouselHovered(hovering);
+  // These handlers might be reused if a carousel is used for published resources,
+  // or removed if a simple grid is used.
+  const handleResourceCardHover = (hovering: boolean) => {
+    // setIsRecentCarouselHovered(hovering); // Example, adjust if needed
   };
-  const handleRecentResourceCardOverflowHover = (hovering: boolean) => {
+  const handleResourceCardOverflowHover = (hovering: boolean) => {
     setCarouselAllowOverflow(hovering);
   };
 
@@ -45,54 +48,43 @@ export function UserProfilePageContent({ profile, stats, topResources, recentRes
           )}
         </aside>
 
-        <main className="lg:col-span-8 space-y-8">
+        <main className="lg:col-span-8 space-y-10">
           {topResources.length > 0 && (
-            <div>
+            <section>
               <h2 className="text-2xl font-semibold mb-4 text-primary">Top Resources</h2>
-              <div className="flex flex-col md:flex-row md:flex-nowrap gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {topResources.map(resource => (
-                  <div key={resource.id} className="w-full md:w-1/3 flex-shrink-0">
+                  <div key={resource.id} className="w-full">
                     <TopResourceCard resource={resource} />
                   </div>
                 ))}
               </div>
-            </div>
+            </section>
           )}
           
-          {recentResources.length > 0 && (
-            <div>
-              <Separator className="my-8 bg-border/50" />
-              <h2 className="text-2xl font-semibold mb-6 text-primary">Latest Resources</h2>
-              <Carousel
-                itemsToShow={CAROUSEL_ITEMS_TO_SHOW_RECENT}
-                showArrows={recentResources.length > CAROUSEL_ITEMS_TO_SHOW_RECENT}
-                autoplay={!isRecentCarouselHovered && !carouselAllowOverflow}
-                autoplayInterval={7000} 
-                className="px-1" 
-                allowOverflow={carouselAllowOverflow}
-              >
-                {recentResources.map(resource => (
-                  <CarouselItem key={resource.id}>
-                    <ResourceCard 
-                        resource={resource} 
-                        compact 
-                        onHoverChange={handleRecentResourceCardHover}
-                        onOverflowHoverChange={handleRecentResourceCardOverflowHover}
-                    />
-                  </CarouselItem>
+          {publishedResources.length > 0 && (
+            <section>
+              {(topResources.length > 0) && <Separator className="my-8 bg-border/50" />}
+              <h2 className="text-2xl font-semibold mb-6 text-primary">Published Resources</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                {publishedResources.map(resource => (
+                  <ResourceCard 
+                    key={resource.id}
+                    resource={resource} 
+                    compact={false} // Use the non-compact version for better display
+                    onHoverChange={handleResourceCardHover} // Optional: can be used if interaction is needed
+                    onOverflowHoverChange={handleResourceCardOverflowHover} // Optional
+                  />
                 ))}
-              </Carousel>
-            </div>
+              </div>
+            </section>
           )}
 
-          {topResources.length === 0 && recentResources.length === 0 && !profile.bio && ( 
-            <div className="py-8 text-center text-muted-foreground">
-              <p>{profile.name} hasn't published any resources or added a bio yet.</p>
-            </div>
-           )}
-          {topResources.length === 0 && recentResources.length === 0 && profile.bio && (
-            <div className="py-8 text-center text-muted-foreground">
-              <p>{profile.name} hasn't published any resources yet.</p>
+          {topResources.length === 0 && publishedResources.length === 0 && ( 
+            <div className="py-12 text-center text-muted-foreground flex flex-col items-center">
+              <PackageOpen className="w-16 h-16 text-primary/50 mb-4" />
+              <p className="text-lg">{profile.name} hasn't published any resources yet.</p>
+              {profile.bio && <p className="text-sm mt-1">Their bio is available on the left.</p>}
             </div>
            )}
         </main>

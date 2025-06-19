@@ -907,7 +907,109 @@ export const getUserStats = async (userId: string): Promise<UserStats> => {
   return { followersCount: Math.floor(Math.random() * 1000), resourcesPublishedCount: Math.floor(Math.random() * 50), reviewsPublishedCount: Math.floor(Math.random() * 20), overallResourceRating: Math.random() * 5, overallResourceReviewCount: Math.floor(Math.random() * 100) };
 };
 export const getTopUserResources = async (userId: string, count: number = 3): Promise<RankedResource[]> => { return []; };
-export const getRecentUserResources = async (userId: string, count: number = 6): Promise<Resource[]> => { return []; };
+
+export async function getAuthorPublishedResources(userId: string, limit?: number): Promise<Resource[]> {
+  const db = await getDb();
+  let sql = `
+    SELECT r.*,
+           p.name as author_name, p.usertag as author_usertag, p.avatar_url as author_avatar_url,
+           pi.name as parent_item_name, pi.slug as parent_item_slug, pi.item_type as parent_item_type,
+           c.name as category_name, c.slug as category_slug
+    FROM resources r
+    JOIN profiles p ON r.author_id = p.id
+    JOIN items pi ON r.parent_item_id = pi.id
+    JOIN categories c ON r.category_id = c.id
+    WHERE r.author_id = ? AND r.status = 'published'
+    ORDER BY r.updated_at DESC
+  `;
+  const queryParams: any[] = [userId];
+
+  if (limit) {
+    sql += ` LIMIT ?`;
+    queryParams.push(limit);
+  }
+
+  const resourceRows = await db.all(sql, ...queryParams);
+  if (!resourceRows) return [];
+
+  const hydratedResources = await Promise.all(resourceRows.map(async (row) => {
+    const categoryForResource = await getCategoryDetails(row.parent_item_slug, row.parent_item_type as ItemType, row.category_slug);
+
+    let resourceDisplayTags: Tag[] = [];
+    const selectedTagGroups: DynamicTagSelection = row.selected_dynamic_tags_json ? JSON.parse(row.selected_dynamic_tags_json) : {};
+    if (categoryForResource && categoryForResource.tagGroupConfigs) {
+      categoryForResource.tagGroupConfigs.forEach(group => {
+        const selectedTagIdsInGroup = selectedTagGroups[group.id];
+        if (selectedTagIdsInGroup && Array.isArray(selectedTagIdsInGroup)) {
+          selectedTagIdsInGroup.forEach(tagId => {
+            const tagConfig = (group.tags || []).find(t => t.id === tagId);
+            if (tagConfig) {
+              resourceDisplayTags.push(mapConfigToTagInterface(tagConfig, group.groupDisplayName.toLowerCase().replace(/\s+/g, '-')));
+            }
+          });
+        }
+      });
+    }
+
+    const filesDb = await db.all("SELECT rf.*, ce.notes as changelog_notes FROM resource_files rf LEFT JOIN changelog_entries ce ON ce.resource_file_id = rf.id WHERE rf.resource_id = ? ORDER BY rf.updated_at DESC, rf.created_at DESC", row.id);
+    const files: ResourceFile[] = [];
+    for (const fileRow of filesDb) {
+      let parsedSelectedFileTags: DynamicTagSelection = {};
+      let fileDisplayTags: Tag[] = [];
+      if (fileRow.selected_file_tags_json) {
+          try {
+              parsedSelectedFileTags = JSON.parse(fileRow.selected_file_tags_json);
+              if (categoryForResource && categoryForResource.tagGroupConfigs) {
+                categoryForResource.tagGroupConfigs.forEach(groupConfig => {
+                    if (groupConfig.appliesToFiles && parsedSelectedFileTags[groupConfig.id]) {
+                    parsedSelectedFileTags[groupConfig.id]?.forEach(tagId => {
+                        const tagConfig = (groupConfig.tags || []).find(t => t.id === tagId);
+                        if (tagConfig) {
+                        fileDisplayTags.push(mapConfigToTagInterface(tagConfig, groupConfig.groupDisplayName.toLowerCase().replace(/\s+/g, '-')));
+                        }
+                    });
+                    }
+                });
+              }
+          } catch (e) { console.error(`Error parsing selected_file_tags_json for file ${fileRow.id}:`, e); }
+      }
+      files.push({
+          id: fileRow.id, resourceId: fileRow.resource_id, name: fileRow.name, url: fileRow.url,
+          versionName: fileRow.version_name, size: fileRow.size, channelId: fileRow.channel_id,
+          channel: await mapFileChannelToTagInterface(fileRow.channel_id),
+          downloads: fileRow.downloads || 0, createdAt: fileRow.created_at, updatedAt: fileRow.updated_at,
+          changelogNotes: fileRow.changelog_notes || undefined,
+          supportedVersions: [], supportedLoaders: [],
+          selectedFileTags: parsedSelectedFileTags,
+          selectedFileTagsJson: fileRow.selected_file_tags_json,
+          fileDisplayTags: fileDisplayTags,
+      });
+    }
+
+    return {
+      id: row.id, name: row.name, slug: row.slug,
+      parentItemId: row.parent_item_id, parentItemName: row.parent_item_name, parentItemSlug: row.parent_item_slug, parentItemType: row.parent_item_type as ItemType,
+      categoryId: row.category_id, categoryName: row.category_name, categorySlug: row.category_slug,
+      authorId: row.author_id, author: { id: row.author_id, name: row.author_name, usertag: row.author_usertag, avatarUrl: row.author_avatar_url, role: 'usuario' },
+      version: row.version, description: row.description, detailedDescription: row.detailed_description,
+      imageUrl: row.image_url, imageGallery: row.image_gallery ? JSON.parse(row.image_gallery) : [],
+      downloads: row.downloads || 0,
+      followers: row.followers || 0,
+      links: row.links ? JSON.parse(row.links) : {},
+      requirements: row.requirements, createdAt: row.created_at, updatedAt: row.updated_at,
+      rating: row.rating, reviewCount: row.review_count, positiveReviewPercentage: row.positive_review_percentage,
+      status: row.status as ProjectStatus,
+      tags: resourceDisplayTags,
+      files: files,
+      reviews: [], // Reviews not typically shown in bulk resource listings on profile
+      selectedDynamicTagsJson: row.selected_dynamic_tags_json,
+      mainFileDetailsJson: row.main_file_details_json,
+    } as Resource;
+  }));
+
+  return hydratedResources;
+}
+
 
 // --- Admin Write Operations (used by server actions) ---
 

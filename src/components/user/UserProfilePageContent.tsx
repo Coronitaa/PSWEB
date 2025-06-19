@@ -22,19 +22,24 @@ interface UserProfilePageContentProps {
   recentResourcesForCarousel: Resource[];
 }
 
-const CAROUSEL_ITEMS_TO_SHOW_RECENT = 3; // Number of items visible at once in the recent carousel
+const CAROUSEL_ITEMS_TO_SHOW_RECENT = 3;
 
 export function UserProfilePageContent({ profile, stats, topResources, recentResourcesForCarousel }: UserProfilePageContentProps) {
   const [carouselAllowOverflow, setCarouselAllowOverflow] = useState(false);
 
   const handleResourceCardHover = (hovering: boolean) => {
     // This can be used if specific hover behavior is needed for the carousel items
+    // For now, it's mostly for the extender card to pause autoplay if that was active
   };
+
   const handleResourceCardOverflowHover = (hovering: boolean) => {
+    // When a resource card's detail overlay is active (hovering is true),
+    // we need to allow the carousel to overflow so the overlay isn't clipped.
     setCarouselAllowOverflow(hovering);
   };
 
   const hasAnyContent = topResources.length > 0 || recentResourcesForCarousel.length > 0;
+  const usertagForLink = profile.usertag ? profile.usertag.substring(1) : 'unknown';
 
   return (
     <div className="space-y-8">
@@ -68,9 +73,9 @@ export function UserProfilePageContent({ profile, stats, topResources, recentRes
               {(topResources.length > 0) && <Separator className="my-8 bg-border/50" />}
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-semibold text-primary">Recent Resources</h2>
-                {/* Conceptual link, actual page /users/[usertag]/resources would need to be created */}
+                {/* This link will need a corresponding page at /users/[usertag]/resources */}
                 <Button variant="link" asChild className="text-primary hover:text-accent">
-                  <Link href={`/users/${profile.usertag?.substring(1)}/resources`}>
+                  <Link href={`/users/${usertagForLink}/resources`}>
                     View All Resources <ArrowRight className="w-4 h-4 ml-1.5" />
                   </Link>
                 </Button>
@@ -78,18 +83,18 @@ export function UserProfilePageContent({ profile, stats, topResources, recentRes
               <Carousel
                 itemsToShow={CAROUSEL_ITEMS_TO_SHOW_RECENT}
                 showArrows={recentResourcesForCarousel.length > CAROUSEL_ITEMS_TO_SHOW_RECENT}
-                autoplay={!carouselAllowOverflow}
+                autoplay={!carouselAllowOverflow} // Pause autoplay if an item is expanded
                 autoplayInterval={4000}
-                allowOverflow={carouselAllowOverflow}
-                className="h-auto" // Adjust height as needed or let content define it
+                allowOverflow={carouselAllowOverflow} // Dynamically allow overflow
+                className="h-auto" 
               >
                 {recentResourcesForCarousel.map(resource => (
                   <CarouselItem key={resource.id}>
                     <ResourceCard
                       resource={resource}
-                      compact // Using compact version for carousel
+                      compact // Enable compact mode which includes the hover extender
                       onHoverChange={handleResourceCardHover}
-                      onOverflowHoverChange={handleResourceCardOverflowHover}
+                      onOverflowHoverChange={handleResourceCardOverflowHover} // Pass the handler
                     />
                   </CarouselItem>
                 ))}

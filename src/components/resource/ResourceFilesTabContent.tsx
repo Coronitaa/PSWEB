@@ -289,4 +289,3 @@ export function ResourceFilesTabContent({ files, resourceId, dynamicAvailableFil
     </div>
   );
 }
-

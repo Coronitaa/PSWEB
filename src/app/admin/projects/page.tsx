@@ -106,7 +106,7 @@ export default async function AdminProjectsPage() {
                       </TableCell>
                       <TableCell className="text-right space-x-2">
                         <Button variant="ghost" size="icon" asChild title="View Project" disabled={item.status === 'archived'}>
-                            <Link href={item.status === 'archived' ? '#' : `/${item.itemType}s/${item.slug}`} target="_blank">
+                            <Link href={item.status === 'archived' ? '#' : `/${item.itemType === 'art-music' ? 'art-music' : item.itemType + 's'}/${item.slug}`} target="_blank">
                                 <Eye className="h-4 w-4 text-muted-foreground hover:text-primary"/>
                             </Link>
                         </Button>

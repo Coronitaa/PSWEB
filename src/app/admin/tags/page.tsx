@@ -9,4 +9,3 @@ export default function AdminTagsPage_DELETED() {
   redirect('/admin/projects'); 
   // return null; // Or simply return null if redirect isn't desired during build
 }
-

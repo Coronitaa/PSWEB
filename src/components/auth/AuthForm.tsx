@@ -70,11 +70,7 @@ export function AuthForm() {
       window.dispatchEvent(new StorageEvent('storage', { key: 'mockUser', newValue: JSON.stringify(mockUserToStore) }));
       
       setTimeout(() => {
-        if (mockUserToStore?.role === 'admin' || mockUserToStore?.role === 'mod') {
-            router.push('/admin');
-        } else {
-            router.push('/');
-        }
+        router.push('/'); // Always redirect to the main page
       }, 100);
 
     } else {

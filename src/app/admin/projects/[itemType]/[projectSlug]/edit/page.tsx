@@ -88,5 +88,3 @@ export default async function AdminEditProjectPage({ params: paramsPromise }: Ad
 }
 
 export const dynamic = 'force-dynamic';
-
-    

@@ -678,12 +678,3 @@ export function ResourceForm({
     </form>
   );
 }
-    
-
-    
-
-
-
-
-
-

@@ -13,8 +13,8 @@ interface UserProfilePageProps {
 const RECENT_RESOURCES_COUNT = 6;
 
 export default async function UserProfilePage({ params }: UserProfilePageProps) {
-  // params.usertag will be "admin", "mod", "user", etc. (without "@")
-  const profile = await getUserProfileByUsertag(params.usertag);
+  // params.usertag will be the usertag WITHOUT the "@" symbol due to generateStaticParams
+  const profile = await getUserProfileByUsertag(params.usertag); // getUserProfileByUsertag expects it without "@" now
   if (!profile) {
     notFound();
   }
@@ -57,4 +57,3 @@ export async function generateStaticParams() {
 }
 
 export const revalidate = 3600; // Revalidate profile pages every hour
-

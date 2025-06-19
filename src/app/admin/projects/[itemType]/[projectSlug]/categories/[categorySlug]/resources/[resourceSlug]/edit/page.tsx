@@ -80,5 +80,3 @@ export default async function EditResourcePage({ params: paramsPromise }: EditRe
 }
 
 export const dynamic = 'force-dynamic';
-
-    

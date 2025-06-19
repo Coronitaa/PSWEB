@@ -20,7 +20,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Star, ThumbsUp, ThumbsDown, Info, Send, MessageSquareWarning, Edit3 } from 'lucide-react'; // Added Edit3
 import { useToast } from '@/hooks/use-toast';
-import { addReviewAction, updateReviewAction } from '@/app/actions/reviewActions'; // Added updateReviewAction
+import { addReview, updateReview } from '@/app/actions/clientWrappers'; // Using clientWrappers
 import { cn } from '@/lib/utils';
 
 const reviewFormSchema = z.object({
@@ -67,9 +67,9 @@ export function WriteReviewModal({ resource, isOpen, onOpenChange, onReviewSubmi
     try {
       let result;
       if (isEditMode && editingReview) {
-        result = await updateReviewAction(editingReview.id, data);
+        result = await updateReview(editingReview.id, data); // Using clientWrapper
       } else {
-        result = await addReviewAction(resource.id, data);
+        result = await addReview(resource.id, data); // Using clientWrapper
       }
 
       if (result.success) {

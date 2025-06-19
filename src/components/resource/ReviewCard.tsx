@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import type { Review, ReviewInteractionCounts, UserAppRole } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
@@ -10,7 +11,11 @@ import { ThumbsUp, ThumbsDown, MessageSquare, Smile, GitCommitVertical, Loader2,
 import { formatTimeAgo, formatNumberWithSuffix } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { Badge } from '../ui/badge';
-import { updateReviewInteractionAction, deleteReviewAction, getUserSentimentForReviewAction } from '@/app/actions/reviewActions';
+import { 
+    updateReviewInteraction, 
+    deleteReview, 
+    getUserSentimentForReview 
+} from '@/app/actions/clientWrappers';
 import { useToast } from '@/hooks/use-toast';
 import { WriteReviewModal } from '@/components/review/WriteReviewModal'; 
 import {
@@ -43,8 +48,7 @@ export function ReviewCard({ review: initialReview }: ReviewCardProps) {
   
   const [currentUserSentiment, setCurrentUserSentiment] = useState<'helpful' | 'unhelpful' | null>(null);
   const [currentUserIsFunny, setCurrentUserIsFunny] = useState<boolean>(false);
-  const [isFetchingUserSentiment, setIsFetchingUserSentiment] = useState(true);
-
+  const [isFetchingSentiment, setIsFetchingSentiment] = useState(true);
 
   const [isLoading, setIsLoading] = useState<Record<'helpful' | 'unhelpful' | 'funny' | 'delete', boolean>>({
     helpful: false,
@@ -57,44 +61,50 @@ export function ReviewCard({ review: initialReview }: ReviewCardProps) {
 
   const [isEditing, setIsEditing] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<UserAppRole | null>(null);
+  const [isLoadingCurrentUserId, setIsLoadingCurrentUserId] = useState(true);
+  const isOverallLoading = isFetchingSentiment || isLoadingCurrentUserId;
 
   useEffect(() => {
+    setIsLoadingCurrentUserId(true);
     const storedUser = localStorage.getItem('mockUser');
     if (storedUser) {
       try {
         const user: MockUser = JSON.parse(storedUser);
         setCurrentUserId(user.id);
+        setCurrentUserRole(user.role);
       } catch (e) {
         console.error("Failed to parse mockUser for review card", e);
+        setCurrentUserId(null);
+        setCurrentUserRole(null);
       }
+    } else {
+        setCurrentUserId(null);
+        setCurrentUserRole(null);
     }
-    // Set fetching to false only after attempting to get user ID, 
-    // so subsequent effect for fetching sentiment can run.
-    setIsFetchingUserSentiment(false); 
+    setIsLoadingCurrentUserId(false);
   }, []);
 
   useEffect(() => {
-    // Fetch user sentiment only if currentUserId is known and initial fetch hasn't happened
-    if (currentUserId && isFetchingUserSentiment) {
+    if (!isLoadingCurrentUserId && isFetchingSentiment) {
       const fetchSentiment = async () => {
-        const result = await getUserSentimentForReviewAction(review.id);
-        if (result.success && result.data) {
-          setCurrentUserSentiment(result.data.sentiment);
-          setCurrentUserIsFunny(result.data.isFunny);
-        } else if (!result.success && result.errorCode !== 'AUTH_REQUIRED') {
-          // Log error if it's not an auth error (auth error means user not logged in, which is fine)
-          console.error("Failed to fetch user sentiment:", result.error);
+        if (currentUserId) { 
+            const result = await getUserSentimentForReview(review.id);
+            if (result.success && result.data) {
+                setCurrentUserSentiment(result.data.sentiment);
+                setCurrentUserIsFunny(result.data.isFunny);
+            } else if (!result.success && result.errorCode !== 'AUTH_REQUIRED') {
+                console.error("Failed to fetch user sentiment:", result.error);
+            }
         }
-        setIsFetchingUserSentiment(false); // Mark as fetched (or attempted)
+        setIsFetchingSentiment(false); 
       };
       fetchSentiment();
-    } else if (!currentUserId) {
-       setIsFetchingUserSentiment(false); // If no user, no sentiment to fetch
     }
-  }, [currentUserId, review.id, isFetchingUserSentiment]);
-
+  }, [currentUserId, review.id, isFetchingSentiment, isLoadingCurrentUserId]);
 
   const isAuthor = currentUserId === review.author.id;
+  const canDelete = isAuthor || currentUserRole === 'admin' || currentUserRole === 'mod';
 
   const [createdAtFormatted, setCreatedAtFormatted] = React.useState<string>(() => {
     return new Date(review.createdAt).toLocaleDateString();
@@ -105,8 +115,12 @@ export function ReviewCard({ review: initialReview }: ReviewCardProps) {
   }, [review.createdAt]);
   
   useEffect(() => {
+    setReview(initialReview); // Update review if prop changes (e.g., after edit)
     setInteractionCounts(initialReview.interactionCounts);
-  }, [initialReview.interactionCounts]);
+    if (!isLoadingCurrentUserId) {
+        setIsFetchingSentiment(true);
+    }
+  }, [initialReview, isLoadingCurrentUserId]);
 
   const handleInteraction = async (interactionType: 'helpful' | 'unhelpful' | 'funny') => {
     if (!currentUserId) {
@@ -115,7 +129,7 @@ export function ReviewCard({ review: initialReview }: ReviewCardProps) {
     }
     setIsLoading(prev => ({ ...prev, [interactionType]: true }));
     try {
-      const result = await updateReviewInteractionAction(review.id, interactionType);
+      const result = await updateReviewInteraction(review.id, interactionType);
       if (result.success && result.data) {
         setInteractionCounts(result.data.updatedCounts);
         setCurrentUserSentiment(result.data.currentUserSentiment);
@@ -145,9 +159,9 @@ export function ReviewCard({ review: initialReview }: ReviewCardProps) {
   const handleDelete = async () => {
     setIsLoading(prev => ({ ...prev, delete: true }));
     try {
-      const result = await deleteReviewAction(review.id);
+      const result = await deleteReview(review.id);
       if (result.success) {
-        toast({ title: "Review Deleted", description: "Your review has been removed." });
+        toast({ title: "Review Deleted", description: "The review has been removed." });
         router.refresh(); 
       } else {
         toast({
@@ -166,6 +180,9 @@ export function ReviewCard({ review: initialReview }: ReviewCardProps) {
       setIsLoading(prev => ({ ...prev, delete: false }));
     }
   };
+  
+  const authorProfileLink = review.author.usertag ? `/users/${review.author.usertag.substring(1)}` : '#';
+
 
   return (
     <>
@@ -179,26 +196,32 @@ export function ReviewCard({ review: initialReview }: ReviewCardProps) {
           </div>
         )}
         <CardHeader className={cn("flex flex-row items-start space-x-4 pb-3", review.isMostHelpful ? "pt-3" : "pt-4")}>
-          <Image
-            src={review.author.avatarUrl || `https://placehold.co/40x40/888888/FFFFFF?text=${review.author.name.substring(0,1)}`}
-            alt={review.author.name}
-            width={40}
-            height={40}
-            className="rounded-full border"
-            data-ai-hint="user avatar"
-          />
+          <Link href={authorProfileLink} className="shrink-0">
+            <Image
+              src={review.author.avatarUrl || `https://placehold.co/40x40/888888/FFFFFF?text=${review.author.name.substring(0,1)}`}
+              alt={review.author.name}
+              width={40}
+              height={40}
+              className="rounded-full border hover:opacity-80 transition-opacity"
+              data-ai-hint="user avatar"
+            />
+          </Link>
           <div className="flex-grow">
             <div className="flex items-center justify-between">
-              <p className="font-semibold text-foreground">{review.author.name}</p>
+              <Link href={authorProfileLink} className="hover:text-primary transition-colors">
+                <p className="font-semibold text-foreground">{review.author.name}</p>
+              </Link>
               <div className="flex items-center gap-2">
                 <p className="text-xs text-muted-foreground" suppressHydrationWarning={true}>
                   {createdAtFormatted}
                 </p>
-                {isAuthor && ( // Show edit/delete only if user is author and not currently fetching user status
+                {!isLoadingCurrentUserId && canDelete && ( 
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleEdit} title="Edit review">
-                      <Edit3 className="h-3.5 w-3.5 text-blue-500 hover:text-blue-400" />
-                    </Button>
+                    {isAuthor && (
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleEdit} title="Edit review">
+                            <Edit3 className="h-3.5 w-3.5 text-blue-500 hover:text-blue-400" />
+                        </Button>
+                    )}
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-6 w-6" title="Delete review">
@@ -207,9 +230,9 @@ export function ReviewCard({ review: initialReview }: ReviewCardProps) {
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Your Review?</AlertDialogTitle>
+                          <AlertDialogTitle>Delete Review?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            This action cannot be undone. Your review will be permanently removed.
+                            This action cannot be undone. The review by {review.author.name} will be permanently removed.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -249,45 +272,51 @@ export function ReviewCard({ review: initialReview }: ReviewCardProps) {
         <CardFooter className="flex justify-start items-center gap-2 pt-2 pb-3 border-t border-border/20">
           <p className="text-xs text-muted-foreground mr-2">Was this review helpful?</p>
           <Button
-            variant={currentUserSentiment === 'helpful' ? "default" : "outline"}
+            variant={isOverallLoading ? "outline" : (currentUserSentiment === 'helpful' ? "default" : "outline")}
             size="sm"
             className={cn("text-xs h-7 px-2 py-1 group",
-                currentUserSentiment === 'helpful' ? "bg-green-500 hover:bg-green-600 text-white" : "hover:bg-green-500/10 hover:border-green-500/50 hover:text-white"
+                isOverallLoading && "bg-muted text-muted-foreground cursor-not-allowed",
+                !isOverallLoading && currentUserSentiment === 'helpful' && "bg-green-500 hover:bg-green-600 text-white",
+                !isOverallLoading && currentUserSentiment !== 'helpful' && "hover:bg-green-500/10 hover:border-green-500/50 hover:text-white"
             )}
             onClick={() => handleInteraction('helpful')}
-            disabled={isLoading.helpful || isFetchingUserSentiment}
+            disabled={isOverallLoading || isLoading.helpful}
           >
-            {isLoading.helpful ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin"/> : <ThumbsUp className={cn("w-3.5 h-3.5 mr-1.5", currentUserSentiment === 'helpful' ? "text-white" : "text-green-500 group-hover:text-white")} />}
+            {(isLoading.helpful || (isOverallLoading && !isLoading.unhelpful && !isLoading.funny) ) ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin"/> : <ThumbsUp className={cn("w-3.5 h-3.5 mr-1.5", !isOverallLoading && currentUserSentiment === 'helpful' ? "text-white" : "text-green-500 group-hover:text-white")} />}
             Yes ({formatNumberWithSuffix(interactionCounts.helpful)})
           </Button>
           <Button
-            variant={currentUserSentiment === 'unhelpful' ? "destructive" : "outline"}
+            variant={isOverallLoading ? "outline" : (currentUserSentiment === 'unhelpful' ? "destructive" : "outline")}
             size="sm"
             className={cn("text-xs h-7 px-2 py-1 group",
-                currentUserSentiment === 'unhelpful' ? "bg-red-500 hover:bg-red-600 text-white" : "hover:bg-red-500/10 hover:border-red-500/50 hover:text-white"
+                isOverallLoading && "bg-muted text-muted-foreground cursor-not-allowed",
+                !isOverallLoading && currentUserSentiment === 'unhelpful' && "bg-red-500 hover:bg-red-600 text-white",
+                !isOverallLoading && currentUserSentiment !== 'unhelpful' && "hover:bg-red-500/10 hover:border-red-500/50 hover:text-white"
             )}
             onClick={() => handleInteraction('unhelpful')}
-            disabled={isLoading.unhelpful || isFetchingUserSentiment}
+            disabled={isOverallLoading || isLoading.unhelpful}
           >
-            {isLoading.unhelpful ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin"/> : <ThumbsDown className={cn("w-3.5 h-3.5 mr-1.5", currentUserSentiment === 'unhelpful' ? "text-white" : "text-red-500 group-hover:text-white")} />}
+            {(isLoading.unhelpful || (isOverallLoading && !isLoading.helpful && !isLoading.funny)) ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin"/> : <ThumbsDown className={cn("w-3.5 h-3.5 mr-1.5", !isOverallLoading && currentUserSentiment === 'unhelpful' ? "text-white" : "text-red-500 group-hover:text-white")} />}
             No ({formatNumberWithSuffix(interactionCounts.unhelpful)})
           </Button>
           <Button
-            variant={currentUserIsFunny ? "default" : "outline"}
+            variant={isOverallLoading ? "outline" : (currentUserIsFunny ? "default" : "outline")}
             size="sm"
             className={cn("text-xs h-7 px-2 py-1 group",
-                currentUserIsFunny ? "bg-yellow-500 hover:bg-yellow-600 text-black" : "hover:bg-yellow-500/10 hover:border-yellow-500/50 hover:text-white"
+                 isOverallLoading && "bg-muted text-muted-foreground cursor-not-allowed",
+                !isOverallLoading && currentUserIsFunny && "bg-yellow-500 hover:bg-yellow-600 text-black",
+                !isOverallLoading && !currentUserIsFunny && "hover:bg-yellow-500/10 hover:border-yellow-500/50 hover:text-white"
             )}
             onClick={() => handleInteraction('funny')}
-            disabled={isLoading.funny || isFetchingUserSentiment}
+            disabled={isOverallLoading || isLoading.funny}
           >
-            {isLoading.funny ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin"/> : <Smile className={cn("w-3.5 h-3.5 mr-1.5", currentUserIsFunny ? "text-black" : "text-yellow-500 group-hover:text-white")} />}
+            {(isLoading.funny || (isOverallLoading && !isLoading.helpful && !isLoading.unhelpful)) ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin"/> : <Smile className={cn("w-3.5 h-3.5 mr-1.5", !isOverallLoading && currentUserIsFunny ? "text-black" : "text-yellow-500 group-hover:text-white")} />}
             Funny ({formatNumberWithSuffix(interactionCounts.funny)})
           </Button>
         </CardFooter>
       </Card>
 
-      {isAuthor && review.author && (
+      {!isLoadingCurrentUserId && isAuthor && review.author && (
         <WriteReviewModal
           resource={{
             id: review.resourceId,

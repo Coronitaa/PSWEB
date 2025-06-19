@@ -264,5 +264,3 @@ export default function ResourcePageWrapper({ params: paramsPromise, searchParam
     </div>
   );
 }
-
-    

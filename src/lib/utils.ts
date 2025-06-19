@@ -125,4 +125,3 @@ export const calculateGenericItemSearchScore = (item: GenericListItem, query: st
   }
   return score;
 };
-    

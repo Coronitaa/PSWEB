@@ -68,5 +68,3 @@ export default async function CreateResourcePage({ params: paramsPromise }: Crea
 }
 
 export const dynamic = 'force-dynamic';
-
-    

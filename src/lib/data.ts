@@ -1083,7 +1083,3 @@ export const incrementResourceFileDownloadCount = async (fileId: string): Promis
   const result = await db.run('UPDATE resource_files SET downloads = downloads + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?', fileId);
   return (result.changes ?? 0) > 0;
 };
-    
-
-
-

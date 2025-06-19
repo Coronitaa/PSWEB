@@ -230,5 +230,3 @@ const GradientEdges: React.FC = () => {
 };
 
 export default ImageGalleryCarousel;
-
-    

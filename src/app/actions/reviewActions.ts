@@ -176,10 +176,10 @@ export async function updateReviewAction(
 
 export async function deleteReviewAction(reviewId: string, clientMockUserId?: string): Promise<ActionResult> {
   const authDetails = await verifyUserAndGetId(clientMockUserId);
-   if ('error' in authDetails) {
+  if ('error' in authDetails) {
     return { success: false, error: authDetails.error, errorCode: authDetails.errorCode };
   }
-  const { userId } = authDetails;
+  const { userId, role } = authDetails; // Get role here
 
   const db = await getDb();
   try {
@@ -187,7 +187,11 @@ export async function deleteReviewAction(reviewId: string, clientMockUserId?: st
     if (!reviewToDelete) {
       return { success: false, error: "Review not found.", errorCode: 'NOT_FOUND' };
     }
-    if (reviewToDelete.author_id !== userId) {
+
+    const isAuthor = reviewToDelete.author_id === userId;
+    const isAdminOrMod = role === 'admin' || role === 'mod';
+
+    if (!isAuthor && !isAdminOrMod) { // Check if user is author OR admin/mod
       return { success: false, error: "You are not authorized to delete this review.", errorCode: 'FORBIDDEN' };
     }
 

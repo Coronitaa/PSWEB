@@ -184,7 +184,11 @@ export function ResourceInfoSidebar({ resource }: ResourceInfoSidebarProps) {
   };
 
   const parentItemPath = `/${resource.parentItemType === 'art-music' ? 'art-music' : resource.parentItemType + 's'}/${resource.parentItemSlug}`;
-  const authorProfilePath = resource.author.usertag ? `/users/${resource.author.usertag.startsWith('@') ? resource.author.usertag.substring(1) : resource.author.usertag}` : '#';
+  
+  let authorProfilePath = '#';
+  if (resource.author.usertag) {
+    authorProfilePath = `/users/${resource.author.usertag.startsWith('@') ? resource.author.usertag.substring(1) : resource.author.usertag}`;
+  }
 
 
   const positiveReviewsCount = resource.reviews?.filter(r => r.isRecommended).length || 0;

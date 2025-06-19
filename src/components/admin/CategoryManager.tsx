@@ -381,5 +381,3 @@ export function CategoryManager({ projectId, projectItemType, initialCategories 
     </>
   );
 }
-    
-  

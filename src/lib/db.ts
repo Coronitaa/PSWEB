@@ -213,10 +213,11 @@ async function initDbSchema(db: Database): Promise<void> {
   }
   
   // Ensure mock profiles exist with social links
-  const adminSocialLinks = JSON.stringify({ github: 'https://github.com/admin', discord: 'https://discord.gg/adminchannel' });
-  const modSocialLinks = JSON.stringify({ twitter: 'https://twitter.com/mod', website: 'https://moderator.example.com' });
-  const userSocialLinks = JSON.stringify({ website: 'https://userpage.example.com' });
-  const creativeCatSocialLinks = JSON.stringify({ github: 'https://github.com/creativecat', twitter: 'https://twitter.com/creativecat_art' });
+  const adminSocialLinks = JSON.stringify({ github: 'https://github.com/admin', discord: 'https://discord.gg/adminchannel', website: 'https://admin.example.com' });
+  const modSocialLinks = JSON.stringify({ twitter: 'https://twitter.com/mod', website: 'https://moderator.example.com', linkedin: 'https://linkedin.com/in/moderator' });
+  const userSocialLinks = JSON.stringify({ website: 'https://userpage.example.com', github: 'https://github.com/regularuser' });
+  const creativeCatSocialLinks = JSON.stringify({ github: 'https://github.com/creativecat', twitter: 'https://twitter.com/creativecat_art', website: 'https://creativecat.art' });
+
 
   await db.run("INSERT OR IGNORE INTO profiles (id, name, usertag, role, avatar_url, banner_url, bio, social_links) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
     'mock-admin-id', 'Administrator', '@admin', 'admin', 

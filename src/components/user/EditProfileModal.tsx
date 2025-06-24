@@ -2,10 +2,11 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 import type { Author as UserProfile, ProfileUpdateFormData } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -17,12 +18,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { updateProfile } from '@/app/actions/clientWrappers';
-import { Loader2, Save, Github, Twitter, Globe, Linkedin, MessageCircle } from 'lucide-react';
+import { Loader2, Save, Github, Twitter, Globe, Linkedin, MessageCircle, User, ImageIcon, Link as LinkIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const profileFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters.").max(50, "Name cannot exceed 50 characters."),
@@ -30,11 +33,11 @@ const profileFormSchema = z.object({
   avatarUrl: z.string().url("Must be a valid URL for avatar.").optional().or(z.literal('')),
   bannerUrl: z.string().url("Must be a valid URL for banner.").optional().or(z.literal('')),
   socialLinks: z.object({
-    github: z.string().url().optional().or(z.literal('')),
-    twitter: z.string().url().optional().or(z.literal('')),
-    website: z.string().url().optional().or(z.literal('')),
-    linkedin: z.string().url().optional().or(z.literal('')),
-    discord: z.string().url().optional().or(z.literal('')),
+    github: z.string().url("Must be a valid URL.").optional().or(z.literal('')),
+    twitter: z.string().url("Must be a valid URL.").optional().or(z.literal('')),
+    website: z.string().url("Must be a valid URL.").optional().or(z.literal('')),
+    linkedin: z.string().url("Must be a valid URL.").optional().or(z.literal('')),
+    discord: z.string().url("Must be a valid URL.").optional().or(z.literal('')),
   }).optional(),
 });
 
@@ -43,6 +46,32 @@ interface EditProfileModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 }
+
+const ImagePreview = ({ watchUrl, alt, fallbackText, className }: { watchUrl?: string; alt: string; fallbackText: string; className?: string }) => {
+    const [isValidImage, setIsValidImage] = useState(false);
+
+    useEffect(() => {
+        if (watchUrl) {
+            const img = new window.Image();
+            img.src = watchUrl;
+            img.onload = () => setIsValidImage(true);
+            img.onerror = () => setIsValidImage(false);
+        } else {
+            setIsValidImage(false);
+        }
+    }, [watchUrl]);
+
+    return (
+        <div className={cn("relative mt-2 flex items-center justify-center rounded-md border border-dashed bg-muted/50 text-muted-foreground", className)}>
+            {isValidImage && watchUrl ? (
+                <Image src={watchUrl} alt={alt} fill style={{ objectFit: 'cover' }} className="rounded-md" />
+            ) : (
+                <span className="p-4 text-xs text-center">{fallbackText}</span>
+            )}
+        </div>
+    );
+};
+
 
 export function EditProfileModal({ profile, isOpen, onOpenChange }: EditProfileModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -66,6 +95,9 @@ export function EditProfileModal({ profile, isOpen, onOpenChange }: EditProfileM
     },
   });
 
+  const watchedAvatarUrl = useWatch({ control: form.control, name: 'avatarUrl' });
+  const watchedBannerUrl = useWatch({ control: form.control, name: 'bannerUrl' });
+
   useEffect(() => {
     if (isOpen) {
       form.reset({
@@ -88,7 +120,7 @@ export function EditProfileModal({ profile, isOpen, onOpenChange }: EditProfileM
     setIsSubmitting(true);
     try {
       const formData: ProfileUpdateFormData = {
-        ...data,
+        name: data.name,
         bio: data.bio || undefined,
         avatarUrl: data.avatarUrl || undefined,
         bannerUrl: data.bannerUrl || undefined,
@@ -113,66 +145,84 @@ export function EditProfileModal({ profile, isOpen, onOpenChange }: EditProfileM
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl md:max-w-2xl max-h-[90vh]">
-        <DialogHeader>
-          <DialogTitle>Edit Your Profile</DialogTitle>
+      <DialogContent className="sm:max-w-xl md:max-w-2xl max-h-[90vh] flex flex-col p-0">
+        <DialogHeader className="p-6 pb-2 border-b">
+          <DialogTitle className="text-xl">Edit Your Profile</DialogTitle>
           <DialogDescription>
             Update your public information. Click save when you're done.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 overflow-y-auto pr-2 -mr-2 py-2">
-          <div>
-            <Label htmlFor="name">Display Name</Label>
-            <Input id="name" {...form.register('name')} />
-            {form.formState.errors.name && <p className="text-xs text-destructive mt-1">{form.formState.errors.name.message}</p>}
-          </div>
-          <div>
-            <Label htmlFor="bio">Bio</Label>
-            <Textarea id="bio" {...form.register('bio')} rows={4} placeholder="Tell us a little about yourself..."/>
-            {form.formState.errors.bio && <p className="text-xs text-destructive mt-1">{form.formState.errors.bio.message}</p>}
-          </div>
-          <div>
-            <Label htmlFor="avatarUrl">Avatar URL</Label>
-            <Input id="avatarUrl" {...form.register('avatarUrl')} placeholder="https://..."/>
-            {form.formState.errors.avatarUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.avatarUrl.message}</p>}
-          </div>
-          <div>
-            <Label htmlFor="bannerUrl">Banner URL</Label>
-            <Input id="bannerUrl" {...form.register('bannerUrl')} placeholder="https://..."/>
-            {form.formState.errors.bannerUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.bannerUrl.message}</p>}
-          </div>
-          
-          <div className="space-y-3 pt-2">
-            <h4 className="text-sm font-medium">Social Links</h4>
-            <div className="relative">
-                <Github className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input {...form.register('socialLinks.github')} placeholder="GitHub URL" className="pl-9"/>
-            </div>
-            <div className="relative">
-                <Twitter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input {...form.register('socialLinks.twitter')} placeholder="Twitter/X URL" className="pl-9"/>
-            </div>
-            <div className="relative">
-                <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input {...form.register('socialLinks.website')} placeholder="Website URL" className="pl-9"/>
-            </div>
-             <div className="relative">
-                <Linkedin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input {...form.register('socialLinks.linkedin')} placeholder="LinkedIn URL" className="pl-9"/>
-            </div>
-             <div className="relative">
-                <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input {...form.register('socialLinks.discord')} placeholder="Discord Invite URL" className="pl-9"/>
-            </div>
-          </div>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="flex-grow contents">
+            <Tabs defaultValue="general" className="flex-grow flex flex-col overflow-hidden">
+                <TabsList className="grid w-full grid-cols-3 mx-6 mt-4 shrink-0 bg-muted/50">
+                    <TabsTrigger value="general"><User className="w-4 h-4 mr-2" />General</TabsTrigger>
+                    <TabsTrigger value="images"><ImageIcon className="w-4 h-4 mr-2" />Images</TabsTrigger>
+                    <TabsTrigger value="links"><LinkIcon className="w-4 h-4 mr-2" />Links</TabsTrigger>
+                </TabsList>
+                <div className="flex-grow overflow-y-auto px-6 py-4 space-y-4">
+                    <TabsContent value="general" className="space-y-4 m-0">
+                        <div>
+                            <Label htmlFor="name">Display Name</Label>
+                            <Input id="name" {...form.register('name')} disabled={isSubmitting}/>
+                            {form.formState.errors.name && <p className="text-xs text-destructive mt-1">{form.formState.errors.name.message}</p>}
+                        </div>
+                        <div>
+                            <Label htmlFor="bio">Bio</Label>
+                            <Textarea id="bio" {...form.register('bio')} rows={6} placeholder="Tell us a little about yourself..." disabled={isSubmitting}/>
+                            {form.formState.errors.bio && <p className="text-xs text-destructive mt-1">{form.formState.errors.bio.message}</p>}
+                        </div>
+                    </TabsContent>
+                    <TabsContent value="images" className="space-y-4 m-0">
+                         <div>
+                            <Label htmlFor="avatarUrl">Avatar URL</Label>
+                            <Input id="avatarUrl" {...form.register('avatarUrl')} placeholder="https://..." disabled={isSubmitting}/>
+                            {form.formState.errors.avatarUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.avatarUrl.message}</p>}
+                            <ImagePreview watchUrl={watchedAvatarUrl} alt="Avatar Preview" fallbackText="Avatar Preview" className="w-24 h-24 rounded-full"/>
+                        </div>
+                        <div>
+                            <Label htmlFor="bannerUrl">Banner URL</Label>
+                            <Input id="bannerUrl" {...form.register('bannerUrl')} placeholder="https://..." disabled={isSubmitting}/>
+                            {form.formState.errors.bannerUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.bannerUrl.message}</p>}
+                            <ImagePreview watchUrl={watchedBannerUrl} alt="Banner Preview" fallbackText="Banner Preview" className="w-full aspect-[16/9]"/>
+                        </div>
+                    </TabsContent>
+                    <TabsContent value="links" className="space-y-3 m-0">
+                        <div className="relative">
+                            <Github className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input {...form.register('socialLinks.github')} placeholder="GitHub URL" className="pl-9" disabled={isSubmitting}/>
+                            {form.formState.errors.socialLinks?.github && <p className="text-xs text-destructive mt-1">{form.formState.errors.socialLinks.github.message}</p>}
+                        </div>
+                        <div className="relative">
+                            <Twitter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input {...form.register('socialLinks.twitter')} placeholder="Twitter/X URL" className="pl-9" disabled={isSubmitting}/>
+                            {form.formState.errors.socialLinks?.twitter && <p className="text-xs text-destructive mt-1">{form.formState.errors.socialLinks.twitter.message}</p>}
+                        </div>
+                        <div className="relative">
+                            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input {...form.register('socialLinks.website')} placeholder="Website URL" className="pl-9" disabled={isSubmitting}/>
+                             {form.formState.errors.socialLinks?.website && <p className="text-xs text-destructive mt-1">{form.formState.errors.socialLinks.website.message}</p>}
+                        </div>
+                         <div className="relative">
+                            <Linkedin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input {...form.register('socialLinks.linkedin')} placeholder="LinkedIn URL" className="pl-9" disabled={isSubmitting}/>
+                            {form.formState.errors.socialLinks?.linkedin && <p className="text-xs text-destructive mt-1">{form.formState.errors.socialLinks.linkedin.message}</p>}
+                        </div>
+                         <div className="relative">
+                            <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input {...form.register('socialLinks.discord')} placeholder="Discord Invite URL" className="pl-9" disabled={isSubmitting}/>
+                             {form.formState.errors.socialLinks?.discord && <p className="text-xs text-destructive mt-1">{form.formState.errors.socialLinks.discord.message}</p>}
+                        </div>
+                    </TabsContent>
+                </div>
+            </Tabs>
+            <DialogFooter className="p-6 pt-4 border-t mt-auto shrink-0">
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancel</Button>
+                <Button type="submit" disabled={isSubmitting} className="button-primary-glow">
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4"/>}
+                Save Changes
+                </Button>
+            </DialogFooter>
         </form>
-        <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting}>
-            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Save Changes
-            </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

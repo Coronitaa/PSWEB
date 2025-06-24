@@ -573,7 +573,7 @@ export function ResourceForm({
                                     if (groupConfig && tagIdsInGroup) {
                                         tagIdsInGroup.forEach(tagId => {
                                             const tagConfig = (groupConfig.tags || []).find(t => t.id === tagId);
-                                            if (tagConfig) displayTags.push(mapConfigToTagInterface(tagConfig, groupConfig.groupDisplayName.toLowerCase().replace(/\s+/g, '-')));
+                                            if (tagConfig) displayTags.push(mapConfigToTagInterface(tagConfig, groupConfig.displayName.toLowerCase().replace(/\s+/g, '-')));
                                         });
                                     }
                                 }

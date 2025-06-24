@@ -519,61 +519,59 @@ export function ResourceForm({
               {form.formState.errors.requirements && <p className="text-xs text-destructive mt-1">{form.formState.errors.requirements.message}</p>}
             </TabsContent>
 
-            <TabsContent value="visuals" className="p-6">
-              <div className="space-y-6">
-                <CardTitle className="text-xl mb-4 flex items-center"><ImageIcon className="w-5 h-5 mr-2 text-primary" />Visuals</CardTitle>
-                
-                <div className="space-y-2">
-                  <Label>Main Image</Label>
-                  <ImagePreview watchUrl={watchedImageUrl} alt="Main Image Preview" fallbackText="Main Image Preview" className="w-full max-w-lg aspect-video mt-1" />
-                  <div className="w-full md:w-1/2">
-                    <Input id="imageUrl" {...form.register('imageUrl')} placeholder="https://..." />
-                    {form.formState.errors.imageUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageUrl.message}</p>}
-                  </div>
+            <TabsContent value="visuals" className="p-6 space-y-6">
+              <CardTitle className="text-xl mb-4 flex items-center"><ImageIcon className="w-5 h-5 mr-2 text-primary" />Visuals</CardTitle>
+              
+              <div className="space-y-2">
+                <Label>Main Image</Label>
+                <ImagePreview watchUrl={watchedImageUrl} alt="Main Image Preview" fallbackText="Main Image Preview" className="w-full max-w-sm aspect-video mt-1" />
+                <div className="w-full md:w-1/2">
+                  <Input id="imageUrl" {...form.register('imageUrl')} placeholder="https://..." />
+                  {form.formState.errors.imageUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageUrl.message}</p>}
                 </div>
-
-                <Separator />
-                
-                <div className="space-y-2">
-                  <Label>Image Gallery</Label>
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                    <div className="lg:col-span-7">
-                      <div className="mt-1 rounded-lg border bg-background/30 min-h-[220px] p-2">
-                          <ImageGalleryCarousel images={galleryImagesForPreview} />
-                      </div>
-                    </div>
-                    <div className="lg:col-span-5 space-y-2">
-                       <div className="border rounded-md bg-muted/30 p-4 max-h-80 overflow-y-auto space-y-2">
-                        {galleryFields.map((field, index) => (
-                          <div 
-                            key={field.id}
-                            draggable="true"
-                            onDragStart={(e) => handleImageDragStart(e, index)}
-                            onDragOver={handleImageDragOver}
-                            onDrop={(e) => handleImageDrop(e, index)}
-                            onDragEnd={handleImageDragEnd}
-                            className={cn(
-                              "flex items-center gap-2 p-1.5 rounded-md hover:bg-muted/50 group cursor-grab",
-                              draggingImageIndex === index && "opacity-50 bg-primary/20"
-                            )}
-                          >
-                            <GripVertical className="h-5 w-5 text-muted-foreground mr-1 opacity-50 group-hover:opacity-100 shrink-0" />
-                            <Input {...form.register(`imageGallery.${index}.value`)} placeholder="https://..." className="h-8"/>
-                            <div className="flex gap-0.5 shrink-0">
-                              <Button type="button" size="icon" variant="ghost" onClick={() => removeGalleryField(index)} className="text-destructive/70 hover:text-destructive h-7 w-7"><X className="h-4 w-4" /></Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => appendGalleryField({ value: '' })}>
-                        <PlusCircle className="mr-2 h-4 w-4" /> Add Image
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                {form.formState.errors.imageGallery && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageGallery.message}</p>}
               </div>
+
+              <Separator />
+              
+              <div className="space-y-2">
+                <Label>Image Gallery</Label>
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                  <div className="lg:col-span-7">
+                    <div className="mt-1 rounded-lg border bg-background/30 min-h-[220px] p-2">
+                        <ImageGalleryCarousel images={galleryImagesForPreview} />
+                    </div>
+                  </div>
+                  <div className="lg:col-span-5 space-y-2">
+                    <div className="border rounded-md bg-muted/30 p-4 max-h-80 overflow-y-auto space-y-2">
+                      {galleryFields.map((field, index) => (
+                        <div 
+                          key={field.id}
+                          draggable="true"
+                          onDragStart={(e) => handleImageDragStart(e, index)}
+                          onDragOver={handleImageDragOver}
+                          onDrop={(e) => handleImageDrop(e, index)}
+                          onDragEnd={handleImageDragEnd}
+                          className={cn(
+                            "flex items-center gap-2 p-1.5 rounded-md hover:bg-muted/50 group cursor-grab",
+                            draggingImageIndex === index && "opacity-50 bg-primary/20"
+                          )}
+                        >
+                          <GripVertical className="h-5 w-5 text-muted-foreground mr-1 opacity-50 group-hover:opacity-100 shrink-0" />
+                          <Input {...form.register(`imageGallery.${index}.value`)} placeholder="https://..." className="h-8"/>
+                          <div className="flex gap-0.5 shrink-0">
+                            <Button type="button" size="icon" variant="ghost" onClick={() => removeGalleryField(index)} className="text-destructive/70 hover:text-destructive h-7 w-7"><X className="h-4 w-4" /></Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => appendGalleryField({ value: '' })}>
+                      <PlusCircle className="mr-2 h-4 w-4" /> Add Image
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {form.formState.errors.imageGallery && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageGallery.message}</p>}
             </TabsContent>
 
             <TabsContent value="files" className="p-6 flex flex-col h-full">

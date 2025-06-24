@@ -237,7 +237,7 @@ export function UploadMenu({
           itemType={createModalContext.itemType}
           itemSlug={createModalContext.projectSlug}
           categorySlug={createModalContext.categorySlug}
-          itemName={createModalMContext.projectName}
+          itemName={createModalContext.projectName}
           categoryName={createModalContext.categoryName}
         />
       )}

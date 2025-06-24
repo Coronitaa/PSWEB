@@ -114,7 +114,7 @@ const ImagePreview = ({ watchUrl, alt, fallbackText, className }: { watchUrl?: s
     return (
         <div className={cn("relative flex items-center justify-center rounded-md border border-dashed bg-muted/50 text-muted-foreground", className)}>
             {isValidImage && watchUrl ? (
-                <Image src={watchUrl} alt={alt} fill style={{ objectFit: 'cover' }} className="rounded-md" />
+                <Image src={watchUrl} alt={alt} fill style={{ objectFit: 'cover' }} className="rounded-md" onDragStart={(e) => e.preventDefault()} />
             ) : (
                 <span className="p-4 text-xs text-center">{fallbackText}</span>
             )}
@@ -520,58 +520,63 @@ export function ResourceForm({
             </TabsContent>
 
             <TabsContent value="visuals" className="p-6 space-y-6">
-              <CardTitle className="text-xl mb-4 flex items-center"><ImageIcon className="w-5 h-5 mr-2 text-primary" />Visuals</CardTitle>
-              
-              <div className="space-y-2">
-                  <Label htmlFor="imageUrl">Main Image URL</Label>
-                  <Input id="imageUrl" {...form.register('imageUrl')} />
-                  <ImagePreview watchUrl={watchedImageUrl} alt="Main Image Preview" fallbackText="Main Image Preview" className="w-full max-w-lg aspect-video mt-2" />
-                  {form.formState.errors.imageUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageUrl.message}</p>}
-              </div>
+                <CardTitle className="text-xl mb-4 flex items-center"><ImageIcon className="w-5 h-5 mr-2 text-primary" />Visuals</CardTitle>
+                
+                <div className="space-y-2">
+                    <Label htmlFor="imageUrl">Main Image URL</Label>
+                    <Input id="imageUrl" {...form.register('imageUrl')} />
+                    {form.formState.errors.imageUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageUrl.message}</p>}
+                </div>
 
-              <Separator />
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                  <div className="space-y-2">
-                      <Label>Image Gallery URLs</Label>
-                       <Card className="p-2 bg-background/30 border-dashed">
-                        <div className="space-y-2">
-                          {galleryFields.map((field, index) => (
-                            <div 
-                              key={field.id}
-                              draggable="true"
-                              onDragStart={(e) => handleImageDragStart(e, index)}
-                              onDragOver={handleImageDragOver}
-                              onDrop={(e) => handleImageDrop(e, index)}
-                              onDragEnd={handleImageDragEnd}
-                              className={cn(
-                                "flex items-center gap-2 p-1.5 rounded-md hover:bg-muted/50 group cursor-grab",
-                                draggingImageIndex === index && "opacity-50 bg-primary/20"
-                              )}
-                            >
-                              <GripVertical className="h-4 w-4 text-muted-foreground shrink-0" />
-                              <Input {...form.register(`imageGallery.${index}.value`)} placeholder="https://..." className="h-8"/>
-                              <div className="flex gap-0.5 shrink-0">
-                                <Button type="button" size="icon" variant="ghost" onClick={() => moveGalleryField(index, index - 1)} disabled={index === 0} className="h-7 w-7"><ChevronUp className="h-4 w-4" /></Button>
-                                <Button type="button" size="icon" variant="ghost" onClick={() => moveGalleryField(index, index + 1)} disabled={index === galleryFields.length - 1} className="h-7 w-7"><ChevronDown className="h-4 w-4" /></Button>
-                                <Button type="button" size="icon" variant="ghost" className="text-destructive/70 hover:text-destructive h-7 w-7" onClick={() => removeGalleryField(index)}><X className="h-4 w-4" /></Button>
-                              </div>
-                            </div>
-                          ))}
+                <Separator />
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                    <div className="space-y-2">
+                        <Label>Image Gallery URLs</Label>
+                        <Card className="p-2 bg-background/30 border-dashed">
+                           <ScrollArea className="h-64">
+                                <div className="space-y-2 pr-4">
+                                {galleryFields.map((field, index) => (
+                                    <div 
+                                    key={field.id}
+                                    draggable="true"
+                                    onDragStart={(e) => handleImageDragStart(e, index)}
+                                    onDragOver={handleImageDragOver}
+                                    onDrop={(e) => handleImageDrop(e, index)}
+                                    onDragEnd={handleImageDragEnd}
+                                    className={cn(
+                                        "flex items-center gap-2 p-1.5 rounded-md hover:bg-muted/50 group cursor-grab",
+                                        draggingImageIndex === index && "opacity-50 bg-primary/20"
+                                    )}
+                                    >
+                                    <GripVertical className="h-4 w-4 text-muted-foreground shrink-0" />
+                                    <Input {...form.register(`imageGallery.${index}.value`)} placeholder="https://..." className="h-8"/>
+                                    <div className="flex gap-0.5 shrink-0">
+                                        <Button type="button" size="icon" variant="ghost" onClick={() => removeGalleryField(index)} className="text-destructive/70 hover:text-destructive h-7 w-7"><X className="h-4 w-4" /></Button>
+                                    </div>
+                                    </div>
+                                ))}
+                                </div>
+                            </ScrollArea>
+                            <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => appendGalleryField({ value: '' })}>
+                                <PlusCircle className="mr-2 h-4 w-4" /> Add Image
+                            </Button>
+                        </Card>
+                        {form.formState.errors.imageGallery && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageGallery.message}</p>}
+                    </div>
+                    <div className="space-y-2">
+                        <div className="mb-2">
+                            <Label className="text-muted-foreground">Main Image Preview</Label>
+                            <ImagePreview watchUrl={watchedImageUrl} alt="Main Image Preview" fallbackText="Main Image Preview" className="w-full max-w-lg aspect-video mt-1" />
                         </div>
-                        <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => appendGalleryField({ value: '' })}>
-                            <PlusCircle className="mr-2 h-4 w-4" /> Add Image
-                        </Button>
-                      </Card>
-                       {form.formState.errors.imageGallery && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageGallery.message}</p>}
-                  </div>
-                  <div className="space-y-2">
-                      <Label className="text-muted-foreground">Gallery Preview</Label>
-                      <div className="mt-1 rounded-lg border bg-background/30 min-h-[185px] p-2">
-                          <ImageGalleryCarousel images={galleryImagesForPreview} />
-                      </div>
-                  </div>
-              </div>
+                        <div>
+                            <Label className="text-muted-foreground">Gallery Preview</Label>
+                            <div className="mt-1 rounded-lg border bg-background/30 min-h-[185px] p-2">
+                                <ImageGalleryCarousel images={galleryImagesForPreview} />
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </TabsContent>
 
             <TabsContent value="files" className="p-6 flex flex-col h-full">

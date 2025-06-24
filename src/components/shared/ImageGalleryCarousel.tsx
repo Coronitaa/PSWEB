@@ -33,6 +33,13 @@ export const ImageGalleryCarousel: React.FC<ImageGalleryCarouselProps> = ({ imag
 
   const numImages = images.length;
 
+  useEffect(() => {
+    // Reset index if it's out of bounds after images array changes
+    if (imgIndex >= numImages) {
+      setImgIndex(0);
+    }
+  }, [numImages, imgIndex]);
+
   const startAutoPlay = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (numImages > 1 && !lightboxOpen) {
@@ -87,14 +94,14 @@ export const ImageGalleryCarousel: React.FC<ImageGalleryCarouselProps> = ({ imag
   if (numImages === 0) {
     return (
       <div className={cn("relative aspect-video w-full bg-muted rounded-lg flex items-center justify-center", className)}>
-        <p className="text-muted-foreground">No images available.</p>
+        <p className="text-muted-foreground text-xs">No images to preview.</p>
       </div>
     );
   }
 
   return (
     <>
-      <div className={cn("relative overflow-hidden bg-card/50 pb-10 w-full aspect-[16/9] rounded-lg shadow-inner group", className)}>
+      <div className={cn("relative overflow-hidden bg-card/50 w-full aspect-[16/9] rounded-lg shadow-inner group", className)}>
         <motion.div
           drag="x"
           dragConstraints={{ left: 0, right: 0 }}
@@ -106,7 +113,7 @@ export const ImageGalleryCarousel: React.FC<ImageGalleryCarouselProps> = ({ imag
         >
           {images.map((imgSrc, idx) => (
             <motion.div
-              key={idx}
+              key={`${idx}-${imgSrc}`}
               onClick={() => openLightbox(idx)}
               animate={{ scale: imgIndex === idx ? 1 : 0.95 }} // This scale is for the main carousel items
               transition={SPRING_OPTIONS}
@@ -116,6 +123,7 @@ export const ImageGalleryCarousel: React.FC<ImageGalleryCarouselProps> = ({ imag
                 src={imgSrc} 
                 alt={`Gallery image ${idx + 1}`} 
                 draggable={false}
+                onDragStart={(e) => e.preventDefault()}
                 fill
                 style={{objectFit: "cover"}}
                 className="rounded-md"
@@ -125,9 +133,11 @@ export const ImageGalleryCarousel: React.FC<ImageGalleryCarouselProps> = ({ imag
             </motion.div>
           ))}
         </motion.div>
-
-        {numImages > 1 && <Dots imgIndex={imgIndex} setImgIndex={setImgIndex} numImages={numImages} />}
-        <GradientEdges />
+        
+        <div className="absolute bottom-0 left-0 right-0 h-10 z-10">
+            {numImages > 1 && <Dots imgIndex={imgIndex} setImgIndex={setImgIndex} numImages={numImages} />}
+            <GradientEdges />
+        </div>
       </div>
 
       <AnimatePresence>
@@ -141,6 +151,7 @@ export const ImageGalleryCarousel: React.FC<ImageGalleryCarouselProps> = ({ imag
             onClick={closeLightbox} 
           >
             <button
+              type="button"
               onClick={(e) => { e.stopPropagation(); closeLightbox(); }}
               className="absolute top-4 right-4 z-[102] p-2 rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors focus:outline-none"
               aria-label="Close lightbox"
@@ -151,6 +162,7 @@ export const ImageGalleryCarousel: React.FC<ImageGalleryCarouselProps> = ({ imag
             {numImages > 1 && (
                 <>
                 <button
+                    type="button"
                     onClick={(e) => { e.stopPropagation(); goToPrevImage(); }}
                     className="absolute left-4 top-1/2 -translate-y-1/2 z-[101] p-3 rounded-full bg-black/30 text-white hover:bg-black/50 transition-all focus:outline-none opacity-70 hover:opacity-100"
                     aria-label="Previous image"
@@ -158,6 +170,7 @@ export const ImageGalleryCarousel: React.FC<ImageGalleryCarouselProps> = ({ imag
                     <ChevronLeft size={32} />
                 </button>
                 <button
+                    type="button"
                     onClick={(e) => { e.stopPropagation(); goToNextImage(); }}
                     className="absolute right-4 top-1/2 -translate-y-1/2 z-[101] p-3 rounded-full bg-black/30 text-white hover:bg-black/50 transition-all focus:outline-none opacity-70 hover:opacity-100"
                     aria-label="Next image"
@@ -167,22 +180,22 @@ export const ImageGalleryCarousel: React.FC<ImageGalleryCarouselProps> = ({ imag
                 </>
             )}
             
-            {/* Container for the image, ensures it takes available space and centers content */}
             <motion.div
-              key={selectedImageIndex} // Re-trigger animation on image change
+              key={selectedImageIndex}
               initial={{ opacity: 0.8, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className="relative w-full h-full flex items-center justify-center" // Takes full space within p-10, centers image
+              className="relative w-full h-full flex items-center justify-center"
               onClick={(e) => e.stopPropagation()} 
             >
               <Image
                 src={images[selectedImageIndex]}
                 alt={`Enlarged image ${selectedImageIndex + 1}`}
                 fill
-                style={{ objectFit: "contain" }} // Image is contained within this div
-                className="rounded-lg shadow-2xl" // Added shadow and rounded to image itself
+                style={{ objectFit: "contain" }}
+                className="rounded-lg shadow-2xl"
                 priority 
+                onDragStart={(e) => e.preventDefault()}
               />
             </motion.div>
             {numImages > 1 && (
@@ -209,6 +222,7 @@ const Dots: React.FC<DotsProps> = ({ imgIndex, setImgIndex, numImages }) => {
       {Array.from({ length: numImages }).map((_, idx) => (
         <button
           key={idx}
+          type="button"
           onClick={() => setImgIndex(idx)}
           className={cn(
             "h-2.5 w-2.5 rounded-full transition-colors",

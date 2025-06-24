@@ -143,6 +143,8 @@ export function ResourceForm({
   const [isFileModalOpen, setIsFileModalOpen] = useState(false);
   const [editingFileIndex, setEditingFileIndex] = useState<number | null>(null);
 
+  const [draggingImageIndex, setDraggingImageIndex] = useState<number | null>(null);
+
   const defaultNewFileModalValues: ResourceFileFormData = useMemo(() => ({
     name: 'New File',
     url: 'https://example.com/newfile.zip',
@@ -428,6 +430,23 @@ export function ResourceForm({
     });
   };
 
+  const handleImageDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+    setDraggingImageIndex(index);
+  };
+  const handleImageDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault(); 
+  };
+  const handleImageDrop = (e: React.DragEvent<HTMLDivElement>, targetIndex: number) => {
+    e.preventDefault();
+    if (draggingImageIndex !== null && draggingImageIndex !== targetIndex) {
+      moveGalleryField(draggingImageIndex, targetIndex);
+    }
+    setDraggingImageIndex(null);
+  };
+  const handleImageDragEnd = () => {
+    setDraggingImageIndex(null);
+  };
+
 
   const fileApplicableTagGroups = dynamicTagGroups.filter(group => group.appliesToFiles);
 
@@ -511,26 +530,35 @@ export function ResourceForm({
               </div>
 
               <Separator />
-
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                   <div className="space-y-2">
                       <Label>Image Gallery URLs</Label>
                        <Card className="p-2 bg-background/30 border-dashed">
-                        <ScrollArea className="h-64 pr-2">
-                          <div className="space-y-2">
-                            {galleryFields.map((field, index) => (
-                              <div key={field.id} className="flex items-center gap-2 p-1.5 rounded-md hover:bg-muted/50 group">
-                                <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab shrink-0" />
-                                <Input {...form.register(`imageGallery.${index}.value`)} placeholder="https://..." className="h-8"/>
-                                <div className="flex gap-0.5 shrink-0">
-                                  <Button type="button" size="icon" variant="ghost" onClick={() => moveGalleryField(index, index - 1)} disabled={index === 0} className="h-7 w-7"><ChevronUp className="h-4 w-4" /></Button>
-                                  <Button type="button" size="icon" variant="ghost" onClick={() => moveGalleryField(index, index + 1)} disabled={index === galleryFields.length - 1} className="h-7 w-7"><ChevronDown className="h-4 w-4" /></Button>
-                                  <Button type="button" size="icon" variant="ghost" className="text-destructive/70 hover:text-destructive h-7 w-7" onClick={() => removeGalleryField(index)}><X className="h-4 w-4" /></Button>
-                                </div>
+                        <div className="space-y-2">
+                          {galleryFields.map((field, index) => (
+                            <div 
+                              key={field.id}
+                              draggable="true"
+                              onDragStart={(e) => handleImageDragStart(e, index)}
+                              onDragOver={handleImageDragOver}
+                              onDrop={(e) => handleImageDrop(e, index)}
+                              onDragEnd={handleImageDragEnd}
+                              className={cn(
+                                "flex items-center gap-2 p-1.5 rounded-md hover:bg-muted/50 group cursor-grab",
+                                draggingImageIndex === index && "opacity-50 bg-primary/20"
+                              )}
+                            >
+                              <GripVertical className="h-4 w-4 text-muted-foreground shrink-0" />
+                              <Input {...form.register(`imageGallery.${index}.value`)} placeholder="https://..." className="h-8"/>
+                              <div className="flex gap-0.5 shrink-0">
+                                <Button type="button" size="icon" variant="ghost" onClick={() => moveGalleryField(index, index - 1)} disabled={index === 0} className="h-7 w-7"><ChevronUp className="h-4 w-4" /></Button>
+                                <Button type="button" size="icon" variant="ghost" onClick={() => moveGalleryField(index, index + 1)} disabled={index === galleryFields.length - 1} className="h-7 w-7"><ChevronDown className="h-4 w-4" /></Button>
+                                <Button type="button" size="icon" variant="ghost" className="text-destructive/70 hover:text-destructive h-7 w-7" onClick={() => removeGalleryField(index)}><X className="h-4 w-4" /></Button>
                               </div>
-                            ))}
-                          </div>
-                        </ScrollArea>
+                            </div>
+                          ))}
+                        </div>
                         <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => appendGalleryField({ value: '' })}>
                             <PlusCircle className="mr-2 h-4 w-4" /> Add Image
                         </Button>

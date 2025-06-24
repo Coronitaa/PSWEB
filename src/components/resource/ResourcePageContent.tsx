@@ -2,7 +2,7 @@
 "use client"; 
 
 import { useState, useEffect } from 'react'; 
-import { notFound, useRouter, useSearchParams as useNextSearchParams } from 'next/navigation'; 
+import { notFound, useRouter, useSearchParams as useNextSearchParams, usePathname } from 'next/navigation'; 
 import Link from 'next/link';
 import type { Resource, ItemType, DynamicAvailableFilterTags } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

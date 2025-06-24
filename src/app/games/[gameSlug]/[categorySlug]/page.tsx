@@ -2,14 +2,9 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getGameBySlug, getCategoryDetails, getResources, getAvailableFilterTags, getCategoriesForItemGeneric } from '@/lib/data';
-import type { Game, Category, Resource, Tag, ItemType, DynamicAvailableFilterTags } from '@/lib/types';
-import { Button } from '@/components/ui/button';
+import type { Game, Category, ItemType, DynamicAvailableFilterTags } from '@/lib/types';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Layers, PlusCircle, Gamepad2 } from 'lucide-react'; // Added Gamepad2
 import { CategoryPageContent } from './CategoryPageContent';
-import { CreateResourceButtonAndModal } from '@/components/resource/CreateResourceButtonAndModal';
-import { cn } from '@/lib/utils';
 
 const RESOURCES_PER_PAGE = 20;
 const MAX_VISIBLE_CATEGORY_TABS = 5;
@@ -67,12 +62,6 @@ export default async function GameCategoryPage({ params: paramsPromise, searchPa
 
   const dynamicAvailableFilterGroups: DynamicAvailableFilterTags = await getAvailableFilterTags(params.gameSlug, itemType, params.categorySlug);
 
-  const visibleCategories = allItemCategories.length > MAX_VISIBLE_CATEGORY_TABS
-    ? allItemCategories.slice(0, MAX_VISIBLE_CATEGORY_TABS)
-    : allItemCategories;
-  const showMoreCategoriesButton = allItemCategories.length > MAX_VISIBLE_CATEGORY_TABS;
-
-
   return (
     <div className="space-y-8">
       <Breadcrumb>
@@ -87,53 +76,6 @@ export default async function GameCategoryPage({ params: paramsPromise, searchPa
         </BreadcrumbList>
       </Breadcrumb>
 
-      <header className="pb-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-              <Layers className="w-8 h-8 text-primary" />
-              <h1 className="text-4xl font-bold text-foreground">{currentCategory.name}</h1>
-          </div>
-          <CreateResourceButtonAndModal
-              itemType={itemType}
-              itemSlug={params.gameSlug}
-              categorySlug={params.categorySlug}
-              itemName={game.name}
-              categoryName={currentCategory.name}
-          />
-        </div>
-        {currentCategory.description && <p className="mt-2 text-lg text-muted-foreground">{currentCategory.description}</p>}
-      </header>
-
-      {allItemCategories.length > 1 && (
-        <div className="mb-6 border-b pb-2">
-          {/* Removed the div with flex justify-between that previously held the button */}
-            <Tabs defaultValue={currentCategory.slug} className="overflow-x-auto whitespace-nowrap scrollbar-hide">
-              <TabsList className="inline-flex justify-start gap-1 bg-transparent p-0 w-max">
-                {visibleCategories.map(cat => (
-                  <TabsTrigger
-                    key={cat.id}
-                    value={cat.slug}
-                    asChild
-                    className={cn(
-                      "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md hover:bg-muted/50 px-3 py-1.5 h-auto text-sm",
-                      cat.slug === currentCategory.slug && "bg-primary text-primary-foreground shadow-md"
-                    )}
-                  >
-                    <Link href={`/games/${game.slug}/${cat.slug}`}>{cat.name}</Link>
-                  </TabsTrigger>
-                ))}
-                {showMoreCategoriesButton && (
-                  <Button variant="ghost" size="sm" asChild className="ml-2 text-sm h-auto py-1.5 px-2.5 hover:bg-muted/50">
-                     <Link href={`/games/${game.slug}`} title={`View all categories for ${game.name}`}>
-                        <PlusCircle className="w-4 h-4 mr-1.5" /> More
-                    </Link>
-                  </Button>
-                )}
-              </TabsList>
-            </Tabs>
-        </div>
-      )}
-
       <CategoryPageContent
         initialResources={initialResources}
         initialHasMore={initialHasMore}
@@ -144,6 +86,11 @@ export default async function GameCategoryPage({ params: paramsPromise, searchPa
         dynamicAvailableFilterGroups={dynamicAvailableFilterGroups}
         itemName={game.name}
         categoryName={currentCategory.name}
+        allItemCategories={allItemCategories}
+        currentCategory={currentCategory}
+        parentItemName={game.name}
+        parentItemSlug={game.slug}
+        maxVisibleCategoryTabs={MAX_VISIBLE_CATEGORY_TABS}
       />
     </div>
   );

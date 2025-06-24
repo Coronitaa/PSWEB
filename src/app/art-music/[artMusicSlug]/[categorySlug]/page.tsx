@@ -8,7 +8,6 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Layers, PlusCircle, Music } from 'lucide-react';
 import { CategoryPageContent } from '@/app/games/[gameSlug]/[categorySlug]/CategoryPageContent'; // Re-using the generic component
-import { CreateResourceButtonAndModal } from '@/components/resource/CreateResourceButtonAndModal';
 import { cn } from '@/lib/utils';
 
 const RESOURCES_PER_PAGE = 20;
@@ -67,11 +66,6 @@ export default async function ArtMusicCategoryPage({ params: paramsPromise, sear
 
   const dynamicAvailableFilterGroups: DynamicAvailableFilterTags = await getAvailableFilterTags(params.artMusicSlug, itemType, params.categorySlug);
 
-  const visibleCategories = allItemCategories.length > MAX_VISIBLE_CATEGORY_TABS
-    ? allItemCategories.slice(0, MAX_VISIBLE_CATEGORY_TABS)
-    : allItemCategories;
-  const showMoreCategoriesButton = allItemCategories.length > MAX_VISIBLE_CATEGORY_TABS;
-
   return (
     <div className="space-y-8">
       <Breadcrumb>
@@ -85,53 +79,7 @@ export default async function ArtMusicCategoryPage({ params: paramsPromise, sear
           <BreadcrumbItem><BreadcrumbPage>{currentCategory.name}</BreadcrumbPage></BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-
-      <header className="pb-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-              <Layers className="w-8 h-8 text-primary" />
-              <h1 className="text-4xl font-bold text-foreground">{currentCategory.name}</h1>
-          </div>
-          <CreateResourceButtonAndModal
-              itemType={itemType}
-              itemSlug={params.artMusicSlug}
-              categorySlug={params.categorySlug}
-              itemName={artMusicItem.name}
-              categoryName={currentCategory.name}
-          />
-        </div>
-        {currentCategory.description && <p className="mt-2 text-lg text-muted-foreground">{currentCategory.description}</p>}
-      </header>
-
-      {allItemCategories.length > 1 && (
-        <div className="mb-6 border-b pb-2">
-            <Tabs defaultValue={currentCategory.slug} className="overflow-x-auto whitespace-nowrap scrollbar-hide">
-              <TabsList className="inline-flex justify-start gap-1 bg-transparent p-0 w-max">
-                {visibleCategories.map(cat => (
-                  <TabsTrigger
-                    key={cat.id}
-                    value={cat.slug}
-                    asChild
-                    className={cn(
-                      "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md hover:bg-muted/50 px-3 py-1.5 h-auto text-sm",
-                      cat.slug === currentCategory.slug && "bg-primary text-primary-foreground shadow-md"
-                    )}
-                  >
-                    <Link href={`/art-music/${artMusicItem.slug}/${cat.slug}`}>{cat.name}</Link>
-                  </TabsTrigger>
-                ))}
-                {showMoreCategoriesButton && (
-                  <Button variant="ghost" size="sm" asChild className="ml-2 text-sm h-auto py-1.5 px-2.5 hover:bg-muted/50">
-                     <Link href={`/art-music/${artMusicItem.slug}`} title={`View all categories for ${artMusicItem.name}`}>
-                        <PlusCircle className="w-4 h-4 mr-1.5" /> More
-                    </Link>
-                  </Button>
-                )}
-              </TabsList>
-            </Tabs>
-        </div>
-      )}
-
+      
       <CategoryPageContent
         initialResources={initialResources}
         initialHasMore={initialHasMore}
@@ -142,6 +90,11 @@ export default async function ArtMusicCategoryPage({ params: paramsPromise, sear
         dynamicAvailableFilterGroups={dynamicAvailableFilterGroups}
         itemName={artMusicItem.name}
         categoryName={currentCategory.name}
+        allItemCategories={allItemCategories}
+        currentCategory={currentCategory}
+        parentItemName={artMusicItem.name}
+        parentItemSlug={artMusicItem.slug}
+        maxVisibleCategoryTabs={MAX_VISIBLE_CATEGORY_TABS}
       />
     </div>
   );

@@ -1,7 +1,6 @@
-
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Logo } from '@/components/shared/Logo';
@@ -16,15 +15,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Gamepad2, Code, TabletSmartphone, Music, LogIn, UserPlus, LogOut, UserCircle, Cog, Loader2, Shield } from 'lucide-react';
+import { Gamepad2, Code, TabletSmartphone, Music, LogIn, UserPlus, LogOut, UserCircle, Cog, Loader2, Shield, UploadCloud } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { toast } from '@/hooks/use-toast';
-import type { UserAppRole } from '@/lib/types';
+import type { UserAppRole, ItemType } from '@/lib/types';
+import { UploadMenu } from './UploadMenu'; // Import new component
 
 interface MockUser {
   id: string;
-  usertag: string; // This will now be stored WITH "@" in localStorage
+  usertag: string;
   name: string;
   role: UserAppRole;
   avatarUrl?: string;
@@ -34,7 +34,36 @@ interface MockUser {
 export function Header() {
   const [mockUser, setMockUser] = useState<MockUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isUploadMenuOpen, setIsUploadMenuOpen] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
+
+  // Parse path to get context for UploadMenu
+  const pathContext = useMemo(() => {
+    const parts = pathname.split('/').filter(Boolean);
+    let itemType: ItemType | undefined = undefined;
+    let projectSlug: string | undefined = undefined;
+    let categorySlug: string | undefined = undefined;
+
+    if (parts.length >= 1) {
+      if (['games', 'web', 'apps', 'art-music'].includes(parts[0])) {
+        if (parts[0] === 'games') itemType = 'game';
+        else if (parts[0] === 'web') itemType = 'web';
+        else if (parts[0] === 'apps') itemType = 'app';
+        else if (parts[0] === 'art-music') itemType = 'art-music';
+      }
+    }
+
+    if (itemType && parts.length >= 2) {
+      projectSlug = parts[1];
+    }
+    
+    if (itemType && projectSlug && parts.length >= 3 && parts[2] !== 'resources') {
+      categorySlug = parts[2];
+    }
+
+    return { itemType, projectSlug, categorySlug };
+  }, [pathname]);
 
   const loadMockUser = useCallback(() => {
     setIsLoading(true);
@@ -42,7 +71,6 @@ export function Header() {
     if (storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
-        // Ensure usertag still has "@" when read from localStorage
         if (parsedUser && typeof parsedUser.id === 'string' && typeof parsedUser.usertag === 'string' && parsedUser.usertag.startsWith('@')) {
           setMockUser(parsedUser);
         } else {
@@ -97,96 +125,114 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 max-w-screen-2xl items-center">
-        <Logo />
-        <nav className="ml-6 flex-grow items-center space-x-3 lg:space-x-4 hidden md:flex">
-          <Link draggable="false" href="/games" className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors flex items-center">
-            <Gamepad2 className="mr-1.5" /> Games
-          </Link>
-          <Link draggable="false" href="/web" className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors flex items-center">
-            <Code className="mr-1.5" /> Web
-          </Link>
-          <Link draggable="false" href="/apps" className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors flex items-center">
-            <TabletSmartphone className="mr-1.5" /> Apps
-          </Link>
-          <Link draggable="false" href="/art-music" className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors flex items-center">
-            <Music className="mr-1.5" /> Art & Music
-          </Link>
-        </nav>
-        <div className="flex flex-1 items-center justify-end space-x-2">
-          {mockUser ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild draggable="false">
-                <Button
-                  variant="ghost"
-                  className="relative h-10 w-10 rounded-full p-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-                >
-                  <Avatar className="h-9 w-9 border-2 border-primary/50">
-                    <AvatarImage src={mockUser.avatarUrl || undefined} alt={mockUser.name} />
-                    <AvatarFallback>{mockUser.name ? mockUser.name.substring(0, 1).toUpperCase() : <UserCircle className="w-6 h-6"/>}</AvatarFallback>
-                  </Avatar>
+    <>
+      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-14 max-w-screen-2xl items-center">
+          <Logo />
+          <nav className="ml-6 flex-grow items-center space-x-3 lg:space-x-4 hidden md:flex">
+            <Link draggable="false" href="/games" className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors flex items-center">
+              <Gamepad2 className="mr-1.5" /> Games
+            </Link>
+            <Link draggable="false" href="/web" className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors flex items-center">
+              <Code className="mr-1.5" /> Web
+            </Link>
+            <Link draggable="false" href="/apps" className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors flex items-center">
+              <TabletSmartphone className="mr-1.5" /> Apps
+            </Link>
+            <Link draggable="false" href="/art-music" className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors flex items-center">
+              <Music className="mr-1.5" /> Art & Music
+            </Link>
+          </nav>
+          <div className="flex flex-1 items-center justify-end space-x-2">
+            {mockUser ? (
+              <>
+                <Button variant="outline" size="sm" className="button-outline-glow hidden sm:flex" onClick={() => setIsUploadMenuOpen(true)}>
+                    <UploadCloud className="mr-2 h-4 w-4" /> Upload
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-64 mt-2.5" align="end" forceMount>
-                {mockUser.bannerUrl && (
-                  <div className="relative h-16 w-full mb-2 overflow-hidden rounded-t-md">
-                    <Image
-                      src={mockUser.bannerUrl}
-                      alt={`${mockUser.name}'s banner`}
-                      fill
-                      style={{objectFit: 'cover'}}
-                      priority
-                    />
-                  </div>
-                )}
-                <DropdownMenuLabel className="font-normal pt-1">
-                  <div className="flex flex-col space-y-1">
-                     <p className="text-sm font-medium leading-none text-foreground">{mockUser.name}</p>
-                    {mockUser.usertag && <p className="text-xs leading-none text-muted-foreground">{mockUser.usertag}</p>}
-                    {mockUser.role && (
-                       <Badge variant={mockUser.role === 'admin' ? 'destructive' : mockUser.role === 'mod' ? 'default' : 'secondary'} className="capitalize w-fit mt-1 text-xs">
-                         {mockUser.role === 'admin' && <Shield className="w-3 h-3 mr-1" />}
-                         {mockUser.role}
-                       </Badge>
+                <Button variant="ghost" size="icon" className="sm:hidden" onClick={() => setIsUploadMenuOpen(true)}>
+                    <UploadCloud className="h-5 w-5" />
+                </Button>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild draggable="false">
+                    <Button
+                      variant="ghost"
+                      className="relative h-10 w-10 rounded-full p-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    >
+                      <Avatar className="h-9 w-9 border-2 border-primary/50">
+                        <AvatarImage src={mockUser.avatarUrl || undefined} alt={mockUser.name} />
+                        <AvatarFallback>{mockUser.name ? mockUser.name.substring(0, 1).toUpperCase() : <UserCircle className="w-6 h-6"/>}</AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-64 mt-2.5" align="end" forceMount>
+                    {mockUser.bannerUrl && (
+                      <div className="relative h-16 w-full mb-2 overflow-hidden rounded-t-md">
+                        <Image
+                          src={mockUser.bannerUrl}
+                          alt={`${mockUser.name}'s banner`}
+                          fill
+                          style={{objectFit: 'cover'}}
+                          priority
+                        />
+                      </div>
                     )}
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                 {(mockUser.role === 'admin' || mockUser.role === 'mod') && (
+                    <DropdownMenuLabel className="font-normal pt-1">
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none text-foreground">{mockUser.name}</p>
+                        {mockUser.usertag && <p className="text-xs leading-none text-muted-foreground">{mockUser.usertag}</p>}
+                        {mockUser.role && (
+                          <Badge variant={mockUser.role === 'admin' ? 'destructive' : mockUser.role === 'mod' ? 'default' : 'secondary'} className="capitalize w-fit mt-1 text-xs">
+                            {mockUser.role === 'admin' && <Shield className="w-3 h-3 mr-1" />}
+                            {mockUser.role}
+                          </Badge>
+                        )}
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {(mockUser.role === 'admin' || mockUser.role === 'mod') && (
+                        <DropdownMenuItem asChild draggable="false">
+                          <Link href="/admin" className="flex items-center cursor-pointer">
+                            <Cog className="mr-2 h-4 w-4" />
+                            Admin Panel
+                          </Link>
+                        </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem asChild draggable="false">
-                       <Link href="/admin" className="flex items-center cursor-pointer">
-                        <Cog className="mr-2 h-4 w-4" />
-                        Admin Panel
-                      </Link>
+                        <Link href={`/users/${mockUser.usertag.substring(1)}`} className="flex items-center cursor-pointer">
+                          <UserCircle className="mr-2 h-4 w-4" />
+                          My Profile
+                        </Link>
+                      </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:bg-destructive/10 focus:text-destructive flex items-center cursor-pointer" draggable="false">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Logout
                     </DropdownMenuItem>
-                 )}
-                 <DropdownMenuItem asChild draggable="false">
-                    {/* Link to profile page using usertag without the leading '@' */}
-                    <Link href={`/users/${mockUser.usertag.substring(1)}`} className="flex items-center cursor-pointer">
-                      <UserCircle className="mr-2 h-4 w-4" />
-                      My Profile
-                    </Link>
-                  </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:bg-destructive/10 focus:text-destructive flex items-center cursor-pointer" draggable="false">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <>
-              <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex" draggable="false">
-                <Link href="/login"><LogIn className="mr-2 h-4 w-4" /> Login</Link>
-              </Button>
-               <Button asChild variant="ghost" size="icon" className="sm:hidden rounded-full h-9 w-9" draggable="false">
-                  <Link href="/login" aria-label="Login"><LogIn className="h-5 w-5"/></Link>
-              </Button>
-            </>
-          )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            ) : (
+              <>
+                <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex" draggable="false">
+                  <Link href="/login"><LogIn className="mr-2 h-4 w-4" /> Login</Link>
+                </Button>
+                <Button asChild variant="ghost" size="icon" className="sm:hidden rounded-full h-9 w-9" draggable="false">
+                    <Link href="/login" aria-label="Login"><LogIn className="h-5 w-5"/></Link>
+                </Button>
+              </>
+            )}
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+      {mockUser && (
+        <UploadMenu
+          isOpen={isUploadMenuOpen}
+          onOpenChange={setIsUploadMenuOpen}
+          initialItemType={pathContext.itemType}
+          initialProjectSlug={pathContext.projectSlug}
+          initialCategorySlug={pathContext.categorySlug}
+        />
+      )}
+    </>
   );
-}

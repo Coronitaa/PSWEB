@@ -293,7 +293,7 @@ export function ResourceForm({
           toast({ title: isNew ? "Resource Created" : "Resource Updated", description: `"${result.data.resource.name}" has been saved.` });
           if (onSuccess) onSuccess();
           else if (isNew && (result.data.resource.status === 'draft' || (currentUserRole !== 'admin' && currentUserRole !== 'mod'))) router.push(`/admin/projects/${itemType}/${projectSlug}/categories/${categorySlug}/resources/${result.data.resource.slug}/edit`);
-          else if (isNew && result.data.resource.status === 'published') router.push(`/resources/${result.data.resource.slug}`);
+          else if (isNew && result.data.resource.status === 'published') router.push(`/${getItemTypePlural(itemType)}/${projectSlug}/${categorySlug}/${result.data.resource.slug}`);
           else router.refresh();
         } else {
           toast({ title: "Error", description: result.error || "Failed to save resource.", variant: "destructive" });
@@ -494,29 +494,32 @@ export function ResourceForm({
             </TabsContent>
 
             <TabsContent value="visuals" className="p-6 space-y-6">
-              <CardTitle className="text-xl mb-4 flex items-center"><ImageIcon className="w-5 h-5 mr-2 text-primary" />Visuals</CardTitle>
-              <div>
-                <Label htmlFor="imageUrl">Main Image URL</Label>
-                <Input id="imageUrl" {...form.register('imageUrl')} />
-                {form.formState.errors.imageUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageUrl.message}</p>}
-                <ImagePreview watchUrl={watchedImageUrl} alt="Main Image Preview" fallbackText="Main Image Preview" className="aspect-video w-full mt-2" />
-              </div>
-
-              <Separator />
-
-              <div>
-                <Label htmlFor="imageGalleryUrls">Image Gallery URLs (one per line)</Label>
-                <Textarea id="imageGalleryUrls" {...form.register('imageGalleryUrls')} rows={4} />
-                {form.formState.errors.imageGalleryUrls && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageGalleryUrls.message as string}</p>}
-                {galleryImagesForPreview.length > 0 && (
-                    <div className="mt-2">
-                        <Label className="text-xs text-muted-foreground">Gallery Preview</Label>
-                        <div className="mt-1 rounded-lg overflow-hidden border">
-                            <ImageGalleryCarousel images={galleryImagesForPreview} />
-                        </div>
+                <CardTitle className="text-xl mb-4 flex items-center"><ImageIcon className="w-5 h-5 mr-2 text-primary" />Visuals</CardTitle>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                    <div className="space-y-2">
+                        <Label htmlFor="imageUrl">Main Image URL</Label>
+                        <Input id="imageUrl" {...form.register('imageUrl')} />
+                        {form.formState.errors.imageUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageUrl.message}</p>}
+                        <ImagePreview watchUrl={watchedImageUrl} alt="Main Image Preview" fallbackText="Main Image Preview" className="aspect-video w-full mt-2" />
                     </div>
-                )}
-              </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="imageGalleryUrls">Image Gallery URLs (one per line)</Label>
+                        <Textarea id="imageGalleryUrls" {...form.register('imageGalleryUrls')} rows={4} />
+                        {form.formState.errors.imageGalleryUrls && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageGalleryUrls.message as string}</p>}
+                        {galleryImagesForPreview.length > 0 ? (
+                            <div className="mt-2">
+                                <Label className="text-xs text-muted-foreground">Gallery Preview</Label>
+                                <div className="mt-1 rounded-lg overflow-hidden border">
+                                    <ImageGalleryCarousel images={galleryImagesForPreview} />
+                                </div>
+                            </div>
+                        ) : (
+                             <div className="mt-2 text-center text-xs text-muted-foreground p-4 border border-dashed rounded-md">
+                                Add image URLs above to see gallery preview
+                            </div>
+                        )}
+                    </div>
+                </div>
             </TabsContent>
 
             <TabsContent value="files" className="p-6 flex flex-col h-full">

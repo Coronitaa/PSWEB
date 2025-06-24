@@ -35,6 +35,8 @@ import { ScrollArea } from '../ui/scroll-area';
 import { TagBadge } from '@/components/shared/TagBadge';
 import { cn } from '@/lib/utils';
 import { formatTimeAgo } from '@/lib/utils';
+import { ImageGalleryCarousel } from '@/components/shared/ImageGalleryCarousel';
+import Image from 'next/image';
 
 const CLEAR_SELECTION_VALUE = "__CLEAR_SELECTION__";
 
@@ -92,6 +94,31 @@ interface MockUserForRole {
   name: string;
   role: UserAppRole;
 }
+
+const ImagePreview = ({ watchUrl, alt, fallbackText, className }: { watchUrl?: string; alt: string; fallbackText: string; className?: string }) => {
+    const [isValidImage, setIsValidImage] = useState(false);
+
+    useEffect(() => {
+        if (watchUrl && watchUrl.startsWith('http')) {
+            const img = new window.Image();
+            img.src = watchUrl;
+            img.onload = () => setIsValidImage(true);
+            img.onerror = () => setIsValidImage(false);
+        } else {
+            setIsValidImage(false);
+        }
+    }, [watchUrl]);
+
+    return (
+        <div className={cn("relative flex items-center justify-center rounded-md border border-dashed bg-muted/50 text-muted-foreground", className)}>
+            {isValidImage && watchUrl ? (
+                <Image src={watchUrl} alt={alt} fill style={{ objectFit: 'cover' }} className="rounded-md" />
+            ) : (
+                <span className="p-4 text-xs text-center">{fallbackText}</span>
+            )}
+        </div>
+    );
+};
 
 export function ResourceForm({
   initialData,
@@ -224,6 +251,14 @@ export function ResourceForm({
   useEffect(() => {
     form.reset(defaultValues);
   }, [stringifiedDefaultValues, form]);
+
+  const watchedImageUrl = useWatch({ control: form.control, name: 'imageUrl' });
+  const watchedGalleryUrls = useWatch({ control: form.control, name: 'imageGalleryUrls' });
+
+  const galleryImagesForPreview = useMemo(() => {
+    const urls = Array.isArray(watchedGalleryUrls) ? watchedGalleryUrls : (typeof watchedGalleryUrls === 'string' ? watchedGalleryUrls.split('\\n') : []);
+    return urls.map(url => url.trim()).filter(url => url && url.startsWith('http'));
+  }, [watchedGalleryUrls]);
 
 
   const onSubmit = async (data: FormValues) => {
@@ -464,11 +499,23 @@ export function ResourceForm({
                 <Label htmlFor="imageUrl">Main Image URL</Label>
                 <Input id="imageUrl" {...form.register('imageUrl')} />
                 {form.formState.errors.imageUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageUrl.message}</p>}
+                <ImagePreview watchUrl={watchedImageUrl} alt="Main Image Preview" fallbackText="Main Image Preview" className="aspect-video w-full mt-2" />
               </div>
+
+              <Separator />
+
               <div>
                 <Label htmlFor="imageGalleryUrls">Image Gallery URLs (one per line)</Label>
                 <Textarea id="imageGalleryUrls" {...form.register('imageGalleryUrls')} rows={4} />
                 {form.formState.errors.imageGalleryUrls && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageGalleryUrls.message as string}</p>}
+                {galleryImagesForPreview.length > 0 && (
+                    <div className="mt-2">
+                        <Label className="text-xs text-muted-foreground">Gallery Preview</Label>
+                        <div className="mt-1 rounded-lg overflow-hidden border">
+                            <ImageGalleryCarousel images={galleryImagesForPreview} />
+                        </div>
+                    </div>
+                )}
               </div>
             </TabsContent>
 

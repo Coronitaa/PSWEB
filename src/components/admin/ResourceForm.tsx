@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { saveResourceAction, deleteResourceAction } from '@/app/admin/actions';
+import { saveResource, deleteResource } from '@/app/actions/clientWrappers';
 import { useState, useTransition, useEffect, useMemo } from 'react';
 import { Loader2, Save, Trash2, Link as LinkIconLucide, PlusCircle, Image as ImageIcon, ListChecks, FileText, Info, ExternalLink, Sparkles, X, Check, Archive, FileUp, Tags, Edit2, GripVertical, CalendarDays } from 'lucide-react';
 import {
@@ -253,7 +253,7 @@ export function ResourceForm({
             selectedFileTags: f.selectedFileTags || {}
           }))
         };
-        const result = await saveResourceAction(initialData?.id, resourceFormData, isNew, parentItemId, categoryId, initialData?.authorId);
+        const result = await saveResource(initialData?.id, resourceFormData, isNew, parentItemId, categoryId, initialData?.authorId);
         if (result.success && result.data?.resource) {
           toast({ title: isNew ? "Resource Created" : "Resource Updated", description: `"${result.data.resource.name}" has been saved.` });
           if (onSuccess) onSuccess();
@@ -273,7 +273,7 @@ export function ResourceForm({
     if (!initialData?.id || isNew) return;
     startDeleteTransition(async () => {
       try {
-        const result = await deleteResourceAction(initialData.id!);
+        const result = await deleteResource(initialData.id!);
         if (result.success) {
           toast({ title: "Resource Deleted", description: `"${initialData.name}" has been deleted.` });
           if (onSuccess) onSuccess();

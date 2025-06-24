@@ -94,7 +94,7 @@ export const ImageGalleryCarousel: React.FC<ImageGalleryCarouselProps> = ({ imag
 
   return (
     <>
-      <div className={cn("relative overflow-hidden bg-card/50 py-0 w-full aspect-[16/9] rounded-lg shadow-inner group", className)}> {/* Added group here for hover on nav buttons */}
+      <div className={cn("relative overflow-hidden bg-card/50 pb-10 w-full aspect-[16/9] rounded-lg shadow-inner group", className)}>
         <motion.div
           drag="x"
           dragConstraints={{ left: 0, right: 0 }}
@@ -115,6 +115,7 @@ export const ImageGalleryCarousel: React.FC<ImageGalleryCarouselProps> = ({ imag
               <Image 
                 src={imgSrc} 
                 alt={`Gallery image ${idx + 1}`} 
+                draggable={false}
                 fill
                 style={{objectFit: "cover"}}
                 className="rounded-md"

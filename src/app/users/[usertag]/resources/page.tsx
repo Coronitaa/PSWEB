@@ -5,7 +5,8 @@ import type { UserProfile, ItemWithDetails, ItemType } from '@/lib/types';
 import { getProjectsForUser, getAuthorPublishedResources } from '@/lib/data';
 import { UserResourcesPageContent } from '@/components/user/UserResourcesPageContent';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { User } from 'lucide-react';
+import { User, Heart } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface UserResourcesPageProps {
   params: { usertag: string };
@@ -52,12 +53,17 @@ export default async function UserResourcesPage({ params, searchParams }: UserRe
       </Breadcrumb>
 
       <header className="pb-4 border-b border-border/40">
-        <div className="flex items-center space-x-3">
-          <User className="w-8 h-8 text-primary" />
-          <div>
-            <h1 className="text-4xl font-bold text-foreground">Resources by {profile.name}</h1>
-            <p className="text-muted-foreground">Browse all creations published by {profile.usertag}.</p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <User className="w-8 h-8 text-primary" />
+            <div>
+              <h1 className="text-4xl font-bold text-foreground">Resources by {profile.name}</h1>
+              <p className="text-muted-foreground">Browse all creations published by {profile.usertag}.</p>
+            </div>
           </div>
+          <Button size="lg" className="button-primary-glow button-follow-sheen">
+            <Heart className="w-5 h-5 mr-2 fill-current" /> Follow
+          </Button>
         </div>
       </header>
 

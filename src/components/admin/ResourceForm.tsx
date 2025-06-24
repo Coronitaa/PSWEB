@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useForm, Controller, useFieldArray, useWatch } from 'react-hook-form';
@@ -451,7 +452,7 @@ export function ResourceForm({
   const fileApplicableTagGroups = dynamicTagGroups.filter(group => group.appliesToFiles);
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit, (errors) => console.error("Form validation errors:", JSON.stringify(errors, null, 2)))} className="flex flex-col h-full">
+    <form onSubmit={form.handleSubmit(onSubmit, (errors) => console.error("Form validation errors:", JSON.stringify(errors, null, 2)))} className="flex flex-col flex-grow min-h-0">
       <Tabs defaultValue="general" className="w-full flex flex-col flex-grow min-h-0">
         <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 mb-6 bg-card-foreground/5 rounded-lg shrink-0">
           <TabsTrigger value="general">General</TabsTrigger>
@@ -526,7 +527,7 @@ export function ResourceForm({
                 <div className="space-y-2">
                     <Label>Main Image</Label>
                     <div className="flex gap-4 items-start">
-                        <ImagePreview watchUrl={watchedImageUrl} alt="Main Image Preview" fallbackText="Main Image Preview" className="w-48 h-28 shrink-0"/>
+                        <ImagePreview watchUrl={watchedImageUrl} alt="Main Image Preview" fallbackText="Main Image Preview" className="h-28 w-48 shrink-0"/>
                         <div className="w-1/2">
                             <Input id="imageUrl" {...form.register('imageUrl')} placeholder="https://..." />
                             {form.formState.errors.imageUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageUrl.message}</p>}

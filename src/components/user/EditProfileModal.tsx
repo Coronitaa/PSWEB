@@ -129,8 +129,16 @@ export function EditProfileModal({ profile, isOpen, onOpenChange }: EditProfileM
       
       const result = await updateProfile(formData);
 
-      if (result.success) {
+      if (result.success && result.data?.profile) {
         toast({ title: "Profile Updated", description: "Your changes have been saved." });
+        
+        // Sync with localStorage for the header to pick up changes
+        localStorage.setItem('mockUser', JSON.stringify(result.data.profile));
+        window.dispatchEvent(new StorageEvent('storage', { 
+            key: 'mockUser', 
+            newValue: JSON.stringify(result.data.profile) 
+        }));
+
         onOpenChange(false);
         router.refresh();
       } else {
@@ -146,7 +154,7 @@ export function EditProfileModal({ profile, isOpen, onOpenChange }: EditProfileM
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl md:max-w-2xl max-h-[90vh] flex flex-col p-0">
-        <DialogHeader className="p-6 pb-2 border-b">
+        <DialogHeader className="p-6 pb-2 border-b shrink-0">
           <DialogTitle className="text-xl">Edit Your Profile</DialogTitle>
           <DialogDescription>
             Update your public information. Click save when you're done.
@@ -154,11 +162,13 @@ export function EditProfileModal({ profile, isOpen, onOpenChange }: EditProfileM
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex-grow contents">
             <Tabs defaultValue="general" className="flex-grow flex flex-col overflow-hidden">
-                <TabsList className="grid w-full grid-cols-3 mx-6 mt-4 shrink-0 bg-muted/50">
-                    <TabsTrigger value="general"><User className="w-4 h-4 mr-2" />General</TabsTrigger>
-                    <TabsTrigger value="images"><ImageIcon className="w-4 h-4 mr-2" />Images</TabsTrigger>
-                    <TabsTrigger value="links"><LinkIcon className="w-4 h-4 mr-2" />Links</TabsTrigger>
-                </TabsList>
+                <div className="px-6 pt-4 shrink-0">
+                    <TabsList className="grid w-full grid-cols-3 bg-muted/50">
+                        <TabsTrigger value="general"><User className="w-4 h-4 mr-2" />General</TabsTrigger>
+                        <TabsTrigger value="images"><ImageIcon className="w-4 h-4 mr-2" />Images</TabsTrigger>
+                        <TabsTrigger value="links"><LinkIcon className="w-4 h-4 mr-2" />Links</TabsTrigger>
+                    </TabsList>
+                </div>
                 <div className="flex-grow overflow-y-auto px-6 py-4 space-y-4">
                     <TabsContent value="general" className="space-y-4 m-0">
                         <div>
@@ -215,7 +225,7 @@ export function EditProfileModal({ profile, isOpen, onOpenChange }: EditProfileM
                     </TabsContent>
                 </div>
             </Tabs>
-            <DialogFooter className="p-6 pt-4 border-t mt-auto shrink-0">
+            <DialogFooter className="p-6 pt-4 border-t shrink-0">
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancel</Button>
                 <Button type="submit" disabled={isSubmitting} className="button-primary-glow">
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4"/>}

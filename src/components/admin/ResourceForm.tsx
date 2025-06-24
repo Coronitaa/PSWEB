@@ -363,10 +363,10 @@ export function ResourceForm({
         resourceFileSchema.parse(fileDataToValidate);
     } catch (error: any) {
         if (error instanceof z.ZodError) {
-            let errorMessages = "Please correct the following issues in the file details:\n";
+            let errorMessages = "Please correct the following issues in the file details:\\n";
             error.errors.forEach(err => {
                 const fieldPath = err.path.join('.') || 'File Data';
-                errorMessages += `- ${fieldPath}: ${err.message}\n`;
+                errorMessages += `- ${fieldPath}: ${err.message}\\n`;
             });
             toast({ title: "File Validation Error", description: errorMessages, variant: "destructive", duration: 7000 });
         } else {
@@ -495,7 +495,7 @@ export function ResourceForm({
 
             <TabsContent value="visuals" className="p-6 space-y-6">
                 <CardTitle className="text-xl mb-4 flex items-center"><ImageIcon className="w-5 h-5 mr-2 text-primary" />Visuals</CardTitle>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                <div className="space-y-6">
                     <div className="space-y-2">
                         <Label htmlFor="imageUrl">Main Image URL</Label>
                         <Input id="imageUrl" {...form.register('imageUrl')} />
@@ -508,7 +508,7 @@ export function ResourceForm({
                         {form.formState.errors.imageGalleryUrls && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageGalleryUrls.message as string}</p>}
                         <div className="mt-2">
                             <Label className="text-xs text-muted-foreground">Gallery Preview</Label>
-                            <div className="mt-1 rounded-lg overflow-hidden border">
+                            <div className="mt-1 rounded-lg border">
                                 <ImageGalleryCarousel images={galleryImagesForPreview} />
                             </div>
                         </div>

@@ -1049,12 +1049,17 @@ export async function getAuthorPublishedResources(
     sortBy?: 'updated_at' | 'created_at' | 'downloads' | 'rating';
     order?: 'ASC' | 'DESC';
     excludeIds?: string[];
+    itemType?: ItemType;
+    parentItemId?: string;
+    categoryId?: string;
+    page?: number;
   } = {}
-): Promise<Resource[]> {
+): Promise<PaginatedResourcesResponse> {
   const db = await getDb();
-  const { limit, sortBy = 'created_at', order = 'DESC', excludeIds = [] } = options;
+  const { limit = 12, sortBy = 'created_at', order = 'DESC', excludeIds = [], itemType, parentItemId, categoryId, page = 1 } = options;
 
-  let sql = `
+  let countQuery = `SELECT COUNT(r.id) as total FROM resources r JOIN items pi ON r.parent_item_id = pi.id WHERE`;
+  let baseQuery = `
     SELECT r.*,
            p.name as author_name, p.usertag as author_usertag, p.avatar_url as author_avatar_url,
            pi.name as parent_item_name, pi.slug as parent_item_slug, pi.item_type as parent_item_type,
@@ -1063,32 +1068,81 @@ export async function getAuthorPublishedResources(
     JOIN profiles p ON r.author_id = p.id
     JOIN items pi ON r.parent_item_id = pi.id
     JOIN categories c ON r.category_id = c.id
-    WHERE r.author_id = ? AND r.status = 'published'
   `;
+  
+  const whereClauses: string[] = ["r.author_id = ?", "r.status = 'published'"];
   const queryParams: any[] = [userId];
 
-  if (excludeIds.length > 0) {
-    sql += ` AND r.id NOT IN (${excludeIds.map(() => '?').join(',')})`;
+  if (excludeIds && excludeIds.length > 0) {
+    whereClauses.push(`r.id NOT IN (${excludeIds.map(() => '?').join(',')})`);
     queryParams.push(...excludeIds);
   }
 
+  if (itemType) {
+    whereClauses.push("pi.item_type = ?");
+    queryParams.push(itemType);
+  }
+  if (parentItemId) {
+    whereClauses.push("r.parent_item_id = ?");
+    queryParams.push(parentItemId);
+  }
+  if (categoryId) {
+    whereClauses.push("r.category_id = ?");
+    queryParams.push(categoryId);
+  }
+
+  const whereString = whereClauses.join(' AND ');
+  baseQuery += ' WHERE ' + whereString;
+  countQuery += ' ' + whereString;
+  
   let orderByField = 'r.created_at';
   if (sortBy === 'updated_at') orderByField = 'r.updated_at';
   else if (sortBy === 'downloads') orderByField = 'r.downloads';
   else if (sortBy === 'rating') orderByField = 'r.rating';
+  
+  baseQuery += ` ORDER BY ${orderByField} ${order === 'ASC' ? 'ASC' : 'DESC'}`;
 
-  sql += ` ORDER BY ${orderByField} ${order === 'ASC' ? 'ASC' : 'DESC'}`;
+  const offset = (page - 1) * limit;
+  baseQuery += ` LIMIT ? OFFSET ?`;
+  
+  const resourceRows = await db.all(baseQuery, ...queryParams, limit, offset);
+  const totalRow = await db.get(countQuery, ...queryParams);
+  const total = totalRow?.total || 0;
+  const hasMore = page * limit < total;
+  
+  if (!resourceRows) return { resources: [], total: 0, hasMore: false };
 
-  if (limit) {
-    sql += ` LIMIT ?`;
-    queryParams.push(limit);
+  const resources = await hydrateResourceRows(resourceRows);
+  return { resources, total, hasMore };
+}
+
+export const getProjectsForUser = async (userId: string): Promise<{ [key in ItemType]?: ItemWithDetails[] }> => {
+  const db = await getDb();
+  const projectRows = await db.all(
+    `SELECT DISTINCT i.* FROM items i
+     JOIN resources r ON i.id = r.parent_item_id
+     WHERE r.author_id = ? AND i.status = 'published'
+     ORDER BY i.item_type, i.name ASC`,
+    userId
+  );
+
+  const projectsByType: { [key in ItemType]?: ItemWithDetails[] } = {};
+  
+  for (const row of projectRows) {
+    const itemType = row.item_type as ItemType;
+    if (!projectsByType[itemType]) {
+      projectsByType[itemType] = [];
+    }
+    const hydratedItem = await getItemBySlugGeneric(row.id, itemType, true, false);
+    if (hydratedItem) {
+      const categories = await getCategoriesForItemGeneric(hydratedItem.id, itemType);
+      const stats = await getItemStatsGeneric(hydratedItem.id, itemType);
+      projectsByType[itemType]?.push({ ...hydratedItem, categories, stats });
+    }
   }
 
-  const resourceRows = await db.all(sql, ...queryParams);
-  if (!resourceRows) return [];
-
-  return hydrateResourceRows(resourceRows);
-}
+  return projectsByType;
+};
 
 
 // --- Admin Write Operations (used by server actions) ---

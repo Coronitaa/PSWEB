@@ -13,7 +13,6 @@ interface UserProfilePageProps {
 const RECENT_RESOURCES_CAROUSEL_COUNT = 5;
 
 export default async function UserProfilePage({ params }: UserProfilePageProps) {
-  // params.usertag will be the usertag WITHOUT the "@" symbol due to generateStaticParams
   const profile = await getUserProfileByUsertag(params.usertag);
   if (!profile) {
     notFound();
@@ -22,7 +21,8 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
   const stats = await getUserStats(profile.id);
   const topResources = await getTopUserResources(profile.id, 3);
   const topResourceIds = topResources.map(r => r.id);
-  const recentResourcesForCarousel = await getAuthorPublishedResources(profile.id, {
+  
+  const { resources: recentResourcesForCarousel } = await getAuthorPublishedResources(profile.id, {
     limit: RECENT_RESOURCES_CAROUSEL_COUNT,
     sortBy: 'created_at',
     order: 'DESC',
@@ -35,8 +35,7 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem><BreadcrumbLink href="/">Home</BreadcrumbLink></BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem><BreadcrumbLink href="/users">Users</BreadcrumbLink></BreadcrumbItem>
+          {/* Removed /users link as it doesn't exist */}
           <BreadcrumbSeparator />
           <BreadcrumbItem><BreadcrumbPage>{profile.name}</BreadcrumbPage></BreadcrumbItem>
         </BreadcrumbList>
@@ -67,5 +66,4 @@ export async function generateStaticParams() {
     }));
 }
 
-export const revalidate = 3600; // Revalidate profile pages every hour
-
+export const revalidate = 3600;

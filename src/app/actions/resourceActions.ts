@@ -2,7 +2,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { getResources, getBestMatchForCategoryAction as getBestMatchForCategoryFromLib, getResourceBySlug as getResourceBySlugFromLib, incrementResourceDownloadCount, incrementResourceFileDownloadCount } from '@/lib/data';
+import { getResources, getBestMatchForCategoryAction as getBestMatchForCategoryFromLib, getResourceBySlug as getResourceBySlugFromLib, incrementResourceDownloadCount, incrementResourceFileDownloadCount, getAuthorPublishedResources } from '@/lib/data';
 import type { GetResourcesParams, PaginatedResourcesResponse, Resource, ItemType } from '@/lib/types';
 import { getDb } from '@/lib/db'; // Import getDb to fetch resource details for revalidation
 import { getItemTypePlural } from '@/lib/utils';
@@ -80,4 +80,26 @@ export async function incrementResourceDownloadCountAction(resourceId: string, f
     console.error("[incrementResourceDownloadCountAction ACTION] Error:", e);
     return { success: false, error: e.message || "An unknown error occurred during download count increment." };
   }
+}
+
+export async function fetchPaginatedAuthorResourcesAction(
+  params: {
+    userId: string;
+    itemType?: ItemType;
+    parentItemId?: string;
+    categoryId?: string;
+    page?: number;
+    limit?: number;
+  }
+): Promise<PaginatedResourcesResponse> {
+  const result = await getAuthorPublishedResources(params.userId, {
+    itemType: params.itemType,
+    parentItemId: params.parentItemId,
+    categoryId: params.categoryId,
+    page: params.page,
+    limit: params.limit,
+    sortBy: 'updated_at',
+    order: 'DESC',
+  });
+  return result;
 }

@@ -18,7 +18,7 @@ interface ResourceCardProps {
   resource: Resource;
   compact?: boolean;
   onHoverChange?: (hovering: boolean) => void;
-  onOverflowHoverChange?: (hovering: boolean) => void; // New prop for overflow control
+  onOverflowHoverChange?: (hovering: boolean) => void;
 }
 
 const MAX_TAGS_COMPACT = 1;
@@ -85,7 +85,7 @@ export function ResourceCard({ resource, compact = false, onHoverChange, onOverf
   const handleMouseEnter = () => {
     setIsHoveringLocal(true);
     onHoverChange?.(true);
-    if (compact) { // Only affect overflow if it's a compact card (likely in a carousel)
+    if (compact) {
       onOverflowHoverChange?.(true);
     }
   };
@@ -112,7 +112,7 @@ export function ResourceCard({ resource, compact = false, onHoverChange, onOverf
     <div
       className={cn(
         "relative h-full group/card-container",
-        compact ? "hover:z-40" : "" // Apply z-index boost on hover only for compact cards
+        compact ? "hover:z-40" : ""
       )}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -130,7 +130,7 @@ export function ResourceCard({ resource, compact = false, onHoverChange, onOverf
                   <SectionIcon className="w-3 h-3" />
                 </Badge>
               )}
-              <div className="block relative aspect-video overflow-hidden"> {/* Este aspect-video es clave */}
+              <div className="block relative aspect-video overflow-hidden">
                 <Image
                   src={resource.imageUrl || 'https://placehold.co/800x450.png'}
                   alt={`${resource.name} preview`}
@@ -193,22 +193,18 @@ export function ResourceCard({ resource, compact = false, onHoverChange, onOverf
           </Card>
       </Link>
 
-      {/* Detail overlay - Conditionally rendered for compact cards on hover */}
       {compact && (
         <div 
           className={cn(
             "detail-overlay absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2",
-            "w-80 h-auto", // Set a fixed width, height auto
+            "w-80 h-auto",
             "bg-card/95 backdrop-blur-md p-4 rounded-lg shadow-2xl border border-primary/50",
             "flex flex-col transition-all duration-300 ease-in-out transform-gpu",
             isHoveringLocal ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none",
-            "z-50" // Ensure it's above other elements in the carousel
+            "z-50"
           )}
           style={{transformOrigin: 'center center'}}
-          // Prevent click propagation to the Link if clicking inside the overlay
           onClick={(e) => {
-            // If the click is on the overlay itself (not its children), then navigate.
-            // This allows buttons inside the overlay to work without navigating.
             if (e.target === e.currentTarget) {
               window.location.href = resourcePath;
             }
@@ -220,7 +216,7 @@ export function ResourceCard({ resource, compact = false, onHoverChange, onOverf
                   <NestedCarousel
                     itemsToShow={1}
                     showArrows={imageGalleryForOverlay.length > 1}
-                    autoplay={isHoveringLocal} // Autoplay only when the overlay is active
+                    autoplay={isHoveringLocal}
                     autoplayInterval={2500}
                     className="h-full"
                   >
@@ -263,8 +259,8 @@ export function ResourceCard({ resource, compact = false, onHoverChange, onOverf
                   rating={resource.rating}
                   reviewCount={resource.reviewCount}
                   positiveReviewPercentage={resource.positiveReviewPercentage}
-                  compact={false} // Use non-compact rating in overlay
-                  fiveStarMode={true} // Use five-star mode in overlay
+                  compact={false}
+                  fiveStarMode={true}
                 />
               </div>
 
@@ -299,13 +295,12 @@ export function ResourceCard({ resource, compact = false, onHoverChange, onOverf
                 )}
               </div>
 
-              {/* Action buttons for the overlay */}
               <div className="mt-auto pt-3 border-t border-border/20 flex items-center gap-2">
                 {latestFile ? (
                   <a
                     href={latestFile.url}
                     download
-                    onClick={(e) => e.stopPropagation()} // Prevent Link navigation
+                    onClick={(e) => e.stopPropagation()}
                     className="flex-1"
                     aria-label={`Download ${resource.name} - ${latestFile.name}`}
                   >
@@ -321,7 +316,7 @@ export function ResourceCard({ resource, compact = false, onHoverChange, onOverf
                 <Button asChild variant="outline" size="icon" className={cn("button-outline-glow text-xs h-auto p-2")}>
                   <Link
                     href={resourcePath}
-                    onClick={(e) => e.stopPropagation()} // Allow navigation, but stop it from closing overlay if it's part of a click-away logic
+                    onClick={(e) => e.stopPropagation()}
                     aria-label={`More information about ${resource.name}`}
                   >
                     <Info className="w-4 h-4" />

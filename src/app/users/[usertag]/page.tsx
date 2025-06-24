@@ -20,13 +20,13 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
 
   const stats = await getUserStats(profile.id);
   const topResources = await getTopUserResources(profile.id, 3);
-  const topResourceIds = topResources.map(r => r.id);
   
+  // Fetch recent resources WITHOUT excluding the top ones.
+  // This ensures the carousel always shows the latest content.
   const { resources: recentResourcesForCarousel } = await getAuthorPublishedResources(profile.id, {
     limit: RECENT_RESOURCES_CAROUSEL_COUNT,
     sortBy: 'created_at',
     order: 'DESC',
-    excludeIds: topResourceIds,
   });
 
 

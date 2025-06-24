@@ -317,14 +317,20 @@ export interface RankedResource extends Resource {
   rank: number; 
 }
 
-
-
-export type ProjectFormData = Omit<BaseItem, 'id' | 'createdAt' | 'updatedAt' | 'itemType' | 'tags' | 'followers_count'> & {
+export interface ProjectFormData {
+  name: string;
+  slug?: string;
+  description: string;
+  longDescription?: string;
+  bannerUrl?: string;
+  iconUrl?: string;
   itemType: ItemType;
+  projectUrl?: string;
+  authorDisplayName?: string;
   status: ProjectStatus;
-  tagIds?: string[]; 
   followers_count?: number;
-};
+  tagIds?: string[];
+}
 
 export type CategoryFormData = Omit<Category, 'id' | 'createdAt' | 'slug' | 'parentItemId' | 'tagGroupConfigs' | 'rawDescription' | 'updatedAt'> & {
   parentItemId: string;
@@ -360,6 +366,19 @@ export interface SectionTagFormData {
   description?: string;
 }
 
+export interface ProfileUpdateFormData {
+  name: string;
+  bio?: string;
+  avatarUrl?: string;
+  bannerUrl?: string;
+  socialLinks?: {
+    github?: string;
+    twitter?: string;
+    website?: string;
+    linkedin?: string;
+    discord?: string;
+  };
+}
 
 
 export interface ProjectTagGroupSource {

@@ -2,7 +2,7 @@
 'use server';
 
 import { getDb } from './db';
-import type { Game, Category, Resource, Author, Tag, ResourceFile, GetResourcesParams, PaginatedResourcesResponse, ResourceLinks, ChangelogEntry, WebItem, AppItem, ArtMusicItem, ItemStats, ItemType, ItemWithDetails, GenericListItem, ProjectStatus, UserAppRole, CategoryTagGroupConfig, ProjectCategoryTagConfigurations, ProjectTagGroupSource, DynamicAvailableFilterTags, DynamicTagGroup, TagInGroupConfig, Review, ReviewInteractionCounts, UserStats, UserBadge, RankedResource, ProjectFormData, CategoryFormData, ResourceFormData, MainFileDetails, DynamicTagSelection, RawCategoryProjectDetails, FileChannelId, ResourceFileFormData, SectionTagFormData } from './types';
+import type { Game, Category, Resource, Author, Tag, ResourceFile, GetResourcesParams, PaginatedResourcesResponse, ResourceLinks, ChangelogEntry, WebItem, AppItem, ArtMusicItem, ItemStats, ItemType, ItemWithDetails, GenericListItem, ProjectStatus, UserAppRole, CategoryTagGroupConfig, ProjectCategoryTagConfigurations, ProjectTagGroupSource, DynamicAvailableFilterTags, DynamicTagGroup, TagInGroupConfig, Review, ReviewInteractionCounts, UserStats, UserBadge, RankedResource, ProjectFormData, CategoryFormData, ResourceFormData, MainFileDetails, DynamicTagSelection, RawCategoryProjectDetails, FileChannelId, ResourceFileFormData, SectionTagFormData, ProfileUpdateFormData } from './types';
 import { ITEM_TYPES_CONST, PROJECT_STATUSES_CONST, PROJECT_STATUS_NAMES, USER_APP_ROLES_CONST, FILE_CHANNELS } from './types';
 import { calculateGenericItemSearchScore } from './utils';
 
@@ -903,6 +903,30 @@ export const getUserProfileByUsertag = async (usertagWithoutAt: string): Promise
     updatedAt: profileRow.updated_at,
   };
 };
+
+export const updateUserProfile = async (userId: string, data: ProfileUpdateFormData): Promise<Author | undefined> => {
+  const db = await getDb();
+  const currentUser = await db.get("SELECT * FROM profiles WHERE id = ?", userId);
+  if (!currentUser) throw new Error("User not found for update.");
+
+  const socialLinksJson = data.socialLinks ? JSON.stringify(data.socialLinks) : null;
+
+  await db.run(
+    'UPDATE profiles SET name = ?, bio = ?, avatar_url = ?, banner_url = ?, social_links = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+    data.name ?? currentUser.name,
+    data.bio ?? currentUser.bio,
+    data.avatarUrl ?? currentUser.avatar_url,
+    data.bannerUrl ?? currentUser.banner_url,
+    socialLinksJson ?? currentUser.social_links,
+    userId
+  );
+
+  const updatedProfileRow = await db.get("SELECT usertag FROM profiles WHERE id = ?", userId);
+  if (!updatedProfileRow?.usertag) return undefined;
+
+  return getUserProfileByUsertag(updatedProfileRow.usertag.substring(1));
+};
+
 
 export const getUserStats = async (userId: string): Promise<UserStats> => {
   const db = await getDb();

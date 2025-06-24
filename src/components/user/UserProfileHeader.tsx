@@ -1,15 +1,21 @@
 
 'use client';
 
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import type { Author as UserProfile, UserBadge } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Heart, PlusCircle, ShieldCheck, Star as StarIcon, CheckCircle, Shield, Edit3, Share2, AlertTriangle } from 'lucide-react';
+import { Heart, PlusCircle, ShieldCheck, Star as StarIcon, CheckCircle, Shield, Edit3, Share2, AlertTriangle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { EditProfileModal } from './EditProfileModal';
 
 interface UserProfileHeaderProps {
   profile: UserProfile;
+}
+
+interface MockUser {
+    id: string;
 }
 
 const badgeIconMap: { [key: string]: React.ElementType } = {
@@ -29,7 +35,7 @@ function UserProfileBadge({ badge, isInline = false }: { badge: UserBadge, isInl
         "text-xs px-2 py-0.5 font-semibold flex items-center gap-1 shadow-md",
         badge.color || 'bg-accent',
         badge.textColor || 'text-accent-foreground',
-        isInline && "transform scale-90" // Slightly smaller if inline next to name
+        isInline && "transform scale-90"
       )}
     >
       {IconComponent && <IconComponent className={cn("w-3 h-3", isInline && "w-3.5 h-3.5")} />}
@@ -39,10 +45,32 @@ function UserProfileBadge({ badge, isInline = false }: { badge: UserBadge, isInl
 }
 
 export function UserProfileHeader({ profile }: UserProfileHeaderProps) {
+  const [isClient, setIsClient] = useState(false);
+  const [isOwnProfile, setIsOwnProfile] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+    const storedUser = localStorage.getItem('mockUser');
+    if (storedUser) {
+      try {
+        const user: MockUser = JSON.parse(storedUser);
+        if (user.id === profile.id) {
+          setIsOwnProfile(true);
+        }
+      } catch (e) {
+        console.error("Failed to parse user for profile header check", e);
+        setIsOwnProfile(false);
+      }
+    }
+  }, [profile.id]);
+
+
   const verifiedBadge = profile.badges?.find(b => b.id === 'badge-verified');
   const otherBadges = profile.badges?.filter(b => b.id !== 'badge-verified');
 
   return (
+    <>
     <section className="relative -mx-4 -mt-8 rounded-b-xl overflow-hidden">
       <div className="relative h-48 md:h-64 w-full">
         <Image
@@ -79,7 +107,6 @@ export function UserProfileHeader({ profile }: UserProfileHeaderProps) {
                   </div>
                 )}
               </div>
-              {/* Display usertag as it comes from the database (already includes '@') */}
               <p className="text-base text-muted-foreground">{profile.usertag || '@unknown'}</p>
               {otherBadges && otherBadges.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1.5">
@@ -91,20 +118,39 @@ export function UserProfileHeader({ profile }: UserProfileHeaderProps) {
             </div>
           </div>
           <div className="mt-4 sm:mt-0 flex gap-2">
-            <Button className="button-primary-glow button-follow-sheen">
-              <Heart className="w-4 h-4 mr-2 fill-current" /> Follow
-            </Button>
-            <Button variant="outline" size="icon" className="button-outline-glow rounded-full">
-              <Share2 className="w-4 h-4" />
-              <span className="sr-only">Share Profile</span>
-            </Button>
-            <Button variant="destructive" size="icon" className="bg-destructive/80 hover:bg-destructive rounded-full">
-              <AlertTriangle className="w-4 h-4" />
-               <span className="sr-only">Report Profile</span>
-            </Button>
+            {isClient && isOwnProfile ? (
+                 <Button variant="outline" onClick={() => setIsEditModalOpen(true)}>
+                    <Edit3 className="w-4 h-4 mr-2"/> Edit Profile
+                </Button>
+            ) : isClient ? (
+                <>
+                    <Button className="button-primary-glow button-follow-sheen">
+                        <Heart className="w-4 h-4 mr-2 fill-current" /> Follow
+                    </Button>
+                    <Button variant="outline" size="icon" className="button-outline-glow rounded-full">
+                        <Share2 className="w-4 h-4" />
+                        <span className="sr-only">Share Profile</span>
+                    </Button>
+                    <Button variant="destructive" size="icon" className="bg-destructive/80 hover:bg-destructive rounded-full">
+                        <AlertTriangle className="w-4 h-4" />
+                         <span className="sr-only">Report Profile</span>
+                    </Button>
+                </>
+            ) : (
+                <Button className="h-10 w-24"><Loader2 className="w-4 h-4 animate-spin"/></Button>
+            )}
           </div>
         </div>
       </div>
     </section>
+
+    {isOwnProfile && (
+        <EditProfileModal 
+            profile={profile}
+            isOpen={isEditModalOpen}
+            onOpenChange={setIsEditModalOpen}
+        />
+    )}
+    </>
   );
 }

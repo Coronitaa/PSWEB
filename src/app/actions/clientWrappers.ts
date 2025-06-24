@@ -27,7 +27,7 @@ import {
     updateReviewInteractionAction as serverUpdateReviewInteractionAction,
     getUserSentimentForReviewAction as serverGetUserSentimentForReviewAction
 } from './reviewActions';
-import type { ReviewFormData, ActionResult, ReviewInteractionCounts, Resource } from '@/lib/types'; // Added Resource
+import type { ReviewFormData, ActionResult, ReviewInteractionCounts, Resource, ProfileUpdateFormData, Author as ProfileAuthor } from '@/lib/types'; // Added Resource, ProfileUpdateFormData, ProfileAuthor
 
 export async function addReview(resourceId: string, data: ReviewFormData): Promise<ActionResult<{ reviewId: string }>> {
   const clientMockUserId = getMockUserIdFromStorage();
@@ -156,6 +156,15 @@ export async function saveResource(
 export async function deleteResource(resourceId: string): Promise<ActionResult> {
   const clientMockUserId = getMockUserIdFromStorage();
   return serverAdminDeleteResourceAction(resourceId, clientMockUserId);
+}
+
+
+// --- Profile Action Wrappers ---
+import { updateProfileAction as serverUpdateProfileAction } from './profileActions';
+
+export async function updateProfile(data: ProfileUpdateFormData): Promise<ActionResult<{ profile: ProfileAuthor }>> {
+  const clientMockUserId = getMockUserIdFromStorage();
+  return serverUpdateProfileAction(data, clientMockUserId);
 }
 
 // Note: You'll need to go through your components and update direct calls

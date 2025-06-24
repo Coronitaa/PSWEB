@@ -9,7 +9,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Badge } from '@/components/ui/badge';
 import { Carousel, CarouselItem } from '@/components/shared/Carousel';
 import { Download, Package, Gamepad2, Code, TabletSmartphone, Music as MusicIcon, Star as StarIcon, Layers } from 'lucide-react';
-import { formatNumberWithSuffix } from '@/lib/utils';
+import { formatNumberWithSuffix, getItemTypePlural } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import GlareHover from '@/components/effects/GlareHover';
 
@@ -36,9 +36,10 @@ export function TopResourceCard({ resource }: TopResourceCardProps) {
   const [isHovering, setIsHovering] = useState(false);
 
   const hasGallery = resource.imageGallery && resource.imageGallery.length > 0;
+  const resourcePath = `/${getItemTypePlural(resource.parentItemType)}/${resource.parentItemSlug}/${resource.categorySlug}/${resource.slug}`;
 
   return (
-    <Link href={`/resources/${resource.slug}`} className="block group/container h-full"
+    <Link href={resourcePath} className="block group/container h-full"
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
     >

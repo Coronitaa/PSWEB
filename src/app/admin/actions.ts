@@ -21,6 +21,7 @@ import type { ProjectFormData, CategoryFormData, GenericListItem, Category, Item
 import { ITEM_TYPES_CONST, USER_APP_ROLES_CONST } from '@/lib/types';
 import { getDb } from '@/lib/db';
 import { generateSlugLocal } from '@/lib/data'; 
+import { getItemTypePlural } from '@/lib/utils';
 
 interface ActionResult<T = null> {
   success: boolean;
@@ -112,7 +113,7 @@ export async function saveProjectAction(
       revalidatePath('/admin/projects');
       revalidatePath('/admin/projects/' + project.itemType + '/' + project.slug + '/edit');
       if (project.itemType) {
-        const basePath = project.itemType === 'art-music' ? 'art-music' : project.itemType + 's';
+        const basePath = getItemTypePlural(project.itemType);
         revalidatePath('/' + basePath); 
         revalidatePath('/' + basePath + '/' + project.slug); 
       }
@@ -137,7 +138,7 @@ export async function deleteProjectAction(projectId: string, clientMockUserId?: 
         if (success) {
             revalidatePath('/admin/projects');
             ITEM_TYPES_CONST.forEach(type => {
-                const basePath = type === 'art-music' ? 'art-music' : type + 's';
+                const basePath = getItemTypePlural(type);
                 revalidatePath('/' + basePath);
             });
             return { success: true };
@@ -237,12 +238,10 @@ export async function saveCategoryAction(
       const parentItemRow = await db.get("SELECT slug FROM items WHERE id = ? AND item_type = ?", savedOrUpdatedCategory.parentItemId, parentItemTypeFromProps) as { slug: string; } | undefined;
 
       if (parentItemRow && parentItemRow.slug) {
-        const parentBasePath = parentItemTypeFromProps === 'art-music' ? 'art-music' : parentItemTypeFromProps + 's';
+        const parentBasePath = getItemTypePlural(parentItemTypeFromProps);
         revalidatePath('/admin/projects/' + parentItemTypeFromProps + '/' + parentItemRow.slug + '/edit');
         revalidatePath('/' + parentBasePath + '/' + parentItemRow.slug);
         revalidatePath('/' + parentBasePath + '/' + parentItemRow.slug + '/' + savedOrUpdatedCategory.slug);
-        revalidatePath('/resources', 'layout'); 
-        revalidatePath('/' + parentBasePath); 
       } else {
         console.error("[saveCategoryAction SERVER] CRITICAL REVALIDATION FAILURE: Could not fetch parent item.");
       }
@@ -268,7 +267,7 @@ export async function deleteCategoryAction(categoryId: string, parentItemId: str
         const db = await getDb();
         const parentItemRow = await db.get("SELECT slug, item_type FROM items WHERE id = ?", parentItemId) as { slug: string; item_type: ItemType } | undefined;
         if (parentItemRow && parentItemRow.slug) {
-            const parentBasePath = parentItemRow.item_type === 'art-music' ? 'art-music' : parentItemRow.item_type + 's';
+            const parentBasePath = getItemTypePlural(parentItemRow.item_type);
             revalidatePath('/admin/projects/' + parentItemRow.item_type + '/' + parentItemRow.slug + '/edit');
             revalidatePath('/' + parentBasePath + '/' + parentItemRow.slug);
             revalidatePath('/' + parentBasePath); 
@@ -296,7 +295,7 @@ export async function updateCategoryOrderInMemoryAction(itemId: string, orderedC
             const db = await getDb();
             const parentItemRow = await db.get("SELECT slug, item_type FROM items WHERE id = ?", itemId) as { slug: string; item_type: ItemType } | undefined;
              if (parentItemRow && parentItemRow.slug) {
-                const parentBasePath = parentItemRow.item_type === 'art-music' ? 'art-music' : parentItemRow.item_type + 's';
+                const parentBasePath = getItemTypePlural(parentItemRow.item_type);
                 revalidatePath('/admin/projects/' + parentItemRow.item_type + '/' + parentItemRow.slug + '/edit');
                 revalidatePath('/' + parentBasePath + '/' + parentItemRow.slug);
                 revalidatePath('/' + parentBasePath); 
@@ -475,12 +474,9 @@ export async function saveResourceAction(
     
     const parentItem = await getItemBySlugGeneric(savedResource.parentItemSlug, savedResource.parentItemType, false, true);
     if (parentItem) {
-      const parentBasePath = parentItem.itemType === 'art-music' ? 'art-music' : parentItem.itemType + 's';
-      revalidatePath('/admin/projects/' + parentItem.itemType + '/' + parentItem.slug + '/edit');
-      revalidatePath('/' + parentBasePath + '/' + parentItem.slug);
-      revalidatePath('/' + parentBasePath + '/' + parentItem.slug + '/' + savedResource.categorySlug);
-      revalidatePath('/resources/' + savedResource.slug);
-      revalidatePath('/resources', 'layout');
+      const parentBasePath = getItemTypePlural(parentItem.itemType);
+      const resourcePath = `/${parentBasePath}/${parentItem.slug}/${savedResource.categorySlug}/${savedResource.slug}`;
+      revalidatePath(resourcePath);
     }
     
     return { success: true, data: { resource: savedResource } };
@@ -529,11 +525,8 @@ export async function deleteResourceAction(resourceId: string, clientMockUserId?
     await db.exec('COMMIT');
 
     if ((result.changes ?? 0) > 0) {
-      const parentBasePath = resourceToDelete.item_type === 'art-music' ? 'art-music' : resourceToDelete.item_type + 's';
-      revalidatePath('/admin/projects/' + resourceToDelete.item_type + '/' + resourceToDelete.item_slug + '/edit');
-      revalidatePath('/' + parentBasePath + '/' + resourceToDelete.item_slug);
-      revalidatePath('/' + parentBasePath + '/' + resourceToDelete.item_slug + '/' + resourceToDelete.category_slug);
-      revalidatePath('/resources', 'layout');
+      const parentBasePath = getItemTypePlural(resourceToDelete.item_type);
+      revalidatePath(`/${parentBasePath}/${resourceToDelete.item_slug}/${resourceToDelete.category_slug}`);
       return { success: true };
     } else {
       return { success: false, error: "Failed to delete resource from DB.", errorCode: 'DB_ERROR' };

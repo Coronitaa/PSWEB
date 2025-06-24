@@ -5,6 +5,8 @@ import { revalidatePath } from 'next/cache';
 import { getResources, getBestMatchForCategoryAction as getBestMatchForCategoryFromLib, getResourceBySlug as getResourceBySlugFromLib, incrementResourceDownloadCount, incrementResourceFileDownloadCount } from '@/lib/data';
 import type { GetResourcesParams, PaginatedResourcesResponse, Resource, ItemType } from '@/lib/types';
 import { getDb } from '@/lib/db'; // Import getDb to fetch resource details for revalidation
+import { getItemTypePlural } from '@/lib/utils';
+
 
 export async function fetchPaginatedResourcesAction(
   params: GetResourcesParams
@@ -54,13 +56,17 @@ export async function incrementResourceDownloadCountAction(resourceId: string, f
       );
 
       if (resourceInfo) {
-         revalidatePath(`/resources/${resourceInfo.slug}`);
-         const parentItemPath = `/${resourceInfo.parent_item_type === 'art-music' ? 'art-music' : resourceInfo.parent_item_type + 's'}/${resourceInfo.item_slug}`;
+         const itemTypePlural = getItemTypePlural(resourceInfo.parent_item_type);
+         const resourcePath = `/${itemTypePlural}/${resourceInfo.item_slug}/${resourceInfo.category_slug}/${resourceInfo.slug}`;
+         revalidatePath(resourcePath);
+
+         const categoryPath = `/${itemTypePlural}/${resourceInfo.item_slug}/${resourceInfo.category_slug}`;
+         revalidatePath(categoryPath);
+
+         const parentItemPath = `/${itemTypePlural}/${resourceInfo.item_slug}`;
          revalidatePath(parentItemPath);
-         revalidatePath(`${parentItemPath}/${resourceInfo.category_slug}`);
       } else {
         // Fallback revalidation if resource details couldn't be fetched by ID
-        revalidatePath('/resources', 'layout'); 
         console.warn(`[incrementResourceDownloadCountAction] Could not find resource with ID ${resourceId} for specific revalidation.`);
       }
       return { success: true };

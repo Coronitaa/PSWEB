@@ -1,11 +1,19 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { GenericListItem } from './types';
+import type { GenericListItem, ItemType } from './types';
 import { formatDistanceToNow, differenceInSeconds, format, isValid, parseISO } from 'date-fns';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
+}
+
+export function getItemTypePlural(itemType: ItemType): string {
+    if (itemType === 'art-music') return 'art-music';
+    if (itemType === 'game') return 'games';
+    if (itemType === 'web') return 'web';
+    if (itemType === 'app') return 'apps';
+    return `${itemType}s`; // Fallback, though should not be hit with defined types
 }
 
 export function formatNumberWithSuffix(num: number | undefined | null): string {

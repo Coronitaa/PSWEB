@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Carousel as NestedCarousel, CarouselItem as NestedCarouselItem } from '@/components/shared/Carousel';
-import { formatNumberWithSuffix } from '@/lib/utils'; // Updated import
+import { formatNumberWithSuffix, getItemTypePlural } from '@/lib/utils';
 
 interface ResourceCardProps {
   resource: Resource;
@@ -105,7 +105,8 @@ export function ResourceCard({ resource, compact = false, onHoverChange, onOverf
   const SectionIcon = sectionIconMap[resource.parentItemType];
   const imageGalleryForOverlay = resource.imageGallery && resource.imageGallery.length > 0 ? resource.imageGallery : (resource.imageUrl ? [resource.imageUrl] : []);
   const hasGalleryForOverlay = imageGalleryForOverlay.length > 0;
-
+  
+  const resourcePath = `/${getItemTypePlural(resource.parentItemType)}/${resource.parentItemSlug}/${resource.categorySlug}/${resource.slug}`;
 
   return (
     <div
@@ -116,7 +117,7 @@ export function ResourceCard({ resource, compact = false, onHoverChange, onOverf
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <Link href={`/resources/${resource.slug}`} className="block h-full" aria-label={`View details for ${resource.name}`}>
+      <Link href={resourcePath} className="block h-full" aria-label={`View details for ${resource.name}`}>
           <Card
             className={cn(
               "overflow-hidden h-full flex flex-col bg-card/80 backdrop-blur-sm shadow-lg transition-all duration-300 ease-in-out border-border/30 group-hover/card-container:border-primary/50 group-hover/card-container:shadow-primary/20 group-hover/card-container:transform group-hover/card-container:-translate-y-px", 
@@ -209,7 +210,7 @@ export function ResourceCard({ resource, compact = false, onHoverChange, onOverf
             // If the click is on the overlay itself (not its children), then navigate.
             // This allows buttons inside the overlay to work without navigating.
             if (e.target === e.currentTarget) {
-              window.location.href = `/resources/${resource.slug}`;
+              window.location.href = resourcePath;
             }
           }}
         >
@@ -319,7 +320,7 @@ export function ResourceCard({ resource, compact = false, onHoverChange, onOverf
                 )}
                 <Button asChild variant="outline" size="icon" className={cn("button-outline-glow text-xs h-auto p-2")}>
                   <Link
-                    href={`/resources/${resource.slug}`}
+                    href={resourcePath}
                     onClick={(e) => e.stopPropagation()} // Allow navigation, but stop it from closing overlay if it's part of a click-away logic
                     aria-label={`More information about ${resource.name}`}
                   >

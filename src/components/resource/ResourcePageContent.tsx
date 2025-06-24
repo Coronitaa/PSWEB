@@ -1,9 +1,8 @@
 
 "use client"; 
 
-import { use, useState, useEffect } from 'react'; 
-import { notFound, useRouter, usePathname, useSearchParams as useNextSearchParams } from 'next/navigation'; // Added useRouter, usePathname
-import Image from 'next/image';
+import { useState, useEffect } from 'react'; 
+import { notFound, useRouter, useSearchParams as useNextSearchParams } from 'next/navigation'; 
 import Link from 'next/link';
 import type { Resource, ItemType, DynamicAvailableFilterTags } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,42 +13,27 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ResourceFilesTabContent } from '@/components/resource/ResourceFilesTabContent';
 import { ResourceReviewsTabContent } from '@/components/resource/ResourceReviewsTabContent'; 
 import { FileText, BookOpen, ListChecks, MessageCircle, Eye, Heart, Star, Loader2, Edit3, ImageIcon } from 'lucide-react'; // Added ImageIcon
-import { Carousel, CarouselItem } from '@/components/shared/Carousel';
 import { ImageGalleryCarousel } from '@/components/shared/ImageGalleryCarousel';
 import { ResourceCard } from '@/components/resource/ResourceCard';
-import { fetchResourceBySlugAction, fetchPaginatedResourcesAction } from '@/app/actions/resourceActions';
+import { Carousel, CarouselItem } from '@/components/shared/Carousel';
 import { EditResourceButtonAndModal } from '@/components/resource/EditResourceButtonAndModal'; 
 import { getAvailableFilterTags } from '@/lib/data';
+import { getItemTypePlural } from '@/lib/utils';
 
-interface ResourcePageProps {
-  params: Promise<{ resourceSlug: string }>; 
-  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+
+interface ResourcePageContentProps {
+  resource: Resource; 
+  relatedResources: Resource[];
 }
 
-const getItemTypeSectionPathAndName = (itemType: ItemType): { path: string; name: string } => {
-  switch (itemType) {
-    case 'game': return { path: '/games', name: 'Games' };
-    case 'web': return { path: '/web', name: 'Web Projects' };
-    case 'app': return { path: '/apps', name: 'Apps' };
-    case 'art-music': return { path: '/art-music', name: 'Art & Music' };
-    default: return { path: '/', name: 'Projects' }; 
-  }
-};
-
-export default function ResourcePageWrapper({ params: paramsPromise, searchParams: searchParamsPromise }: ResourcePageProps) {
-    const resolvedParams = use(paramsPromise); 
-    const resolvedSearchParamsHook = useNextSearchParams(); // Use hook for live updates
+export function ResourcePageContent({ resource, relatedResources }: ResourcePageContentProps) {
+    const resolvedSearchParamsHook = useNextSearchParams(); 
     const router = useRouter();
     const pathname = usePathname();
 
-    const resourceSlug = resolvedParams?.resourceSlug;
-
-    const [resource, setResource] = useState<Resource | null>(null);
-    const [relatedResources, setRelatedResources] = useState<Resource[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
     const [carouselAllowOverflow, setCarouselAllowOverflow] = useState(false);
     const [dynamicAvailableFileTagGroups, setDynamicAvailableFileTagGroups] = useState<DynamicAvailableFilterTags>([]);
-
+    
     const initialTabFromUrl = resolvedSearchParamsHook.get('tab') || 'overview';
     const [activeTab, setActiveTab] = useState<string>(initialTabFromUrl);
 
@@ -60,67 +44,21 @@ export default function ResourcePageWrapper({ params: paramsPromise, searchParam
       }
     }, [resolvedSearchParamsHook, activeTab]);
 
-
     useEffect(() => {
-        async function fetchData() {
-            if (!resourceSlug) {
-                setIsLoading(false);
-                setResource(null);
-                return;
-            }
-            setIsLoading(true);
+        async function fetchTags() {
             try {
-                const fetchedResource = await fetchResourceBySlugAction(resourceSlug);
-                
-                if (!fetchedResource) {
-                    setResource(null);
-                    setIsLoading(false);
-                    return; 
-                }
-                setResource(fetchedResource);
-
-                const { resources: allResourcesInParentCategory } = await fetchPaginatedResourcesAction({
-                    parentItemSlug: fetchedResource.parentItemSlug,
-                    parentItemType: fetchedResource.parentItemType,
-                    categorySlug: fetchedResource.categorySlug,
-                    limit: 6 
-                });
-                setRelatedResources(allResourcesInParentCategory.filter(r => r.id !== fetchedResource.id).slice(0, 5));
-
-                const allCategoryTags = await getAvailableFilterTags(fetchedResource.parentItemSlug, fetchedResource.parentItemType, fetchedResource.categorySlug);
+                const allCategoryTags = await getAvailableFilterTags(resource.parentItemSlug, resource.parentItemType, resource.categorySlug);
                 setDynamicAvailableFileTagGroups(allCategoryTags.filter(group => group.appliesToFiles));
-
             } catch (error) {
-                console.error("Error fetching resource data:", error);
-                setResource(null);
-            } finally {
-                setIsLoading(false);
+                console.error("Error fetching available file tags:", error);
             }
         }
+        fetchTags();
+    }, [resource.parentItemSlug, resource.parentItemType, resource.categorySlug]);
 
-        if (resourceSlug) {
-            fetchData();
-        } else {
-            setIsLoading(false);
-            setResource(null);
-        }
-    }, [resourceSlug]);
-
-    if (isLoading) {
-        return (
-          <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)]">
-            <Loader2 className="h-16 w-16 animate-spin text-primary mb-4" />
-            <p className="text-muted-foreground">Loading resource details...</p>
-          </div>
-        );
-    }
-
-    if (!resource) {
-        notFound(); 
-    }
-    
-    const parentItemSection = getItemTypeSectionPathAndName(resource.parentItemType);
-    const parentItemPath = `${parentItemSection.path}/${resource.parentItemSlug}`;
+    const itemTypePlural = getItemTypePlural(resource.parentItemType);
+    const parentItemSectionPath = `/${itemTypePlural}`;
+    const parentItemPath = `${parentItemSectionPath}/${resource.parentItemSlug}`;
     const parentCategoryPath = `${parentItemPath}/${resource.categorySlug}`;
 
     const handleResourceCardHover = (hovering: boolean) => {
@@ -158,7 +96,7 @@ export default function ResourcePageWrapper({ params: paramsPromise, searchParam
         <BreadcrumbList>
           <BreadcrumbItem><BreadcrumbLink href="/">Home</BreadcrumbLink></BreadcrumbItem>
           <BreadcrumbSeparator />
-          <BreadcrumbItem><BreadcrumbLink href={parentItemSection.path}>{parentItemSection.name}</BreadcrumbLink></BreadcrumbItem>
+          <BreadcrumbItem><BreadcrumbLink href={parentItemSectionPath}>{resource.parentItemType}</BreadcrumbLink></BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem><BreadcrumbLink href={parentItemPath}>{resource.parentItemName}</BreadcrumbLink></BreadcrumbItem>
           <BreadcrumbSeparator />

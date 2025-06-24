@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { getDb } from '@/lib/db';
 import type { ReviewFormData, UserAppRole, ReviewInteractionCounts, Review } from '@/lib/types';
 import { USER_APP_ROLES_CONST } from '@/lib/types';
+import { getItemTypePlural } from '@/lib/utils';
 
 interface ActionResult<T = null> {
   success: boolean;
@@ -48,6 +49,23 @@ async function verifyUserAndGetId(
   else if (determinedRole === 'mod') mockUserId = 'mock-mod-id';
   
   return { userId: mockUserId, role: determinedRole };
+}
+
+async function revalidateResourcePaths(resourceId: string) {
+    const db = await getDb();
+    const resourceInfo = await db.get(`
+        SELECT r.slug, i.slug as item_slug, i.item_type as parent_item_type, c.slug as category_slug
+        FROM resources r
+        JOIN items i ON r.parent_item_id = i.id
+        JOIN categories c ON r.category_id = c.id
+        WHERE r.id = ?
+    `, resourceId);
+
+    if (resourceInfo) {
+        const itemTypePlural = getItemTypePlural(resourceInfo.parent_item_type);
+        const resourcePath = `/${itemTypePlural}/${resourceInfo.item_slug}/${resourceInfo.category_slug}/${resourceInfo.slug}`;
+        revalidatePath(resourcePath);
+    }
 }
 
 
@@ -104,12 +122,7 @@ export async function addReviewAction(
       derivedAvgRating, reviewCount, positiveReviewPercentage, resourceId
     );
     
-    const resourceInfo = await db.get('SELECT slug FROM resources WHERE id = ?', resourceId);
-    if (resourceInfo?.slug) {
-        revalidatePath(`/resources/${resourceInfo.slug}`);
-    } else {
-        revalidatePath('/resources', 'layout'); 
-    }
+    await revalidateResourcePaths(resourceId);
     return { success: true, data: { reviewId } };
   } catch (error: any) {
     console.error("[addReviewAction DB_ERROR]", error);
@@ -161,12 +174,7 @@ export async function updateReviewAction(
       derivedAvgRating, reviewCount, positiveReviewPercentage, resourceId
     );
     
-    const resourceInfo = await db.get('SELECT slug FROM resources WHERE id = ?', resourceId);
-    if (resourceInfo?.slug) {
-        revalidatePath(`/resources/${resourceInfo.slug}`);
-    } else {
-        revalidatePath('/resources', 'layout'); 
-    }
+    await revalidateResourcePaths(resourceId);
     return { success: true, data: { reviewId } };
   } catch (error: any) {
     console.error("[updateReviewAction DB_ERROR]", error);
@@ -221,12 +229,7 @@ export async function deleteReviewAction(reviewId: string, clientMockUserId?: st
       derivedAvgRating, reviewCount, positiveReviewPercentage, resourceId
     );
     
-    const resourceInfo = await db.get('SELECT slug FROM resources WHERE id = ?', resourceId);
-    if (resourceInfo?.slug) {
-        revalidatePath(`/resources/${resourceInfo.slug}`);
-    } else {
-        revalidatePath('/resources', 'layout'); 
-    }
+    await revalidateResourcePaths(resourceId);
     return { success: true };
   } catch (error: any) {
     await db.exec('ROLLBACK');
@@ -295,11 +298,9 @@ export async function updateReviewInteractionAction(
 
     await db.exec('COMMIT');
 
-    const resourceInfo = await db.get('SELECT slug FROM resources r JOIN reviews rev ON r.id = rev.resource_id WHERE rev.id = ?', reviewId);
-    if (resourceInfo?.slug) {
-      revalidatePath(`/resources/${resourceInfo.slug}`);
-    } else {
-      revalidatePath('/resources', 'layout');
+    const review = await db.get('SELECT resource_id FROM reviews WHERE id = ?', reviewId);
+    if (review?.resource_id) {
+        await revalidateResourcePaths(review.resource_id);
     }
 
     return { 

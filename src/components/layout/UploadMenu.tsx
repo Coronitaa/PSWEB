@@ -34,62 +34,66 @@ type Context = { itemType: ItemType; projectSlug: string; categorySlug: string; 
 export function UploadMenu({
   isOpen,
   onOpenChange,
-  initialItemType,
-  initialProjectSlug,
-  initialCategorySlug
 }: UploadMenuProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [isLoading, startLoadingTransition] = useTransition();
 
   const [allItems, setAllItems] = useState<ItemWithDetails[]>([]);
-  const [selectedItemType, setSelectedItemType] = useState<ItemType | null>(initialItemType || null);
+  const [selectedItemType, setSelectedItemType] = useState<ItemType | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createModalContext, setCreateModalContext] = useState<Context | null>(null);
-
+  
   const determineContext = async () => {
-    startLoadingTransition(async () => {
-      const allItemsPromise = getAllItemsWithDetails();
-      const parts = pathname.split('/').filter(Boolean);
-      let context: { itemType?: ItemType, projectSlug?: string, categorySlug?: string } = {
-        itemType: initialItemType,
-        projectSlug: initialProjectSlug,
-        categorySlug: initialCategorySlug,
-      };
+      startLoadingTransition(async () => {
+          const allItemsPromise = getAllItemsWithDetails();
+          const parts = pathname.split('/').filter(Boolean);
+          let context: { itemType?: ItemType, projectSlug?: string, categorySlug?: string } = {};
 
-      if (parts[0] === 'resources' && parts[1]) {
-        const resource = await fetchResourceBySlugAction(parts[1]);
-        if (resource) {
-          context = { 
-            itemType: resource.parentItemType, 
-            projectSlug: resource.parentItemSlug, 
-            categorySlug: resource.categorySlug 
-          };
-        }
-      }
-      
-      const loadedItems = await allItemsPromise;
-      setAllItems(loadedItems);
-
-      if (context.itemType) {
-        setSelectedItemType(context.itemType);
-        if (context.projectSlug) {
-          const project = loadedItems.find(i => i.itemType === context.itemType && i.slug === context.projectSlug);
-          if (project) {
-            setSelectedProjectId(project.id);
-            if (context.categorySlug) {
-              const category = project.categories.find(c => c.slug === context.categorySlug);
-              if (category) {
-                setSelectedCategoryId(category.id);
-              }
+          if (['games', 'web', 'apps', 'art-music'].includes(parts[0])) {
+            // URL is like /[itemTypePlural]/[projectSlug]/[categorySlug]/[resourceSlug]
+            if(parts[0] === 'games') context.itemType = 'game';
+            else if(parts[0] === 'web') context.itemType = 'web';
+            else if(parts[0] === 'apps') context.itemType = 'app';
+            else if(parts[0] === 'art-music') context.itemType = 'art-music';
+            
+            if (parts.length >= 2) context.projectSlug = parts[1];
+            if (parts.length >= 3) context.categorySlug = parts[2];
+            if (parts.length >= 4) { // This is a resource page
+                const resourceSlug = parts[3];
+                const resource = await fetchResourceBySlugAction(resourceSlug);
+                if (resource) {
+                    context = {
+                        itemType: resource.parentItemType,
+                        projectSlug: resource.parentItemSlug,
+                        categorySlug: resource.categorySlug
+                    };
+                }
             }
           }
-        }
-      }
-    });
+          
+          const loadedItems = await allItemsPromise;
+          setAllItems(loadedItems);
+
+          if (context.itemType) {
+              setSelectedItemType(context.itemType);
+              if (context.projectSlug) {
+                  const project = loadedItems.find(i => i.itemType === context.itemType && i.slug === context.projectSlug);
+                  if (project) {
+                      setSelectedProjectId(project.id);
+                      if (context.categorySlug) {
+                          const category = project.categories.find(c => c.slug === context.categorySlug);
+                          if (category) {
+                              setSelectedCategoryId(category.id);
+                          }
+                      }
+                  }
+              }
+          }
+      });
   };
 
   useEffect(() => {
@@ -100,7 +104,7 @@ export function UploadMenu({
       setSelectedProjectId(null);
       setSelectedCategoryId(null);
     }
-  }, [isOpen, pathname, initialItemType, initialProjectSlug, initialCategorySlug]);
+  }, [isOpen, pathname]);
 
   const handleItemTypeChange = (value: string) => {
     setSelectedCategoryId(null);

@@ -451,9 +451,9 @@ export function ResourceForm({
   const fileApplicableTagGroups = dynamicTagGroups.filter(group => group.appliesToFiles);
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit, (errors) => console.error("Form validation errors:", JSON.stringify(errors, null, 2)))}>
-      <Tabs defaultValue="general" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 mb-6 bg-card-foreground/5 rounded-lg">
+    <form onSubmit={form.handleSubmit(onSubmit, (errors) => console.error("Form validation errors:", JSON.stringify(errors, null, 2)))} className="flex flex-col h-full">
+      <Tabs defaultValue="general" className="w-full flex flex-col flex-grow min-h-0">
+        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 mb-6 bg-card-foreground/5 rounded-lg shrink-0">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="visuals">Visuals</TabsTrigger>
@@ -462,229 +462,234 @@ export function ResourceForm({
           <TabsTrigger value="links">Links</TabsTrigger>
         </TabsList>
 
-        <Card className="bg-card/80 backdrop-blur-sm shadow-lg border-none">
-          <CardContent className="p-0">
-            <TabsContent value="general" className="p-6 space-y-6">
-              <CardTitle className="text-xl mb-4">Basic Information</CardTitle>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <Label htmlFor="name">Resource Name</Label>
-                  <Input id="name" {...form.register('name')} />
-                  {form.formState.errors.name && <p className="text-xs text-destructive mt-1">{form.formState.errors.name.message}</p>}
-                </div>
-                <div>
-                  <Label htmlFor="slug">Slug</Label>
-                  <Input id="slug" {...form.register('slug')} placeholder="auto-generated" />
-                  {form.formState.errors.slug && <p className="text-xs text-destructive mt-1">{form.formState.errors.slug.message}</p>}
-                </div>
-                <div>
-                  <Label htmlFor="version">Overall Version</Label>
-                  <Input id="version" {...form.register('version')} />
-                  {form.formState.errors.version && <p className="text-xs text-destructive mt-1">{form.formState.errors.version.message}</p>}
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="description">Short Description</Label>
-                <Textarea id="description" {...form.register('description')} />
-                {form.formState.errors.description && <p className="text-xs text-destructive mt-1">{form.formState.errors.description.message}</p>}
-              </div>
-              {(!isLoadingRole && (currentUserRole === 'admin' || currentUserRole === 'mod')) && (
-                <div>
-                  <Label htmlFor="status">Status</Label>
-                  <Controller
-                    name="status"
-                    control={form.control}
-                    render={({ field }) => (
-                    <Select
-                        onValueChange={(value) => field.onChange(value as ProjectStatus)}
-                        value={field.value || 'draft'}
-                    >
-                        <SelectTrigger id="status"><SelectValue placeholder="Select status..."/></SelectTrigger>
-                        <SelectContent>{PROJECT_STATUSES_CONST.map(sVal => <SelectItem key={sVal} value={sVal}>{PROJECT_STATUS_NAMES[sVal]}</SelectItem>)}</SelectContent>
-                    </Select>
-                    )}
-                  />
-                  {form.formState.errors.status && <p className="text-xs text-destructive mt-1">{form.formState.errors.status.message}</p>}
-                </div>
-              )}
-              {form.formState.errors.selectedDynamicTags?.root && <p className="text-sm text-destructive mt-2 bg-destructive/10 p-2 rounded-md flex items-center"><Info className="w-4 h-4 mr-2"/>{form.formState.errors.selectedDynamicTags.root.message}</p>}
-              {form.formState.errors.files?.root && <p className="text-sm text-destructive mt-2 bg-destructive/10 p-2 rounded-md flex items-center"><Info className="w-4 h-4 mr-2"/>{form.formState.errors.files.root.message}</p>}
-            </TabsContent>
-
-            <TabsContent value="details" className="p-6 space-y-6">
-              <CardTitle className="text-xl mb-4">Detailed Information</CardTitle>
-              <div><Label htmlFor="detailedDescription">Detailed Description (Markdown)</Label><Textarea id="detailedDescription" {...form.register('detailedDescription')} rows={10} /></div>
-              {form.formState.errors.detailedDescription && <p className="text-xs text-destructive mt-1">{form.formState.errors.detailedDescription.message}</p>}
-              <div><Label htmlFor="requirements">Requirements (Markdown)</Label><Textarea id="requirements" {...form.register('requirements')} rows={5} /></div>
-              {form.formState.errors.requirements && <p className="text-xs text-destructive mt-1">{form.formState.errors.requirements.message}</p>}
-            </TabsContent>
-
-            <TabsContent value="visuals" className="p-6 space-y-6">
-              <CardTitle className="text-xl mb-4 flex items-center"><ImageIcon className="w-5 h-5 mr-2 text-primary" />Visuals</CardTitle>
-              
-              <div className="space-y-2">
-                <Label>Main Image</Label>
-                <ImagePreview watchUrl={watchedImageUrl} alt="Main Image Preview" fallbackText="Main Image Preview" className="w-full max-w-sm aspect-video mt-1" />
-                <div className="w-full md:w-1/2">
-                  <Input id="imageUrl" {...form.register('imageUrl')} placeholder="https://..." />
-                  {form.formState.errors.imageUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageUrl.message}</p>}
-                </div>
-              </div>
-
-              <Separator />
-              
-              <div className="space-y-2">
-                <Label>Image Gallery</Label>
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                  <div className="lg:col-span-7">
-                    <div className="mt-1 rounded-lg border bg-background/30 min-h-[220px] p-2">
-                        <ImageGalleryCarousel images={galleryImagesForPreview} />
-                    </div>
+        <Card className="bg-card/80 backdrop-blur-sm shadow-lg border-none flex flex-col flex-grow min-h-0">
+          <div className="flex-grow overflow-y-auto custom-scrollbar">
+            <CardContent className="p-0">
+              <TabsContent value="general" className="p-6 space-y-6">
+                <CardTitle className="text-xl mb-4">Basic Information</CardTitle>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <Label htmlFor="name">Resource Name</Label>
+                    <Input id="name" {...form.register('name')} />
+                    {form.formState.errors.name && <p className="text-xs text-destructive mt-1">{form.formState.errors.name.message}</p>}
                   </div>
-                  <div className="lg:col-span-5 space-y-2">
-                    <div className="border rounded-md bg-muted/30 p-4 max-h-80 overflow-y-auto space-y-2">
-                      {galleryFields.map((field, index) => (
-                        <div 
-                          key={field.id}
-                          draggable="true"
-                          onDragStart={(e) => handleImageDragStart(e, index)}
-                          onDragOver={handleImageDragOver}
-                          onDrop={(e) => handleImageDrop(e, index)}
-                          onDragEnd={handleImageDragEnd}
-                          className={cn(
-                            "flex items-center gap-2 p-1.5 rounded-md hover:bg-muted/50 group cursor-grab",
-                            draggingImageIndex === index && "opacity-50 bg-primary/20"
-                          )}
-                        >
-                          <GripVertical className="h-5 w-5 text-muted-foreground mr-1 opacity-50 group-hover:opacity-100 shrink-0" />
-                          <Input {...form.register(`imageGallery.${index}.value`)} placeholder="https://..." className="h-8"/>
-                          <div className="flex gap-0.5 shrink-0">
-                            <Button type="button" size="icon" variant="ghost" onClick={() => removeGalleryField(index)} className="text-destructive/70 hover:text-destructive h-7 w-7"><X className="h-4 w-4" /></Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => appendGalleryField({ value: '' })}>
-                      <PlusCircle className="mr-2 h-4 w-4" /> Add Image
-                    </Button>
+                  <div>
+                    <Label htmlFor="slug">Slug</Label>
+                    <Input id="slug" {...form.register('slug')} placeholder="auto-generated" />
+                    {form.formState.errors.slug && <p className="text-xs text-destructive mt-1">{form.formState.errors.slug.message}</p>}
+                  </div>
+                  <div>
+                    <Label htmlFor="version">Overall Version</Label>
+                    <Input id="version" {...form.register('version')} />
+                    {form.formState.errors.version && <p className="text-xs text-destructive mt-1">{form.formState.errors.version.message}</p>}
                   </div>
                 </div>
-              </div>
-
-              {form.formState.errors.imageGallery && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageGallery.message}</p>}
-            </TabsContent>
-
-            <TabsContent value="files" className="p-6 flex flex-col h-full">
-                <div className="flex justify-between items-center mb-4 shrink-0">
-                    <CardTitle className="text-xl flex items-center"><Archive className="w-5 h-5 mr-2 text-primary" />File Versions</CardTitle>
-                    <Button type="button" variant="outline" size="sm" onClick={openNewFileDialog} className="button-outline-glow"><FileUp className="mr-2 h-4 w-4" />Add File Version</Button>
+                <div>
+                  <Label htmlFor="description">Short Description</Label>
+                  <Textarea id="description" {...form.register('description')} />
+                  {form.formState.errors.description && <p className="text-xs text-destructive mt-1">{form.formState.errors.description.message}</p>}
                 </div>
-                {form.formState.errors.files?.root && <p className="text-sm text-destructive mb-2 bg-destructive/10 p-2 rounded-md flex items-center shrink-0"><Info className="w-4 h-4 mr-2"/>{form.formState.errors.files.root.message}</p>}
-                {form.formState.errors.files?.message && <p className="text-xs text-destructive mt-1 shrink-0">{form.formState.errors.files.message}</p>}
-                
-                {fileFields.length === 0 ? (
-                    <div className="text-sm text-muted-foreground text-center py-4 flex-grow flex items-center justify-center">
-                        No file versions added. Click "Add File Version" to start.
-                    </div>
-                ) : (
-                    <div className="flex-grow min-h-0 overflow-y-auto max-h-[calc(80vh-320px)] pr-3 space-y-3">
-                        {fileFields.map((field, index) => {
-                        const fileData = form.watch(`files.${index}`);
-                        const channelInfo = FILE_CHANNELS.find(c => c.id === fileData.channelId);
-                        const channelColorStyle = channelInfo ? { borderColor: channelInfo.borderColor || channelInfo.color } : { borderColor: 'hsl(var(--border))' };
-
-                        let displayTags: Tag[] = [];
-                        if (fileData.selectedFileTags) {
-                                for (const groupId in fileData.selectedFileTags) {
-                                    const tagIdsInGroup = fileData.selectedFileTags[groupId];
-                                    const groupConfig = fileApplicableTagGroups.find(g => g.id === groupId);
-                                    if (groupConfig && tagIdsInGroup) {
-                                        tagIdsInGroup.forEach(tagId => {
-                                            const tagConfig = (groupConfig.tags || []).find(t => t.id === tagId);
-                                            if (tagConfig) displayTags.push(mapConfigToTagInterface(tagConfig, groupConfig.displayName.toLowerCase().replace(/\s+/g, '-')));
-                                        });
-                                    }
-                                }
-                        }
-
-                        return (
-                        <Card key={field.id} className="p-3 bg-muted/40 shadow-sm hover:shadow-md transition-shadow border-l-4" style={channelColorStyle}>
-                            <div className="flex items-start justify-between">
-                            <div className="flex-grow space-y-0.5">
-                                <p className="font-semibold text-foreground text-sm">{fileData.name}</p>
-                                <p className="text-xs text-muted-foreground">Version: {fileData.versionName} {channelInfo ? `(${channelInfo.name})` : ''}</p>
-                                <p className="text-xs text-muted-foreground truncate max-w-xs sm:max-w-sm md:max-w-md">URL: {fileData.url}</p>
-                                {fileData.createdAt && (
-                                    <p className="text-xs text-muted-foreground flex items-center">
-                                        <CalendarDays className="w-3 h-3 mr-1 text-accent/80"/> Added: {formatTimeAgo(fileData.createdAt)}
-                                    </p>
-                                )}
-                                {displayTags.length > 0 && (
-                                    <div className="mt-1.5 flex flex-wrap gap-1 items-center">
-                                        <Tags className="w-3 h-3 text-muted-foreground/80 mr-0.5"/>
-                                        {displayTags.slice(0, 6).map(tag => <TagBadge key={tag.id} tag={tag} className="text-[9px] px-1 py-0" />)}
-                                        {displayTags.length > 6 && <span className="text-[9px] text-muted-foreground ml-1">+{displayTags.length - 6} more</span>}
-                                    </div>
-                                )}
-                            </div>
-                            <div className="flex gap-1.5 shrink-0 ml-2">
-                                <Button type="button" variant="ghost" size="icon" onClick={() => openEditFileDialog(index)} className="h-7 w-7 text-blue-500 hover:text-blue-400" title="Edit File"><Edit2 className="h-4 w-4" /></Button>
-                                <Button type="button" variant="ghost" size="icon" onClick={() => removeFile(index)} className="h-7 w-7 text-destructive/70 hover:text-destructive" title="Remove File"><Trash2 className="h-4 w-4" /></Button>
-                            </div>
-                            </div>
-                        </Card>
-                        );})}
-                    </div>
+                {(!isLoadingRole && (currentUserRole === 'admin' || currentUserRole === 'mod')) && (
+                  <div>
+                    <Label htmlFor="status">Status</Label>
+                    <Controller
+                      name="status"
+                      control={form.control}
+                      render={({ field }) => (
+                      <Select
+                          onValueChange={(value) => field.onChange(value as ProjectStatus)}
+                          value={field.value || 'draft'}
+                      >
+                          <SelectTrigger id="status"><SelectValue placeholder="Select status..."/></SelectTrigger>
+                          <SelectContent>{PROJECT_STATUSES_CONST.map(sVal => <SelectItem key={sVal} value={sVal}>{PROJECT_STATUS_NAMES[sVal]}</SelectItem>)}</SelectContent>
+                      </Select>
+                      )}
+                    />
+                    {form.formState.errors.status && <p className="text-xs text-destructive mt-1">{form.formState.errors.status.message}</p>}
+                  </div>
                 )}
-            </TabsContent>
+                {form.formState.errors.selectedDynamicTags?.root && <p className="text-sm text-destructive mt-2 bg-destructive/10 p-2 rounded-md flex items-center"><Info className="w-4 h-4 mr-2"/>{form.formState.errors.selectedDynamicTags.root.message}</p>}
+                {form.formState.errors.files?.root && <p className="text-sm text-destructive mt-2 bg-destructive/10 p-2 rounded-md flex items-center"><Info className="w-4 h-4 mr-2"/>{form.formState.errors.files.root.message}</p>}
+              </TabsContent>
 
-            <TabsContent value="tags" className="p-6 space-y-6">
-              <CardTitle className="text-xl mb-4 flex items-center"><Sparkles className="w-5 h-5 mr-2 text-primary" />Resource Tags</CardTitle>
-              {form.formState.errors.selectedDynamicTags?.root && <p className="text-sm text-destructive mb-2 bg-destructive/10 p-2 rounded-md flex items-center"><Info className="w-4 h-4 mr-2"/>{form.formState.errors.selectedDynamicTags.root.message}</p>}
-              {dynamicTagGroups.length > 0 ? (
-                <div className="p-4 border rounded-md bg-muted/30 space-y-4">
-                  {dynamicTagGroups.map(group => (
-                    <div key={group.id}>
-                      <Controller name={`selectedDynamicTags.${group.id}`} control={form.control} defaultValue={[]} render={({ field }) => {
-                        const selectedTagIdsForGroup = field.value || [];
-                        return (
-                          <div>
-                            <Label className="text-sm font-medium">{group.displayName}</Label>
-                            <div className="mt-2 flex flex-wrap gap-2 items-center">
-                              {group.tags.map(tag => {
-                                const isSelected = selectedTagIdsForGroup.includes(tag.id);
-                                return (
-                                  <button type="button" key={tag.id} onClick={() => field.onChange(isSelected ? selectedTagIdsForGroup.filter(id => id !== tag.id) : [...selectedTagIdsForGroup, tag.id])} className="focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-full" aria-pressed={isSelected}>
-                                    <TagBadge tag={tag} className={cn("cursor-pointer transition-all", isSelected ? 'ring-2 ring-primary ring-offset-1 ring-offset-background opacity-100 shadow-md scale-105 bg-primary text-primary-foreground pl-2' : 'opacity-70 hover:opacity-100 active:scale-95 hover:ring-1 hover:ring-primary/50')} >
-                                      {isSelected && <Check className="w-3.5 h-3.5 mr-1.5 shrink-0" />}
-                                    </TagBadge>
-                                  </button>
-                                );
-                              })}
-                              {group.tags.length === 0 && <p className="text-xs text-muted-foreground">No tags configured for this group.</p>}
-                            </div>
-                          </div>
-                        );
-                      }} />
+              <TabsContent value="details" className="p-6 space-y-6">
+                <CardTitle className="text-xl mb-4">Detailed Information</CardTitle>
+                <div><Label htmlFor="detailedDescription">Detailed Description (Markdown)</Label><Textarea id="detailedDescription" {...form.register('detailedDescription')} rows={10} /></div>
+                {form.formState.errors.detailedDescription && <p className="text-xs text-destructive mt-1">{form.formState.errors.detailedDescription.message}</p>}
+                <div><Label htmlFor="requirements">Requirements (Markdown)</Label><Textarea id="requirements" {...form.register('requirements')} rows={5} /></div>
+                {form.formState.errors.requirements && <p className="text-xs text-destructive mt-1">{form.formState.errors.requirements.message}</p>}
+              </TabsContent>
+
+              <TabsContent value="visuals" className="p-6 space-y-6">
+                <CardTitle className="text-xl mb-4 flex items-center"><ImageIcon className="w-5 h-5 mr-2 text-primary" />Visuals</CardTitle>
+                
+                <div className="space-y-2">
+                    <Label>Main Image</Label>
+                    <div className="flex gap-4 items-start">
+                        <ImagePreview watchUrl={watchedImageUrl} alt="Main Image Preview" fallbackText="Main Image Preview" className="w-48 h-28 shrink-0"/>
+                        <div className="w-1/2">
+                            <Input id="imageUrl" {...form.register('imageUrl')} placeholder="https://..." />
+                            {form.formState.errors.imageUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageUrl.message}</p>}
+                        </div>
                     </div>
-                  ))}
                 </div>
-              ) : (<p className="text-sm text-muted-foreground">No tag groups configured for this resource's category.</p>)}
-            </TabsContent>
 
-            <TabsContent value="links" className="p-6 space-y-6">
-              <CardTitle className="text-xl mb-4 flex items-center"><LinkIconLucide className="w-5 h-5 mr-2 text-primary" />External Links</CardTitle>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div><Label htmlFor="links.discord">Discord URL</Label><Input id="links.discord" {...form.register('links.discord')} />{form.formState.errors.links?.discord && <p className="text-xs text-destructive mt-1">{form.formState.errors.links.discord.message}</p>}</div>
-                <div><Label htmlFor="links.wiki">Wiki/Guide URL</Label><Input id="links.wiki" {...form.register('links.wiki')} />{form.formState.errors.links?.wiki && <p className="text-xs text-destructive mt-1">{form.formState.errors.links.wiki.message}</p>}</div>
-                <div><Label htmlFor="links.issues">Issue Tracker URL</Label><Input id="links.issues" {...form.register('links.issues')} />{form.formState.errors.links?.issues && <p className="text-xs text-destructive mt-1">{form.formState.errors.links.issues.message}</p>}</div>
-                <div><Label htmlFor="links.source">Source Code URL</Label><Input id="links.source" {...form.register('links.source')} />{form.formState.errors.links?.source && <p className="text-xs text-destructive mt-1">{form.formState.errors.links.source.message}</p>}</div>
-                <div><Label htmlFor="links.projectUrl">Main Project/Resource Site</Label><Input id="links.projectUrl" {...form.register('links.projectUrl')} />{form.formState.errors.links?.projectUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.links.projectUrl.message}</p>}</div>
-              </div>
-            </TabsContent>
-          </CardContent>
+                <Separator />
+              
+                <div className="space-y-2">
+                    <Label>Image Gallery</Label>
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                        <div className="lg:col-span-5">
+                            <div className="mt-1 rounded-lg border bg-background/30 min-h-[220px] p-2">
+                                <ImageGalleryCarousel images={galleryImagesForPreview} />
+                            </div>
+                        </div>
+                        <div className="lg:col-span-7 space-y-2">
+                            <div className="border rounded-md bg-muted/30 p-4 h-full overflow-y-auto space-y-2">
+                              {galleryFields.map((field, index) => (
+                                <div 
+                                  key={field.id}
+                                  draggable="true"
+                                  onDragStart={(e) => handleImageDragStart(e, index)}
+                                  onDragOver={handleImageDragOver}
+                                  onDrop={(e) => handleImageDrop(e, index)}
+                                  onDragEnd={handleImageDragEnd}
+                                  className={cn(
+                                    "flex items-center gap-2 p-1.5 rounded-md hover:bg-muted/50 group cursor-grab",
+                                    draggingImageIndex === index && "opacity-50 bg-primary/20"
+                                  )}
+                                >
+                                  <GripVertical className="h-5 w-5 text-muted-foreground mr-1 opacity-50 group-hover:opacity-100 shrink-0" />
+                                  <Input {...form.register(`imageGallery.${index}.value`)} placeholder="https://..." className="h-8"/>
+                                  <div className="flex gap-0.5 shrink-0">
+                                    <Button type="button" size="icon" variant="ghost" onClick={() => removeGalleryField(index)} className="text-destructive/70 hover:text-destructive h-7 w-7"><X className="h-4 w-4" /></Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => appendGalleryField({ value: '' })}>
+                                <PlusCircle className="mr-2 h-4 w-4" /> Add Image
+                            </Button>
+                        </div>
+                    </div>
+                </div>
 
-          <CardFooter className="flex justify-between items-center border-t border-border/20 pt-6 p-6">
+                {form.formState.errors.imageGallery && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageGallery.message}</p>}
+              </TabsContent>
+
+              <TabsContent value="files" className="p-6 flex flex-col h-full">
+                  <div className="flex justify-between items-center mb-4 shrink-0">
+                      <CardTitle className="text-xl flex items-center"><Archive className="w-5 h-5 mr-2 text-primary" />File Versions</CardTitle>
+                      <Button type="button" variant="outline" size="sm" onClick={openNewFileDialog} className="button-outline-glow"><FileUp className="mr-2 h-4 w-4" />Add File Version</Button>
+                  </div>
+                  {form.formState.errors.files?.root && <p className="text-sm text-destructive mb-2 bg-destructive/10 p-2 rounded-md flex items-center shrink-0"><Info className="w-4 h-4 mr-2"/>{form.formState.errors.files.root.message}</p>}
+                  {form.formState.errors.files?.message && <p className="text-xs text-destructive mt-1 shrink-0">{form.formState.errors.files.message}</p>}
+                  
+                  <div className="flex-grow overflow-y-auto pr-3 -mr-3 custom-scrollbar">
+                      {fileFields.length === 0 ? (
+                          <div className="text-sm text-muted-foreground text-center py-4 flex-grow flex items-center justify-center">
+                              No file versions added. Click "Add File Version" to start.
+                          </div>
+                      ) : (
+                          <div className="space-y-3">
+                              {fileFields.map((field, index) => {
+                              const fileData = form.watch(`files.${index}`);
+                              const channelInfo = FILE_CHANNELS.find(c => c.id === fileData.channelId);
+                              const channelColorStyle = channelInfo ? { borderColor: channelInfo.borderColor || channelInfo.color } : { borderColor: 'hsl(var(--border))' };
+
+                              let displayTags: Tag[] = [];
+                              if (fileData.selectedFileTags) {
+                                      for (const groupId in fileData.selectedFileTags) {
+                                          const tagIdsInGroup = fileData.selectedFileTags[groupId];
+                                          const groupConfig = fileApplicableTagGroups.find(g => g.id === groupId);
+                                          if (groupConfig && tagIdsInGroup) {
+                                              tagIdsInGroup.forEach(tagId => {
+                                                  const tagConfig = (groupConfig.tags || []).find(t => t.id === tagId);
+                                                  if (tagConfig) displayTags.push(mapConfigToTagInterface(tagConfig, groupConfig.displayName.toLowerCase().replace(/\s+/g, '-')));
+                                              });
+                                          }
+                                      }
+                              }
+
+                              return (
+                              <Card key={field.id} className="p-3 bg-muted/40 shadow-sm hover:shadow-md transition-shadow border-l-4" style={channelColorStyle}>
+                                  <div className="flex items-start justify-between">
+                                  <div className="flex-grow space-y-0.5">
+                                      <p className="font-semibold text-foreground text-sm">{fileData.name}</p>
+                                      <p className="text-xs text-muted-foreground">Version: {fileData.versionName} {channelInfo ? `(${channelInfo.name})` : ''}</p>
+                                      <p className="text-xs text-muted-foreground truncate max-w-xs sm:max-w-sm md:max-w-md">URL: {fileData.url}</p>
+                                      {fileData.createdAt && (
+                                          <p className="text-xs text-muted-foreground flex items-center">
+                                              <CalendarDays className="w-3 h-3 mr-1 text-accent/80"/> Added: {formatTimeAgo(fileData.createdAt)}
+                                          </p>
+                                      )}
+                                      {displayTags.length > 0 && (
+                                          <div className="mt-1.5 flex flex-wrap gap-1 items-center">
+                                              <Tags className="w-3 h-3 text-muted-foreground/80 mr-0.5"/>
+                                              {displayTags.slice(0, 6).map(tag => <TagBadge key={tag.id} tag={tag} className="text-[9px] px-1 py-0" />)}
+                                              {displayTags.length > 6 && <span className="text-[9px] text-muted-foreground ml-1">+{displayTags.length - 6} more</span>}
+                                          </div>
+                                      )}
+                                  </div>
+                                  <div className="flex gap-1.5 shrink-0 ml-2">
+                                      <Button type="button" variant="ghost" size="icon" onClick={() => openEditFileDialog(index)} className="h-7 w-7 text-blue-500 hover:text-blue-400" title="Edit File"><Edit2 className="h-4 w-4" /></Button>
+                                      <Button type="button" variant="ghost" size="icon" onClick={() => removeFile(index)} className="h-7 w-7 text-destructive/70 hover:text-destructive" title="Remove File"><Trash2 className="h-4 w-4" /></Button>
+                                  </div>
+                                  </div>
+                              </Card>
+                              );})}
+                          </div>
+                      )}
+                  </div>
+              </TabsContent>
+
+              <TabsContent value="tags" className="p-6 space-y-6">
+                <CardTitle className="text-xl mb-4 flex items-center"><Sparkles className="w-5 h-5 mr-2 text-primary" />Resource Tags</CardTitle>
+                {form.formState.errors.selectedDynamicTags?.root && <p className="text-sm text-destructive mb-2 bg-destructive/10 p-2 rounded-md flex items-center"><Info className="w-4 h-4 mr-2"/>{form.formState.errors.selectedDynamicTags.root.message}</p>}
+                {dynamicTagGroups.length > 0 ? (
+                  <div className="p-4 border rounded-md bg-muted/30 space-y-4">
+                    {dynamicTagGroups.map(group => (
+                      <div key={group.id}>
+                        <Controller name={`selectedDynamicTags.${group.id}`} control={form.control} defaultValue={[]} render={({ field }) => {
+                          const selectedTagIdsForGroup = field.value || [];
+                          return (
+                            <div>
+                              <Label className="text-sm font-medium">{group.displayName}</Label>
+                              <div className="mt-2 flex flex-wrap gap-2 items-center">
+                                {group.tags.map(tag => {
+                                  const isSelected = selectedTagIdsForGroup.includes(tag.id);
+                                  return (
+                                    <button type="button" key={tag.id} onClick={() => field.onChange(isSelected ? selectedTagIdsForGroup.filter(id => id !== tag.id) : [...selectedTagIdsForGroup, tag.id])} className="focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-full" aria-pressed={isSelected}>
+                                      <TagBadge tag={tag} className={cn("cursor-pointer transition-all", isSelected ? 'ring-2 ring-primary ring-offset-1 ring-offset-background opacity-100 shadow-md scale-105 bg-primary text-primary-foreground pl-2' : 'opacity-70 hover:opacity-100 active:scale-95 hover:ring-1 hover:ring-primary/50')} >
+                                        {isSelected && <Check className="w-3.5 h-3.5 mr-1.5 shrink-0" />}
+                                      </TagBadge>
+                                    </button>
+                                  );
+                                })}
+                                {group.tags.length === 0 && <p className="text-xs text-muted-foreground">No tags configured for this group.</p>}
+                              </div>
+                            </div>
+                          );
+                        }} />
+                      </div>
+                    ))}
+                  </div>
+                ) : (<p className="text-sm text-muted-foreground">No tag groups configured for this resource's category.</p>)}
+              </TabsContent>
+
+              <TabsContent value="links" className="p-6 space-y-6">
+                <CardTitle className="text-xl mb-4 flex items-center"><LinkIconLucide className="w-5 h-5 mr-2 text-primary" />External Links</CardTitle>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div><Label htmlFor="links.discord">Discord URL</Label><Input id="links.discord" {...form.register('links.discord')} />{form.formState.errors.links?.discord && <p className="text-xs text-destructive mt-1">{form.formState.errors.links.discord.message}</p>}</div>
+                  <div><Label htmlFor="links.wiki">Wiki/Guide URL</Label><Input id="links.wiki" {...form.register('links.wiki')} />{form.formState.errors.links?.wiki && <p className="text-xs text-destructive mt-1">{form.formState.errors.links.wiki.message}</p>}</div>
+                  <div><Label htmlFor="links.issues">Issue Tracker URL</Label><Input id="links.issues" {...form.register('links.issues')} />{form.formState.errors.links?.issues && <p className="text-xs text-destructive mt-1">{form.formState.errors.links.issues.message}</p>}</div>
+                  <div><Label htmlFor="links.source">Source Code URL</Label><Input id="links.source" {...form.register('links.source')} />{form.formState.errors.links?.source && <p className="text-xs text-destructive mt-1">{form.formState.errors.links.source.message}</p>}</div>
+                  <div><Label htmlFor="links.projectUrl">Main Project/Resource Site</Label><Input id="links.projectUrl" {...form.register('links.projectUrl')} />{form.formState.errors.links?.projectUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.links.projectUrl.message}</p>}</div>
+                </div>
+              </TabsContent>
+            </CardContent>
+          </div>
+          <CardFooter className="flex justify-between items-center border-t border-border/20 pt-6 p-6 shrink-0">
             <div>
               {(!isLoadingRole && !isNew && initialData?.id && (currentUserRole === 'admin' || currentUserRole === 'mod')) && (
                 <AlertDialog>

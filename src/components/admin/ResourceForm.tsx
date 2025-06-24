@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { saveResource, deleteResource } from '@/app/actions/clientWrappers';
 import { useState, useTransition, useEffect, useMemo } from 'react';
-import { Loader2, Save, Trash2, Link as LinkIconLucide, PlusCircle, Image as ImageIcon, ListChecks, FileText, Info, ExternalLink, Sparkles, X, Check, Archive, FileUp, Tags, Edit2, GripVertical, CalendarDays } from 'lucide-react';
+import { Loader2, Save, Trash2, Link as LinkIconLucide, PlusCircle, Image as ImageIcon, ListChecks, FileText, Info, ExternalLink, Sparkles, X, Check, Archive, FileUp, Tags, Edit2, GripVertical, CalendarDays, ChevronUp, ChevronDown } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -61,7 +61,9 @@ const resourceFormSchema = z.object({
   description: z.string().min(10, "Short description must be at least 10 characters"),
   detailedDescription: z.string().optional(),
   imageUrl: z.string().url("Must be a valid URL for main image").optional().or(z.literal('')),
-  imageGalleryUrls: z.string().optional().transform(val => val ? val.split('\\n').map(url => url.trim()).filter(url => url) : []),
+  imageGallery: z.array(z.object({
+    value: z.string().url({ message: "Please enter a valid URL." }).min(1, "URL cannot be empty.")
+  })).optional(),
   requirements: z.string().optional(),
   status: z.custom<ProjectStatus>((val) => PROJECT_STATUSES_CONST.includes(val as ProjectStatus), "Invalid project status"),
   links: z.object({
@@ -177,7 +179,7 @@ export function ResourceForm({
         description: '',
         detailedDescription: '',
         imageUrl: 'https://placehold.co/800x450.png',
-        imageGalleryUrls: '',
+        imageGallery: [],
         requirements: '',
         status: 'published' as ProjectStatus,
         links: { discord: '', wiki: '', issues: '', source: '', projectUrl: '' },
@@ -220,7 +222,7 @@ export function ResourceForm({
       description: initialData?.description || '',
       detailedDescription: initialData?.detailedDescription || '',
       imageUrl: initialData?.imageUrl || 'https://placehold.co/800x450.png',
-      imageGalleryUrls: initialData?.imageGallery?.join('\\n') || '',
+      imageGallery: initialData?.imageGallery?.map(url => ({ value: url })) || [],
       requirements: initialData?.requirements || '',
       status: initialData?.status || 'draft',
       links: {
@@ -247,18 +249,22 @@ export function ResourceForm({
     name: "files",
   });
 
+  const { fields: galleryFields, append: appendGalleryField, remove: removeGalleryField, move: moveGalleryField } = useFieldArray({
+    control: form.control,
+    name: "imageGallery",
+  });
+
   const stringifiedDefaultValues = JSON.stringify(defaultValues);
   useEffect(() => {
     form.reset(defaultValues);
   }, [stringifiedDefaultValues, form]);
 
   const watchedImageUrl = useWatch({ control: form.control, name: 'imageUrl' });
-  const watchedGalleryUrls = useWatch({ control: form.control, name: 'imageGalleryUrls' });
+  const watchedGallery = useWatch({ control: form.control, name: 'imageGallery' });
 
   const galleryImagesForPreview = useMemo(() => {
-    const urls = Array.isArray(watchedGalleryUrls) ? watchedGalleryUrls : (typeof watchedGalleryUrls === 'string' ? watchedGalleryUrls.split('\\n') : []);
-    return urls.map(url => url.trim()).filter(url => url && url.startsWith('http'));
-  }, [watchedGalleryUrls]);
+    return watchedGallery?.map(item => item.value).filter(url => url && url.startsWith('http')) || [];
+  }, [watchedGallery]);
 
 
   const onSubmit = async (data: FormValues) => {
@@ -279,7 +285,8 @@ export function ResourceForm({
     startSavingTransition(async () => {
       try {
         const resourceFormData: ResourceFormData = {
-          ...data, imageGallery: data.imageGalleryUrls,
+          ...data, 
+          imageGallery: data.imageGallery?.map(item => item.value) || [],
           selectedDynamicTags: data.selectedDynamicTags || {},
           files: data.files.map(f => ({
             ...f,
@@ -499,7 +506,7 @@ export function ResourceForm({
               <div className="space-y-2">
                   <Label htmlFor="imageUrl">Main Image URL</Label>
                   <Input id="imageUrl" {...form.register('imageUrl')} />
-                  <ImagePreview watchUrl={watchedImageUrl} alt="Main Image Preview" fallbackText="Main Image Preview" className="aspect-video w-full max-w-lg mt-2" />
+                  <ImagePreview watchUrl={watchedImageUrl} alt="Main Image Preview" fallbackText="Main Image Preview" className="w-full max-w-lg aspect-video mt-2" />
                   {form.formState.errors.imageUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageUrl.message}</p>}
               </div>
 
@@ -507,13 +514,32 @@ export function ResourceForm({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                   <div className="space-y-2">
-                      <Label htmlFor="imageGalleryUrls">Image Gallery URLs (one per line)</Label>
-                      <Textarea id="imageGalleryUrls" {...form.register('imageGalleryUrls')} rows={8} />
-                      {form.formState.errors.imageGalleryUrls && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageGalleryUrls.message as string}</p>}
+                      <Label>Image Gallery URLs</Label>
+                       <Card className="p-2 bg-background/30 border-dashed">
+                        <ScrollArea className="h-64 pr-2">
+                          <div className="space-y-2">
+                            {galleryFields.map((field, index) => (
+                              <div key={field.id} className="flex items-center gap-2 p-1.5 rounded-md hover:bg-muted/50 group">
+                                <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab shrink-0" />
+                                <Input {...form.register(`imageGallery.${index}.value`)} placeholder="https://..." className="h-8"/>
+                                <div className="flex gap-0.5 shrink-0">
+                                  <Button type="button" size="icon" variant="ghost" onClick={() => moveGalleryField(index, index - 1)} disabled={index === 0} className="h-7 w-7"><ChevronUp className="h-4 w-4" /></Button>
+                                  <Button type="button" size="icon" variant="ghost" onClick={() => moveGalleryField(index, index + 1)} disabled={index === galleryFields.length - 1} className="h-7 w-7"><ChevronDown className="h-4 w-4" /></Button>
+                                  <Button type="button" size="icon" variant="ghost" className="text-destructive/70 hover:text-destructive h-7 w-7" onClick={() => removeGalleryField(index)}><X className="h-4 w-4" /></Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                        <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => appendGalleryField({ value: '' })}>
+                            <PlusCircle className="mr-2 h-4 w-4" /> Add Image
+                        </Button>
+                      </Card>
+                       {form.formState.errors.imageGallery && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageGallery.message}</p>}
                   </div>
                   <div className="space-y-2">
                       <Label className="text-muted-foreground">Gallery Preview</Label>
-                      <div className="mt-1 rounded-lg border bg-background/30 p-2 min-h-[185px]">
+                      <div className="mt-1 rounded-lg border bg-background/30 min-h-[185px] p-2">
                           <ImageGalleryCarousel images={galleryImagesForPreview} />
                       </div>
                   </div>
@@ -539,7 +565,7 @@ export function ResourceForm({
                         const channelInfo = FILE_CHANNELS.find(c => c.id === fileData.channelId);
                         const channelColorStyle = channelInfo ? { borderColor: channelInfo.borderColor || channelInfo.color } : { borderColor: 'hsl(var(--border))' };
 
-                        let displayTags: TagInGroupConfig[] = [];
+                        let displayTags: Tag[] = [];
                         if (fileData.selectedFileTags) {
                                 for (const groupId in fileData.selectedFileTags) {
                                     const tagIdsInGroup = fileData.selectedFileTags[groupId];
@@ -547,7 +573,7 @@ export function ResourceForm({
                                     if (groupConfig && tagIdsInGroup) {
                                         tagIdsInGroup.forEach(tagId => {
                                             const tagConfig = (groupConfig.tags || []).find(t => t.id === tagId);
-                                            if (tagConfig) displayTags.push(tagConfig);
+                                            if (tagConfig) displayTags.push(mapConfigToTagInterface(tagConfig, groupConfig.groupDisplayName.toLowerCase().replace(/\s+/g, '-')));
                                         });
                                     }
                                 }

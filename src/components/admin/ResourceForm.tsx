@@ -494,26 +494,30 @@ export function ResourceForm({
             </TabsContent>
 
             <TabsContent value="visuals" className="p-6 space-y-6">
-                <CardTitle className="text-xl mb-4 flex items-center"><ImageIcon className="w-5 h-5 mr-2 text-primary" />Visuals</CardTitle>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                    <div className="space-y-2">
-                        <Label htmlFor="imageUrl">Main Image URL</Label>
-                        <Input id="imageUrl" {...form.register('imageUrl')} />
-                        <ImagePreview watchUrl={watchedImageUrl} alt="Main Image Preview" fallbackText="Main Image Preview" className="aspect-video w-full mt-2" />
-                        {form.formState.errors.imageUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageUrl.message}</p>}
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="imageGalleryUrls">Image Gallery URLs (one per line)</Label>
-                        <Textarea id="imageGalleryUrls" {...form.register('imageGalleryUrls')} rows={4} />
-                        <div className="mt-2">
-                           <Label className="text-xs text-muted-foreground">Gallery Preview</Label>
-                           <div className="mt-1 rounded-lg border bg-background/30 p-2">
-                                <ImageGalleryCarousel images={galleryImagesForPreview} />
-                           </div>
-                        </div>
-                        {form.formState.errors.imageGalleryUrls && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageGalleryUrls.message as string}</p>}
-                    </div>
-                </div>
+              <CardTitle className="text-xl mb-4 flex items-center"><ImageIcon className="w-5 h-5 mr-2 text-primary" />Visuals</CardTitle>
+              
+              <div className="space-y-2">
+                  <Label htmlFor="imageUrl">Main Image URL</Label>
+                  <Input id="imageUrl" {...form.register('imageUrl')} />
+                  <ImagePreview watchUrl={watchedImageUrl} alt="Main Image Preview" fallbackText="Main Image Preview" className="aspect-video w-full max-w-lg mt-2" />
+                  {form.formState.errors.imageUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageUrl.message}</p>}
+              </div>
+
+              <Separator />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                  <div className="space-y-2">
+                      <Label htmlFor="imageGalleryUrls">Image Gallery URLs (one per line)</Label>
+                      <Textarea id="imageGalleryUrls" {...form.register('imageGalleryUrls')} rows={8} />
+                      {form.formState.errors.imageGalleryUrls && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageGalleryUrls.message as string}</p>}
+                  </div>
+                  <div className="space-y-2">
+                      <Label className="text-muted-foreground">Gallery Preview</Label>
+                      <div className="mt-1 rounded-lg border bg-background/30 p-2 min-h-[185px]">
+                          <ImageGalleryCarousel images={galleryImagesForPreview} />
+                      </div>
+                  </div>
+              </div>
             </TabsContent>
 
             <TabsContent value="files" className="p-6 flex flex-col h-full">
@@ -529,7 +533,7 @@ export function ResourceForm({
                         No file versions added. Click "Add File Version" to start.
                     </div>
                 ) : (
-                    <div className="flex-grow min-h-0 overflow-y-auto max-h-[calc(80vh-320px)] pr-3 space-y-3"> {/* Adjusted max-height slightly */}
+                    <div className="flex-grow min-h-0 overflow-y-auto max-h-[calc(80vh-320px)] pr-3 space-y-3">
                         {fileFields.map((field, index) => {
                         const fileData = form.watch(`files.${index}`);
                         const channelInfo = FILE_CHANNELS.find(c => c.id === fileData.channelId);

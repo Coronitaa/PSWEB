@@ -5,7 +5,7 @@ import { useForm, Controller, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
-import type { Resource, ItemType, ResourceFormData, DynamicAvailableFilterTags, ProjectStatus, ResourceLinks, DynamicTagSelection, UserAppRole, FileChannelId, ResourceFileFormData, TagInGroupConfig, ResourceFile } from '@/lib/types';
+import type { Resource, ItemType, ResourceFormData, DynamicAvailableFilterTags, ProjectStatus, ResourceLinks, DynamicTagSelection, UserAppRole, FileChannelId, ResourceFileFormData, TagInGroupConfig, ResourceFile, Tag } from '@/lib/types';
 import { PROJECT_STATUSES_CONST, PROJECT_STATUS_NAMES, FILE_CHANNELS } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -34,7 +34,7 @@ import { Separator } from '../ui/separator';
 import { ScrollArea } from '../ui/scroll-area';
 import { TagBadge } from '@/components/shared/TagBadge';
 import { cn } from '@/lib/utils';
-import { formatTimeAgo } from '@/lib/utils';
+import { mapConfigToTagInterface, formatTimeAgo, getItemTypePlural } from '@/lib/utils';
 import Image from 'next/image';
 import { ImageGalleryCarousel } from '../shared/ImageGalleryCarousel';
 

@@ -4,26 +4,11 @@
 import { getDb } from './db';
 import type { Game, Category, Resource, Author, Tag, ResourceFile, GetResourcesParams, PaginatedResourcesResponse, ResourceLinks, ChangelogEntry, WebItem, AppItem, ArtMusicItem, ItemStats, ItemType, ItemWithDetails, GenericListItem, ProjectStatus, UserAppRole, CategoryTagGroupConfig, ProjectCategoryTagConfigurations, ProjectTagGroupSource, DynamicAvailableFilterTags, DynamicTagGroup, TagInGroupConfig, Review, ReviewInteractionCounts, UserStats, UserBadge, RankedResource, ProjectFormData, CategoryFormData, ResourceFormData, MainFileDetails, DynamicTagSelection, RawCategoryProjectDetails, FileChannelId, ResourceFileFormData, SectionTagFormData, ProfileUpdateFormData } from './types';
 import { ITEM_TYPES_CONST, PROJECT_STATUSES_CONST, PROJECT_STATUS_NAMES, USER_APP_ROLES_CONST, FILE_CHANNELS } from './types';
-import { calculateGenericItemSearchScore } from './utils';
+import { calculateGenericItemSearchScore, mapConfigToTagInterface } from './utils';
 
 
 // --- Helper Functions ---
 const TAG_CONFIG_SEPARATOR = ":::CONFIG_JSON:::";
-
-const mapConfigToTagInterface = (config: TagInGroupConfig, slugPrefix: string = 'tag'): Tag => ({
-  id: config.id,
-  name: config.name,
-  slug: slugPrefix + '-' + config.name.toLowerCase().replace(/\s+/g, '-') + '-' + config.id.substring(0,4),
-  description: undefined,
-  color: config.color,
-  text_color: config.text_color,
-  border_color: config.border_color,
-  hover_bg_color: config.hover_bg_color,
-  hover_text_color: config.hover_text_color,
-  hover_border_color: config.hover_border_color,
-  icon_svg: config.icon_svg,
-  type: 'misc', // Default type, can be overridden if group info is available
-});
 
 export const mapFileChannelToTagInterface = async (channelId: FileChannelId | string | undefined | null): Promise<Tag | null> => {
   if (!channelId) return null;

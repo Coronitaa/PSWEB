@@ -35,8 +35,8 @@ import { ScrollArea } from '../ui/scroll-area';
 import { TagBadge } from '@/components/shared/TagBadge';
 import { cn } from '@/lib/utils';
 import { formatTimeAgo } from '@/lib/utils';
-import { Carousel, CarouselItem } from '@/components/shared/Carousel';
 import Image from 'next/image';
+import { ImageGalleryCarousel } from '../shared/ImageGalleryCarousel';
 
 const CLEAR_SELECTION_VALUE = "__CLEAR_SELECTION__";
 
@@ -506,36 +506,12 @@ export function ResourceForm({
                         <Label htmlFor="imageGalleryUrls">Image Gallery URLs (one per line)</Label>
                         <Textarea id="imageGalleryUrls" {...form.register('imageGalleryUrls')} rows={4} />
                         {form.formState.errors.imageGalleryUrls && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageGalleryUrls.message as string}</p>}
-                        {galleryImagesForPreview.length > 0 ? (
-                            <div className="mt-2">
-                                <Label className="text-xs text-muted-foreground">Gallery Preview</Label>
-                                <div className="mt-1 rounded-lg overflow-hidden border aspect-video">
-                                    <Carousel
-                                      itemsToShow={1}
-                                      showArrows={galleryImagesForPreview.length > 1}
-                                      autoplay={false}
-                                      className="h-full"
-                                    >
-                                      {galleryImagesForPreview.map((imgUrl, idx) => (
-                                        <CarouselItem key={idx} className="h-full">
-                                          <Image
-                                            src={imgUrl}
-                                            alt={`Gallery preview ${idx + 1}`}
-                                            fill
-                                            style={{ objectFit: "cover" }}
-                                            className="rounded-md"
-                                            data-ai-hint="gallery image"
-                                          />
-                                        </CarouselItem>
-                                      ))}
-                                    </Carousel>
-                                </div>
+                        <div className="mt-2">
+                            <Label className="text-xs text-muted-foreground">Gallery Preview</Label>
+                            <div className="mt-1 rounded-lg overflow-hidden border">
+                                <ImageGalleryCarousel images={galleryImagesForPreview} />
                             </div>
-                        ) : (
-                             <div className="mt-2 text-center text-xs text-muted-foreground p-4 border border-dashed rounded-md">
-                                Add image URLs above to see gallery preview
-                            </div>
-                        )}
+                        </div>
                     </div>
                 </div>
             </TabsContent>
@@ -746,4 +722,3 @@ export function ResourceForm({
     </form>
   );
 }
-

@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ResourceFilesTabContent } from '@/components/resource/ResourceFilesTabContent';
 import { ResourceReviewsTabContent } from '@/components/resource/ResourceReviewsTabContent'; 
-import { FileText, BookOpen, ListChecks, MessageCircle, Eye, Heart, Star, Loader2, Edit3, ImageIcon } from 'lucide-react'; // Added ImageIcon
+import { FileText, BookOpen, ListChecks, MessageCircle, Eye, Heart, Star, Loader2, Edit3, ImageIcon } from 'lucide-react';
 import { ImageGalleryCarousel } from '@/components/shared/ImageGalleryCarousel';
 import { ResourceCard } from '@/components/resource/ResourceCard';
 import { Carousel, CarouselItem } from '@/components/shared/Carousel';

@@ -7,7 +7,7 @@ import Image from 'next/image';
 import type { RankedResource, ItemType } from '@/lib/types';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Carousel, CarouselItem } from '@/components/shared/Carousel';
+import { ImageGalleryCarousel } from '@/components/shared/ImageGalleryCarousel';
 import { Download, Package, Gamepad2, Code, TabletSmartphone, Music as MusicIcon, Star as StarIcon, Layers } from 'lucide-react';
 import { formatNumberWithSuffix, getItemTypePlural } from '@/lib/utils';
 import { cn } from '@/lib/utils';
@@ -35,7 +35,8 @@ export function TopResourceCard({ resource }: TopResourceCardProps) {
   const rankSymbol = rankIndicatorMap[resource.rank] || `#${resource.rank}`;
   const [isHovering, setIsHovering] = useState(false);
 
-  const hasGallery = resource.imageGallery && resource.imageGallery.length > 0;
+  const galleryImages = resource.imageGallery && resource.imageGallery.length > 0 ? resource.imageGallery : (resource.imageUrl ? [resource.imageUrl] : []);
+  const hasGallery = galleryImages.length > 0;
   const resourcePath = `/${getItemTypePlural(resource.parentItemType)}/${resource.parentItemSlug}/${resource.categorySlug}/${resource.slug}`;
 
   return (
@@ -58,33 +59,16 @@ export function TopResourceCard({ resource }: TopResourceCardProps) {
           <CardHeader className="p-0 relative">
             <div className="block aspect-video overflow-hidden rounded-t-lg">
               {isHovering && hasGallery ? (
-                <Carousel
-                  itemsToShow={1}
-                  showArrows={false}
-                  autoplay={true}
-                  autoplayInterval={2000}
-                  className="h-full w-full"
-                >
-                  {resource.imageGallery!.map((imgUrl, idx) => (
-                    <CarouselItem key={idx} className="h-full">
-                      <Image
-                        src={imgUrl}
-                        alt={`${resource.name} gallery image ${idx + 1}`}
-                        fill
-                        style={{ objectFit: "cover" }}
-                        className="transition-transform duration-300 ease-in-out"
-                        data-ai-hint="resource detail image"
-                      />
-                    </CarouselItem>
-                  ))}
-                </Carousel>
+                <div className="absolute inset-0">
+                  <ImageGalleryCarousel images={galleryImages} />
+                </div>
               ) : (
                 <Image
                   src={resource.imageUrl || 'https://placehold.co/800x450.png'}
                   alt={`${resource.name} banner`}
                   fill
                   style={{ objectFit: "cover" }}
-                  className={cn("group-hover/glare:scale-105 transition-transform duration-300 ease-in-out", isHovering && hasGallery && "opacity-0")}
+                  className={cn("group-hover/glare:scale-105 transition-transform duration-300 ease-in-out")}
                   data-ai-hint="resource preview image"
                 />
               )}

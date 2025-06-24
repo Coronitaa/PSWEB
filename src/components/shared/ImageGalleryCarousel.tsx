@@ -115,7 +115,7 @@ export const ImageGalleryCarousel: React.FC<ImageGalleryCarouselProps> = ({ imag
             <motion.div
               key={`${idx}-${imgSrc}`}
               onClick={() => openLightbox(idx)}
-              animate={{ scale: imgIndex === idx ? 1 : 0.95 }} // This scale is for the main carousel items
+              animate={{ scale: imgIndex === idx ? 1 : 0.95 }}
               transition={SPRING_OPTIONS}
               className="relative aspect-video w-full shrink-0 object-cover h-full cursor-pointer"
             >
@@ -134,10 +134,8 @@ export const ImageGalleryCarousel: React.FC<ImageGalleryCarouselProps> = ({ imag
           ))}
         </motion.div>
         
-        <div className="absolute bottom-0 left-0 right-0 h-10 z-10">
-            {numImages > 1 && <Dots imgIndex={imgIndex} setImgIndex={setImgIndex} numImages={numImages} />}
-            <GradientEdges />
-        </div>
+        {numImages > 1 && <Dots imgIndex={imgIndex} setImgIndex={setImgIndex} numImages={numImages} />}
+        <GradientEdges />
       </div>
 
       <AnimatePresence>

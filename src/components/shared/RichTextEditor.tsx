@@ -147,6 +147,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
   
   const wrapperStyle: React.CSSProperties = { width };
   if (float === 'center' || !float) {
+      wrapperStyle.display = 'block'; // Make sure it's a block for auto margins to work
       wrapperStyle.marginLeft = 'auto';
       wrapperStyle.marginRight = 'auto';
   }
@@ -156,10 +157,9 @@ const MediaResizeComponent = (props: NodeViewProps) => {
       ref={containerRef}
       as="div"
       className={cn(
-        'rich-text-media-node group clear-both relative', // Added relative
+        'rich-text-media-node group clear-both relative',
         float === 'left' && 'mr-4 float-left',
         float === 'right' && 'ml-4 float-right',
-        (float === 'center' || !float) && 'block', // Use block for centering
         selected && 'outline-2 outline-primary outline-dashed'
       )}
       style={wrapperStyle}
@@ -169,9 +169,9 @@ const MediaResizeComponent = (props: NodeViewProps) => {
             <img src={node.attrs.src} alt={node.attrs.alt} className="w-full h-auto block" />
           )}
           {isVideo && (
-            <div className="aspect-video w-full">
+            <div className="aspect-video w-full relative">
                 <iframe
-                  className="w-full h-full"
+                  className="absolute inset-0 w-full h-full"
                   src={node.attrs.src}
                   frameBorder="0"
                   allowFullScreen
@@ -190,17 +190,23 @@ const MediaResizeComponent = (props: NodeViewProps) => {
             <Button type="button" size="icon" variant='ghost' className="h-7 w-7" onClick={() => updateAttributes({ rotate: (rotation + 90) % 360 })} title="Rotate"><RotateCcw className="w-4 h-4" /></Button>
           </div>
 
-          {handles.map((handle, index) => (
-            <div
-              key={index}
-              className={cn(
-                "absolute w-3 h-3 bg-primary rounded-full border-2 border-white",
-                handle.pos,
-                handle.cursor
-              )}
-              onMouseDown={createResizeHandler(handle.direction as 'left' | 'right' | 'none')}
-            />
-          ))}
+          <div 
+            className="absolute inset-0 pointer-events-none"
+            style={{ transform: `rotate(${rotation}deg)` }}
+          >
+            {handles.map((handle, index) => (
+              <div
+                key={index}
+                className={cn(
+                  "absolute w-3 h-3 bg-primary rounded-full border-2 border-card pointer-events-auto",
+                  handle.pos,
+                  handle.cursor
+                )}
+                style={{ transform: `rotate(-${rotation}deg)` }}
+                onMouseDown={createResizeHandler(handle.direction as 'left' | 'right' | 'none')}
+              />
+            ))}
+          </div>
         </>
       )}
     </NodeViewWrapper>

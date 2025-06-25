@@ -1697,6 +1697,11 @@
   resolved "https://registry.npmjs.org/@tiptap/extension-code/-/extension-code-2.22.3.tgz"
   integrity sha512-s+W6jHezq+n9cC40xZ3hZF6cGGSl+fBELik1b2x8+cb0WoIlqmcdWin1dgeMNrWlRZUw1aD2DNwy/PdXI5vn2g==
 
+"@tiptap/extension-color@^2.4.0":
+  version "2.22.3"
+  resolved "https://registry.npmjs.org/@tiptap/extension-color/-/extension-color-2.22.3.tgz"
+  integrity sha512-4GewNUnDE16cte85kG0qhMGS1NQUQ1HRObVRGP47RlrSc/6x++DOfkqYbSJ0btyfWHGBahC3QQfyQ3eCdryUxg==
+
 "@tiptap/extension-document@^2.22.3":
   version "2.22.3"
   resolved "https://registry.npmjs.org/@tiptap/extension-document/-/extension-document-2.22.3.tgz"
@@ -1781,7 +1786,12 @@
   resolved "https://registry.npmjs.org/@tiptap/extension-strike/-/extension-strike-2.22.3.tgz"
   integrity sha512-I+s2Csw2cTHae2vFJiojnHK+NnQjDr6441mSlAd+e7kEly1kjZ4g7J+JMj02ajNQhr/ob8/hb5r6EdIyv2xtoA==
 
-"@tiptap/extension-text-style@^2.22.3":
+"@tiptap/extension-text-align@^2.4.0":
+  version "2.22.3"
+  resolved "https://registry.npmjs.org/@tiptap/extension-text-align/-/extension-text-align-2.22.3.tgz"
+  integrity sha512-UZ8803BOrHLHSNFfooqgkm2AQsaK/7eE1deQGSazxft89KksAv1kZkEKFypOE8yw85Bg2NHH2Lp6n4tyz2n6/g==
+
+"@tiptap/extension-text-style@^2.22.3", "@tiptap/extension-text-style@^2.4.0", "@tiptap/extension-text-style@^2.7.0":
   version "2.22.3"
   resolved "https://registry.npmjs.org/@tiptap/extension-text-style/-/extension-text-style-2.22.3.tgz"
   integrity sha512-M3FLOUPcO8fR+rM97mR2gQ54KFkdlAUQtEPKQpO1f312gtcVdBNxgq0WgqTnBY7thWLyqQSKiAsL6y88+JddSA==
@@ -1790,6 +1800,11 @@
   version "2.22.3"
   resolved "https://registry.npmjs.org/@tiptap/extension-text/-/extension-text-2.22.3.tgz"
   integrity sha512-07cymWkPTfq6nuum88Yf90YYArbowed8nNiu0Tw3jCvwpzf9J9TDaovT+LAKuSKtrOsnNpFB/9IqUwFxZepOGw==
+
+"@tiptap/extension-underline@^2.4.0":
+  version "2.22.3"
+  resolved "https://registry.npmjs.org/@tiptap/extension-underline/-/extension-underline-2.22.3.tgz"
+  integrity sha512-floLjh1UbQ2pKgdwfw7qCAJ5VojvH1uqj7xW2RCv79aWYUuJCPD6UBpaBOt/jv7gXDJJ9EeV3m2Hga49CXBrEQ==
 
 "@tiptap/extension-youtube@^2.4.0":
   version "2.22.3"

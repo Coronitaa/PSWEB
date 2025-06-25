@@ -1056,7 +1056,7 @@ export async function getAuthorPublishedResources(
   userId: string,
   options: {
     limit?: number;
-    sortBy?: 'updated_at' | 'created_at' | 'downloads' | 'rating' | 'relevance';
+    sortBy?: 'relevance' | 'updated_at' | 'created_at' | 'downloads' | 'rating' | 'name';
     order?: 'ASC' | 'DESC';
     excludeIds?: string[];
     itemType?: ItemType;
@@ -1101,8 +1101,8 @@ export async function getAuthorPublishedResources(
     whereQueryParams.push(categoryId);
   }
   if (searchQuery) {
-    whereClauses.push('(LOWER(r.name) LIKE LOWER(?) OR LOWER(r.description) LIKE LOWER(?) OR LOWER(c.description) LIKE LOWER(?))');
-    whereQueryParams.push(`%${searchQuery}%`, `%${searchQuery}%`, `%${searchQuery}%`);
+    whereClauses.push('(LOWER(r.name) LIKE LOWER(?) OR LOWER(r.description) LIKE LOWER(?))');
+    whereQueryParams.push(`%${searchQuery}%`, `%${searchQuery}%`);
   }
 
   const whereString = whereClauses.join(' AND ');
@@ -1115,14 +1115,18 @@ export async function getAuthorPublishedResources(
   let fullQueryParams = [...whereQueryParams];
   
   if (searchQuery && sortBy === 'relevance') {
-    baseQuery += ` ORDER BY CASE WHEN LOWER(r.name) = LOWER(?) THEN 0 ELSE 1 END, CASE WHEN LOWER(r.name) LIKE LOWER(?) THEN 1 ELSE 2 END, CASE WHEN LOWER(c.description) LIKE LOWER(?) THEN 3 ELSE 4 END, r.downloads DESC`;
-    fullQueryParams.push(searchQuery.toLowerCase(), `${searchQuery}%`, `%${searchQuery}%`);
+    baseQuery += ` ORDER BY CASE WHEN LOWER(r.name) = LOWER(?) THEN 0 ELSE 1 END, CASE WHEN LOWER(r.name) LIKE LOWER(?) THEN 1 ELSE 2 END, r.downloads DESC`;
+    fullQueryParams.push(searchQuery.toLowerCase(), `${searchQuery}%`);
   } else {
     let orderByField = 'r.created_at';
     if (sortBy === 'updated_at') orderByField = 'r.updated_at';
     else if (sortBy === 'downloads') orderByField = 'r.downloads';
     else if (sortBy === 'rating') orderByField = 'r.rating';
-    baseQuery += ` ORDER BY ${orderByField} ${order === 'ASC' ? 'ASC' : 'DESC'}`;
+    else if (sortBy === 'name') orderByField = 'r.name';
+    
+    const orderDirection = order === 'ASC' ? 'ASC' : 'DESC';
+    
+    baseQuery += ` ORDER BY ${orderByField} ${orderDirection}, r.id DESC`;
   }
 
 

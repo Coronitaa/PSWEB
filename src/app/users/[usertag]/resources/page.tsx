@@ -14,6 +14,8 @@ interface UserResourcesPageProps {
   searchParams: { [key: string]: string | string[] | undefined };
 }
 
+type SortByType = 'relevance' | 'updated_at' | 'downloads' | 'rating' | 'name';
+
 const RESOURCES_PER_PAGE = 12;
 
 export default async function UserResourcesPage({ params, searchParams }: UserResourcesPageProps) {
@@ -29,6 +31,8 @@ export default async function UserResourcesPage({ params, searchParams }: UserRe
   };
   
   const searchQuery = typeof searchParams.q === 'string' ? searchParams.q : undefined;
+  const defaultSort = searchQuery ? 'relevance' : 'updated_at';
+  const sortBy = (typeof searchParams.sort === 'string' ? searchParams.sort : defaultSort) as SortByType;
 
   const [projectsForFilter, initialResourcesData] = await Promise.all([
     getProjectsForUser(profile.id),
@@ -38,7 +42,8 @@ export default async function UserResourcesPage({ params, searchParams }: UserRe
       parentItemId: filterOptions.parentItemId,
       categoryId: filterOptions.categoryId,
       searchQuery: searchQuery,
-      sortBy: searchQuery ? 'relevance' : 'updated_at',
+      sortBy: sortBy,
+      order: sortBy === 'name' ? 'ASC' : 'DESC',
     })
   ]);
   

@@ -92,6 +92,7 @@ export async function fetchPaginatedAuthorResourcesAction(
     searchQuery?: string;
     page?: number;
     limit?: number;
+    sortBy?: 'relevance' | 'updated_at' | 'created_at' | 'downloads' | 'rating' | 'name';
   }
 ): Promise<PaginatedResourcesResponse> {
   const result = await getAuthorPublishedResources(params.userId, {
@@ -101,8 +102,8 @@ export async function fetchPaginatedAuthorResourcesAction(
     searchQuery: params.searchQuery,
     page: params.page,
     limit: params.limit,
-    sortBy: params.searchQuery ? 'relevance' : 'updated_at',
-    order: 'DESC',
+    sortBy: params.sortBy,
+    order: params.sortBy === 'name' ? 'ASC' : 'DESC', // Sort by name ascending, others descending
   });
   return result;
 }

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import type React from 'react';
@@ -24,6 +25,8 @@ interface UserResourcesPageContentProps {
   resourcesPerPage: number;
 }
 
+type SortByType = 'relevance' | 'updated_at' | 'downloads' | 'rating' | 'name';
+
 const CLEAR_SELECTION_VALUE = "_ALL_";
 const SEARCH_DEBOUNCE_MS = 500;
 
@@ -47,24 +50,57 @@ export function UserResourcesPageContent({
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [totalResources, setTotalResources] = useState(initialTotal);
 
-  const [searchQueryInput, setSearchQueryInput] = useState(searchParams.get('q') || '');
-
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
+  // State for UI controls
+  const [searchQueryInput, setSearchQueryInput] = useState(searchParams.get('q') || '');
   const [selectedSection, setSelectedSection] = useState<ItemType | undefined>(() => searchParams.get('section') as ItemType || undefined);
   const [selectedProject, setSelectedProject] = useState<string | undefined>(() => searchParams.get('project') || undefined);
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(() => searchParams.get('category') || undefined);
 
-  const updateUrlParams = useCallback((newParams: Record<string, string | undefined>) => {
+  const getDefaultSortBy = useCallback(() => {
+    return searchParams.get('q') ? 'relevance' : 'updated_at';
+  }, [searchParams]);
+
+  const [sortBy, setSortBy] = useState<SortByType>(() => {
+    const sortParam = searchParams.get('sort') as SortByType;
+    return sortParam || getDefaultSortBy();
+  });
+
+
+  // This effect syncs the local state of filters with the URL search params on mount/change
+  useEffect(() => {
+    const q = searchParams.get('q') || '';
+    const section = searchParams.get('section') as ItemType | undefined;
+    const project = searchParams.get('project') || undefined;
+    const category = searchParams.get('category') || undefined;
+    const sort = searchParams.get('sort') as SortByType || getDefaultSortBy();
+
+    setSearchQueryInput(q);
+    setSelectedSection(section);
+    setSelectedProject(project);
+    setSelectedCategory(category);
+    setSortBy(sort);
+  }, [searchParams, getDefaultSortBy]);
+
+
+  const updateUrlParams = useCallback((newParams: Record<string, string | undefined | null>) => {
     const current = new URLSearchParams(Array.from(searchParams.entries()));
     Object.entries(newParams).forEach(([key, value]) => {
-      if (value && value !== CLEAR_SELECTION_VALUE) {
+      if (value !== undefined && value !== null && value.length > 0 && value !== CLEAR_SELECTION_VALUE) {
         current.set(key, value);
       } else {
         current.delete(key);
       }
     });
+
+    if (current.get('q') && current.get('sort') !== 'relevance') {
+      current.set('sort', 'relevance');
+    } else if (!current.get('q') && current.get('sort') === 'relevance') {
+      current.set('sort', 'updated_at');
+    }
+
     const searchString = current.toString();
     startNavTransition(() => {
       router.push(`${pathname}${searchString ? `?${searchString}` : ''}`, { scroll: false });
@@ -73,12 +109,10 @@ export function UserResourcesPageContent({
 
   useEffect(() => {
     const handler = setTimeout(() => {
-      if (searchQueryInput !== (searchParams.get('q') || '')) {
-        updateUrlParams({ q: searchQueryInput });
-      }
+      updateUrlParams({ q: searchQueryInput });
     }, SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(handler);
-  }, [searchQueryInput, searchParams, updateUrlParams]);
+  }, [searchQueryInput, updateUrlParams]);
 
   const fetchAndSetResources = useCallback((page: number, options?: { isNewFilter?: boolean }) => {
     startDataTransition(async () => {
@@ -89,13 +123,13 @@ export function UserResourcesPageContent({
         parentItemId: currentSearchParams.get('project') || undefined,
         categoryId: currentSearchParams.get('category') || undefined,
         searchQuery: currentSearchParams.get('q') || undefined,
+        sortBy: (currentSearchParams.get('sort') as SortByType) || undefined,
         page,
         limit: resourcesPerPage,
-        sortBy: currentSearchParams.get('q') ? 'relevance' : 'updated_at',
       };
 
       try {
-        const data = await fetchPaginatedAuthorResourcesAction(params as any);
+        const data = await fetchPaginatedAuthorResourcesAction(params);
         if (page === 1 || options?.isNewFilter) {
           setResources(data.resources);
           setCurrentPage(1);
@@ -145,18 +179,37 @@ export function UserResourcesPageContent({
   }, [hasMore, isDataLoading, isNavPending, loadMoreResources]);
 
   const handleFilterChange = (level: 'section' | 'project' | 'category', value: string) => {
-      const newFilters: Record<string, string | undefined> = {
-          q: searchQueryInput || undefined,
-          section: level === 'section' ? (value || undefined) : selectedSection,
-          project: level === 'project' ? (value || undefined) : (level === 'section' ? undefined : selectedProject),
-          category: level === 'category' ? (value || undefined) : (level !== 'category' ? undefined : selectedCategory)
-      };
+      const currentFilters = new URLSearchParams(searchParams);
+      
+      if (level === 'section') {
+        currentFilters.set('section', value);
+        currentFilters.delete('project');
+        currentFilters.delete('category');
+      } else if (level === 'project') {
+        currentFilters.set('project', value);
+        currentFilters.delete('category');
+      } else if (level === 'category') {
+        currentFilters.set('category', value);
+      }
+      
+      if (value === CLEAR_SELECTION_VALUE) {
+        currentFilters.delete(level);
+        if (level === 'section') {
+            currentFilters.delete('project');
+            currentFilters.delete('category');
+        }
+        if (level === 'project') {
+            currentFilters.delete('category');
+        }
+      }
 
-      setSelectedSection(newFilters.section);
-      setSelectedProject(newFilters.project);
-      setSelectedCategory(newFilters.category);
+      startNavTransition(() => {
+        router.push(`${pathname}?${currentFilters.toString()}`, { scroll: false });
+      });
+  };
 
-      updateUrlParams(newFilters);
+  const handleSortChange = (value: SortByType) => {
+    updateUrlParams({ sort: value });
   };
   
   const allProjects = useMemo(() => Object.values(projectsForFilter).flat(), [projectsForFilter]);
@@ -223,15 +276,29 @@ export function UserResourcesPageContent({
       </aside>
 
       <main className="md:col-span-9 lg:col-span-9 space-y-6">
-        <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input
-            type="search"
-            placeholder={`Search ${profile.name}'s resources...`}
-            className="pl-10 w-full"
-            value={searchQueryInput}
-            onChange={(e) => setSearchQueryInput(e.target.value)}
-            />
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+            <div className="relative flex-grow w-full">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input
+                type="search"
+                placeholder={`Search ${profile.name}'s resources...`}
+                className="pl-10 w-full"
+                value={searchQueryInput}
+                onChange={(e) => setSearchQueryInput(e.target.value)}
+                />
+            </div>
+            <Select value={sortBy} onValueChange={handleSortChange}>
+                <SelectTrigger className="w-full sm:w-auto min-w-[160px]">
+                <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                <SelectItem value="relevance" disabled={!searchQueryInput}>Relevance</SelectItem>
+                <SelectItem value="updated_at">Last Updated</SelectItem>
+                <SelectItem value="downloads">Downloads</SelectItem>
+                <SelectItem value="rating">Rating</SelectItem>
+                <SelectItem value="name">Name</SelectItem>
+                </SelectContent>
+            </Select>
         </div>
 
         {(isNavPending || isLoadingFirstPage) ? (

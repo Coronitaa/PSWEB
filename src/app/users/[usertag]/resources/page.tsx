@@ -1,4 +1,5 @@
 
+
 import { notFound } from 'next/navigation';
 import { getUserProfileByUsertag } from '@/lib/data';
 import type { UserProfile, ItemWithDetails, ItemType } from '@/lib/types';
@@ -26,6 +27,8 @@ export default async function UserResourcesPage({ params, searchParams }: UserRe
     parentItemId: typeof searchParams.project === 'string' ? searchParams.project : undefined,
     categoryId: typeof searchParams.category === 'string' ? searchParams.category : undefined,
   };
+  
+  const searchQuery = typeof searchParams.q === 'string' ? searchParams.q : undefined;
 
   const [projectsForFilter, initialResourcesData] = await Promise.all([
     getProjectsForUser(profile.id),
@@ -34,6 +37,8 @@ export default async function UserResourcesPage({ params, searchParams }: UserRe
       itemType: filterOptions.itemType,
       parentItemId: filterOptions.parentItemId,
       categoryId: filterOptions.categoryId,
+      searchQuery: searchQuery,
+      sortBy: searchQuery ? 'relevance' : 'updated_at',
     })
   ]);
   

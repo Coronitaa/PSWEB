@@ -6,12 +6,14 @@ import { useState, useEffect, useCallback, useRef, useTransition, useMemo } from
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import type { Resource, UserProfile, ItemWithDetails, ItemType, Category } from '@/lib/types';
 import { ResourceCard } from '@/components/resource/ResourceCard';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 import { fetchPaginatedAuthorResourcesAction } from '@/app/actions/resourceActions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { ITEM_TYPE_NAMES } from '@/lib/types';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '../ui/input';
+import { Button } from '../ui/button';
 
 interface UserResourcesPageContentProps {
   profile: UserProfile;
@@ -23,6 +25,7 @@ interface UserResourcesPageContentProps {
 }
 
 const CLEAR_SELECTION_VALUE = "_ALL_";
+const SEARCH_DEBOUNCE_MS = 500;
 
 export function UserResourcesPageContent({
   profile,
@@ -44,6 +47,8 @@ export function UserResourcesPageContent({
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [totalResources, setTotalResources] = useState(initialTotal);
 
+  const [searchQueryInput, setSearchQueryInput] = useState(searchParams.get('q') || '');
+
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
@@ -51,25 +56,29 @@ export function UserResourcesPageContent({
   const [selectedProject, setSelectedProject] = useState<string | undefined>(() => searchParams.get('project') || undefined);
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(() => searchParams.get('category') || undefined);
 
-  useEffect(() => {
-    setResources(initialResources);
-    setCurrentPage(1);
-    setHasMore(initialHasMore);
-    setTotalResources(initialTotal);
-  }, [initialResources, initialHasMore, initialTotal]);
-
   const updateUrlParams = useCallback((newParams: Record<string, string | undefined>) => {
-    const current = new URLSearchParams();
+    const current = new URLSearchParams(Array.from(searchParams.entries()));
     Object.entries(newParams).forEach(([key, value]) => {
       if (value && value !== CLEAR_SELECTION_VALUE) {
         current.set(key, value);
+      } else {
+        current.delete(key);
       }
     });
     const searchString = current.toString();
     startNavTransition(() => {
       router.push(`${pathname}${searchString ? `?${searchString}` : ''}`, { scroll: false });
     });
-  }, [pathname, router]);
+  }, [searchParams, pathname, router]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (searchQueryInput !== (searchParams.get('q') || '')) {
+        updateUrlParams({ q: searchQueryInput });
+      }
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(handler);
+  }, [searchQueryInput, searchParams, updateUrlParams]);
 
   const fetchAndSetResources = useCallback((page: number, options?: { isNewFilter?: boolean }) => {
     startDataTransition(async () => {
@@ -79,6 +88,7 @@ export function UserResourcesPageContent({
         itemType: currentSearchParams.get('section') as ItemType | undefined,
         parentItemId: currentSearchParams.get('project') || undefined,
         categoryId: currentSearchParams.get('category') || undefined,
+        searchQuery: currentSearchParams.get('q') || undefined,
         page,
         limit: resourcesPerPage,
       };
@@ -99,10 +109,16 @@ export function UserResourcesPageContent({
       }
     });
   }, [profile.id, resourcesPerPage]);
+  
+  useEffect(() => {
+    setResources(initialResources);
+    setCurrentPage(1);
+    setHasMore(initialHasMore);
+    setTotalResources(initialTotal);
+  }, [initialResources, initialHasMore, initialTotal]);
+
 
   useEffect(() => {
-    // This effect runs when the component mounts and whenever searchParams change,
-    // ensuring the state is synced with the URL and initial data is loaded correctly.
     fetchAndSetResources(1, { isNewFilter: true });
   }, [searchParams, fetchAndSetResources]);
 
@@ -128,7 +144,8 @@ export function UserResourcesPageContent({
   }, [hasMore, isDataLoading, isNavPending, loadMoreResources]);
 
   const handleFilterChange = (level: 'section' | 'project' | 'category', value: string) => {
-      const newFilters = {
+      const newFilters: Record<string, string | undefined> = {
+          q: searchQueryInput || undefined,
           section: level === 'section' ? (value || undefined) : selectedSection,
           project: level === 'project' ? (value || undefined) : (level === 'section' ? undefined : selectedProject),
           category: level === 'category' ? (value || undefined) : (level !== 'category' ? undefined : selectedCategory)
@@ -156,59 +173,76 @@ export function UserResourcesPageContent({
   const isLoadingFirstPage = isDataLoading && currentPage === 1;
 
   return (
-    <div className="space-y-6">
-      <Card className="p-4 bg-card/80 backdrop-blur-sm shadow-md">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-          <div>
-            <Label htmlFor="section-filter" className="text-xs">Section</Label>
-            <Select value={selectedSection || CLEAR_SELECTION_VALUE} onValueChange={(val) => handleFilterChange('section', val)}>
-              <SelectTrigger id="section-filter" className="mt-1"><SelectValue placeholder="All Sections" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value={CLEAR_SELECTION_VALUE}>All Sections</SelectItem>
-                {Object.keys(projectsForFilter).map(itemType => (
-                  <SelectItem key={itemType} value={itemType}>{ITEM_TYPE_NAMES[itemType as ItemType]}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="project-filter" className="text-xs">Project</Label>
-            <Select value={selectedProject || CLEAR_SELECTION_VALUE} onValueChange={(val) => handleFilterChange('project', val)} disabled={!selectedSection}>
-              <SelectTrigger id="project-filter" className="mt-1"><SelectValue placeholder="All Projects" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value={CLEAR_SELECTION_VALUE}>All Projects</SelectItem>
-                {projectOptions.map(proj => <SelectItem key={proj.id} value={proj.id}>{proj.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="category-filter" className="text-xs">Category</Label>
-            <Select value={selectedCategory || CLEAR_SELECTION_VALUE} onValueChange={(val) => handleFilterChange('category', val)} disabled={!selectedProject}>
-              <SelectTrigger id="category-filter" className="mt-1"><SelectValue placeholder="All Categories" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value={CLEAR_SELECTION_VALUE}>All Categories</SelectItem>
-                {categoryOptions.map(cat => <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
+    <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+      <aside className="md:col-span-3 lg:col-span-3 space-y-6">
+        <Card className="p-4 bg-card/80 backdrop-blur-sm shadow-md sticky top-24">
+            <CardContent className="p-0">
+                <div className="space-y-4">
+                <div>
+                    <Label htmlFor="section-filter" className="text-xs">Section</Label>
+                    <Select value={selectedSection || CLEAR_SELECTION_VALUE} onValueChange={(val) => handleFilterChange('section', val)}>
+                    <SelectTrigger id="section-filter" className="mt-1"><SelectValue placeholder="All Sections" /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={CLEAR_SELECTION_VALUE}>All Sections</SelectItem>
+                        {Object.keys(projectsForFilter).map(itemType => (
+                        <SelectItem key={itemType} value={itemType}>{ITEM_TYPE_NAMES[itemType as ItemType]}</SelectItem>
+                        ))}
+                    </SelectContent>
+                    </Select>
+                </div>
+                <div>
+                    <Label htmlFor="project-filter" className="text-xs">Project</Label>
+                    <Select value={selectedProject || CLEAR_SELECTION_VALUE} onValueChange={(val) => handleFilterChange('project', val)} disabled={!selectedSection}>
+                    <SelectTrigger id="project-filter" className="mt-1"><SelectValue placeholder="All Projects" /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={CLEAR_SELECTION_VALUE}>All Projects</SelectItem>
+                        {projectOptions.map(proj => <SelectItem key={proj.id} value={proj.id}>{proj.name}</SelectItem>)}
+                    </SelectContent>
+                    </Select>
+                </div>
+                <div>
+                    <Label htmlFor="category-filter" className="text-xs">Category</Label>
+                    <Select value={selectedCategory || CLEAR_SELECTION_VALUE} onValueChange={(val) => handleFilterChange('category', val)} disabled={!selectedProject}>
+                    <SelectTrigger id="category-filter" className="mt-1"><SelectValue placeholder="All Categories" /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={CLEAR_SELECTION_VALUE}>All Categories</SelectItem>
+                        {categoryOptions.map(cat => <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>)}
+                    </SelectContent>
+                    </Select>
+                </div>
+                </div>
+            </CardContent>
+        </Card>
+      </aside>
+
+      <main className="md:col-span-9 lg:col-span-9 space-y-6">
+        <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Input
+            type="search"
+            placeholder={`Search ${profile.name}'s resources...`}
+            className="pl-10 w-full"
+            value={searchQueryInput}
+            onChange={(e) => setSearchQueryInput(e.target.value)}
+            />
         </div>
-      </Card>
 
-      {(isNavPending || isLoadingFirstPage) ? (
-        <div className="flex justify-center items-center py-24"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>
-      ) : resources.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {resources.map(resource => <ResourceCard key={resource.id} resource={resource} />)}
-        </div>
-      ) : (
-        <div className="text-center py-24"><p className="text-muted-foreground">No resources found matching the current filters.</p></div>
-      )}
+        {(isNavPending || isLoadingFirstPage) ? (
+            <div className="flex justify-center items-center py-24"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>
+        ) : resources.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            {resources.map(resource => <ResourceCard key={resource.id} resource={resource} />)}
+            </div>
+        ) : (
+            <div className="text-center py-24"><p className="text-muted-foreground">No resources found matching the current filters.</p></div>
+        )}
 
-      <div ref={loadMoreRef} className="h-10" />
+        <div ref={loadMoreRef} className="h-10" />
 
-      {isDataLoading && currentPage > 1 && (
-        <div className="flex justify-center py-6"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
-      )}
+        {isDataLoading && currentPage > 1 && (
+            <div className="flex justify-center py-6"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+        )}
+      </main>
     </div>
   );
 }

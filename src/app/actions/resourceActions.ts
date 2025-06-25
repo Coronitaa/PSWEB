@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -88,6 +89,7 @@ export async function fetchPaginatedAuthorResourcesAction(
     itemType?: ItemType;
     parentItemId?: string;
     categoryId?: string;
+    searchQuery?: string;
     page?: number;
     limit?: number;
   }
@@ -96,9 +98,10 @@ export async function fetchPaginatedAuthorResourcesAction(
     itemType: params.itemType,
     parentItemId: params.parentItemId,
     categoryId: params.categoryId,
+    searchQuery: params.searchQuery,
     page: params.page,
     limit: params.limit,
-    sortBy: 'updated_at',
+    sortBy: params.searchQuery ? 'relevance' : 'updated_at',
     order: 'DESC',
   });
   return result;

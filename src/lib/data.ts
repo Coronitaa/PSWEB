@@ -1063,10 +1063,11 @@ export async function getAuthorPublishedResources(
     parentItemId?: string;
     categoryId?: string;
     page?: number;
+    searchQuery?: string;
   } = {}
 ): Promise<PaginatedResourcesResponse> {
   const db = await getDb();
-  const { limit = 12, sortBy = 'created_at', order = 'DESC', excludeIds = [], itemType, parentItemId, categoryId, page = 1 } = options;
+  const { limit = 12, sortBy = 'created_at', order = 'DESC', excludeIds = [], itemType, parentItemId, categoryId, page = 1, searchQuery } = options;
 
   let countQuery = `SELECT COUNT(r.id) as total FROM resources r JOIN items pi ON r.parent_item_id = pi.id WHERE`;
   let baseQuery = `
@@ -1100,6 +1101,10 @@ export async function getAuthorPublishedResources(
     whereClauses.push("r.category_id = ?");
     queryParams.push(categoryId);
   }
+  if (searchQuery) {
+    whereClauses.push('(LOWER(r.name) LIKE LOWER(?) OR LOWER(r.description) LIKE LOWER(?))');
+    queryParams.push(`%${searchQuery}%`, `%${searchQuery}%`);
+  }
 
   const whereString = whereClauses.join(' AND ');
   baseQuery += ' WHERE ' + whereString;
@@ -1110,13 +1115,19 @@ export async function getAuthorPublishedResources(
   else if (sortBy === 'downloads') orderByField = 'r.downloads';
   else if (sortBy === 'rating') orderByField = 'r.rating';
   
-  baseQuery += ` ORDER BY ${orderByField} ${order === 'ASC' ? 'ASC' : 'DESC'}`;
+  if (searchQuery && sortBy === 'relevance') {
+    baseQuery += ` ORDER BY CASE WHEN LOWER(r.name) = LOWER(?) THEN 0 ELSE 1 END, CASE WHEN LOWER(r.name) LIKE LOWER(?) THEN 1 ELSE 2 END, r.downloads DESC`;
+    queryParams.push(searchQuery.toLowerCase(), `${searchQuery}%`);
+  } else {
+    baseQuery += ` ORDER BY ${orderByField} ${order === 'ASC' ? 'ASC' : 'DESC'}`;
+  }
+
 
   const offset = (page - 1) * limit;
   baseQuery += ` LIMIT ? OFFSET ?`;
   
   const resourceRows = await db.all(baseQuery, ...queryParams, limit, offset);
-  const totalRow = await db.get(countQuery, ...queryParams);
+  const totalRow = await db.get(countQuery, ...queryParams.slice(0, queryParams.length - (searchQuery ? 2 : 0) ));
   const total = totalRow?.total || 0;
   const hasMore = page * limit < total;
   

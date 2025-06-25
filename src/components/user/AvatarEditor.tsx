@@ -39,12 +39,12 @@ export function AvatarEditor({ isOpen, onOpenChange, imageSrc, onSave }: AvatarE
         onOpenChange(false);
       }
     } catch (e: any) {
-      console.error(e);
       toast({
-        title: "Error Cropping Image",
-        description: e?.message || "Failed to crop the image. The URL might be invalid or there could be a cross-origin (CORS) issue.",
-        variant: "destructive"
-      })
+        title: "Cannot Process Image URL",
+        description: "The provided image URL could not be used, likely due to server restrictions (CORS). Please try a different URL.",
+        variant: "destructive",
+        duration: 8000,
+      });
     } finally {
       setIsSaving(false);
     }

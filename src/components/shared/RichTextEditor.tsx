@@ -99,16 +99,20 @@ const MediaResizeComponent = (props: NodeViewProps) => {
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleResize = (e: React.MouseEvent) => {
+  const createResizeHandler = (direction: 'left' | 'right' | 'none') => (e: React.MouseEvent) => {
+    if (direction === 'none') return;
+    
     e.preventDefault();
     e.stopPropagation();
+
     const startX = e.clientX;
     const startWidth = containerRef.current!.offsetWidth;
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
-      const currentX = moveEvent.clientX;
-      const newWidth = startWidth + (currentX - startX);
-      updateAttributes({ width: `${Math.max(50, newWidth)}px` }); // Min width 50px
+      const newWidth = direction === 'left'
+        ? startWidth - (moveEvent.clientX - startX)
+        : startWidth + (moveEvent.clientX - startX);
+      updateAttributes({ width: `${Math.max(50, newWidth)}px` });
     };
 
     const handleMouseUp = () => {
@@ -120,6 +124,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
     window.addEventListener('mouseup', handleMouseUp);
   };
 
+
   const setAlignment = (align: 'left' | 'center' | 'right' | null) => {
     updateAttributes({ 'data-float': align });
   };
@@ -129,14 +134,14 @@ const MediaResizeComponent = (props: NodeViewProps) => {
   const rotation = node.attrs.rotate || 0;
 
   const handles = [
-    { pos: 'top-[-6px] left-[-6px]', cursor: 'cursor-nwse-resize' },
-    { pos: 'top-[-6px] left-1/2 -translate-x-1/2', cursor: 'cursor-ns-resize' },
-    { pos: 'top-[-6px] right-[-6px]', cursor: 'cursor-nesw-resize' },
-    { pos: 'top-1/2 -translate-y-1/2 right-[-6px]', cursor: 'cursor-ew-resize' },
-    { pos: 'bottom-[-6px] right-[-6px]', cursor: 'cursor-nwse-resize' },
-    { pos: 'bottom-[-6px] left-1/2 -translate-x-1/2', cursor: 'cursor-ns-resize' },
-    { pos: 'bottom-[-6px] left-[-6px]', cursor: 'cursor-nesw-resize' },
-    { pos: 'top-1/2 -translate-y-1/2 left-[-6px]', cursor: 'cursor-ew-resize' },
+    { pos: 'top-[-6px] left-[-6px]', cursor: 'cursor-nwse-resize', direction: 'left' },
+    { pos: 'top-[-6px] left-1/2 -translate-x-1/2', cursor: 'cursor-ns-resize', direction: 'none' },
+    { pos: 'top-[-6px] right-[-6px]', cursor: 'cursor-nesw-resize', direction: 'right' },
+    { pos: 'top-1/2 -translate-y-1/2 right-[-6px]', cursor: 'cursor-ew-resize', direction: 'right' },
+    { pos: 'bottom-[-6px] right-[-6px]', cursor: 'cursor-nwse-resize', direction: 'right' },
+    { pos: 'bottom-[-6px] left-1/2 -translate-x-1/2', cursor: 'cursor-ns-resize', direction: 'none' },
+    { pos: 'bottom-[-6px] left-[-6px]', cursor: 'cursor-nesw-resize', direction: 'left' },
+    { pos: 'top-1/2 -translate-y-1/2 left-[-6px]', cursor: 'cursor-ew-resize', direction: 'left' },
   ];
 
   return (
@@ -147,7 +152,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
         'rich-text-media-node group clear-both',
         float === 'left' && 'mr-4 float-left',
         float === 'right' && 'ml-4 float-right',
-        float === 'center' && 'mx-auto flex justify-center',
+        (float === 'center' || !float) && 'mx-auto',
         selected && 'outline-2 outline-primary outline-dashed'
       )}
       style={{ width, transform: `rotate(${rotation}deg)` }}
@@ -173,7 +178,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
             <Button type="button" size="icon" variant={float === 'left' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('left')} title="Align left"><AlignLeft className="w-4 h-4" /></Button>
             <Button type="button" size="icon" variant={float === 'center' || !float ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('center')} title="Align center"><AlignCenter className="w-4 h-4" /></Button>
             <Button type="button" size="icon" variant={float === 'right' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('right')} title="Align right"><AlignRight className="w-4 h-4" /></Button>
-            <Button type="button" size="icon" variant='ghost' className="h-7 w-7" onClick={() => updateAttributes({ rotate: rotation + 90 })} title="Rotate"><RotateCcw className="w-4 h-4" /></Button>
+            <Button type="button" size="icon" variant='ghost' className="h-7 w-7" onClick={() => updateAttributes({ rotate: (rotation + 90) % 360 })} title="Rotate"><RotateCcw className="w-4 h-4" /></Button>
           </div>
 
           {handles.map((handle, index) => (
@@ -184,7 +189,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
                 handle.pos,
                 handle.cursor
               )}
-              onMouseDown={handleResize}
+              onMouseDown={createResizeHandler(handle.direction as 'left' | 'right' | 'none')}
             />
           ))}
         </>
@@ -211,15 +216,21 @@ const CustomImage = TiptapImage.extend({
         renderHTML: attributes => ({
           'data-float': attributes['data-float'],
         }),
+        parseHTML: element => element.getAttribute('data-float'),
       },
       rotate: {
         default: 0,
         renderHTML: attributes => {
             if (!attributes.rotate) return {};
             return {
-                style: `transform: rotate(${attributes.rotate}deg)`,
+                style: `transform: rotate(${attributes.rotate}deg);`,
             }
-        }
+        },
+        parseHTML: element => {
+          const transform = element.style.transform;
+          const match = transform?.match(/rotate\((\d+)deg\)/);
+          return match ? parseInt(match[1], 10) : 0;
+        },
       },
     };
   },
@@ -245,16 +256,22 @@ const CustomYoutube = Youtube.extend({
                 default: 'center',
                 renderHTML: attributes => ({
                     'data-float': attributes['data-float']
-                })
+                }),
+                parseHTML: element => element.getAttribute('data-float'),
             },
             rotate: {
               default: 0,
               renderHTML: attributes => {
                   if (!attributes.rotate) return {};
                   return {
-                      style: `transform: rotate(${attributes.rotate}deg)`,
+                      style: `transform: rotate(${attributes.rotate}deg);`,
                   }
-              }
+              },
+              parseHTML: element => {
+                const transform = element.style.transform;
+                const match = transform?.match(/rotate\((\d+)deg\)/);
+                return match ? parseInt(match[1], 10) : 0;
+              },
             },
         }
     },

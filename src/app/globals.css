@@ -160,6 +160,7 @@
     margin-left: 1em;
   }
   .ProseMirror .rich-text-media-node[data-float="center"], .prose .rich-text-media-node[data-float="center"] {
+    display: block;
     margin-left: auto;
     margin-right: auto;
   }

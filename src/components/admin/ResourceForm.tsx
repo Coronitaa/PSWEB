@@ -38,6 +38,7 @@ import { mapConfigToTagInterface, formatTimeAgo, getItemTypePlural } from '@/lib
 import Image from 'next/image';
 import { ImageGalleryCarousel } from '../shared/ImageGalleryCarousel';
 import { Checkbox } from '../ui/checkbox';
+import { RichTextEditor } from '../shared/RichTextEditor';
 
 const CLEAR_SELECTION_VALUE = "__CLEAR_SELECTION__";
 
@@ -525,10 +526,25 @@ export function ResourceForm({
   
               <TabsContent value="details" className="space-y-6 m-0">
                 <CardTitle className="text-xl mb-4">Detailed Information</CardTitle>
-                <div><Label htmlFor="detailedDescription">Detailed Description (Markdown)</Label><Textarea id="detailedDescription" {...form.register('detailedDescription')} rows={10} /></div>
-                {form.formState.errors.detailedDescription && <p className="text-xs text-destructive mt-1">{form.formState.errors.detailedDescription.message}</p>}
-                <div><Label htmlFor="requirements">Requirements (Markdown)</Label><Textarea id="requirements" {...form.register('requirements')} rows={5} /></div>
-                {form.formState.errors.requirements && <p className="text-xs text-destructive mt-1">{form.formState.errors.requirements.message}</p>}
+                <div>
+                  <Label htmlFor="detailedDescription">Detailed Description (Overview)</Label>
+                  <Controller
+                    name="detailedDescription"
+                    control={form.control}
+                    render={({ field }) => (
+                      <RichTextEditor
+                        initialContent={field.value || ''}
+                        onChange={field.onChange}
+                      />
+                    )}
+                  />
+                  {form.formState.errors.detailedDescription && <p className="text-xs text-destructive mt-1">{form.formState.errors.detailedDescription.message}</p>}
+                </div>
+                <div>
+                    <Label htmlFor="requirements">Requirements (Markdown)</Label>
+                    <Textarea id="requirements" {...form.register('requirements')} rows={5} />
+                    {form.formState.errors.requirements && <p className="text-xs text-destructive mt-1">{form.formState.errors.requirements.message}</p>}
+                </div>
               </TabsContent>
   
               <TabsContent value="visuals" className="space-y-6 m-0">

@@ -141,7 +141,7 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
 
   const fontSizes = [
     { label: 'Small', value: '14px' },
-    { label: 'Normal', value: '' }, // This will be the "unset" option
+    { label: 'Normal', value: '_default_size_' },
     { label: 'Large', value: '18px' },
     { label: 'X-Large', value: '24px' },
   ];
@@ -150,12 +150,12 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
     <>
       <div className="flex flex-wrap items-center gap-1 p-1 border-b">
         <Select
-            value={editor.getAttributes('textStyle').fontSize || ''}
+            value={editor.getAttributes('textStyle').fontSize || '_default_size_'}
             onValueChange={(value) => {
-                if (value) {
-                    editor.chain().focus().setFontSize(value).run();
-                } else {
+                if (value === '_default_size_') {
                     editor.chain().focus().unsetFontSize().run();
+                } else {
+                    editor.chain().focus().setFontSize(value).run();
                 }
             }}
         >
@@ -164,7 +164,7 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
           </SelectTrigger>
           <SelectContent>
               {fontSizes.map(size => (
-                  <SelectItem key={size.label} value={size.value} style={{ fontSize: size.value || '16px' }}>{size.label}</SelectItem>
+                  <SelectItem key={size.label} value={size.value} style={{ fontSize: size.value === '_default_size_' ? '16px' : size.value }}>{size.label}</SelectItem>
               ))}
           </SelectContent>
         </Select>

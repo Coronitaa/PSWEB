@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -136,7 +137,6 @@ export function Header() {
     <>
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-14 items-center justify-between px-6">
-          {/* Left-aligned group */}
           <div className="flex items-center gap-6">
             <Logo />
             <nav className="items-center space-x-3 lg:space-x-4 hidden md:flex">
@@ -155,8 +155,7 @@ export function Header() {
             </nav>
           </div>
 
-          {/* Right-aligned group */}
-          <div className="flex items-center space-x-2">
+          <div className="ml-auto flex items-center space-x-2">
             {mockUser ? (
               <>
                 <Button variant="outline" size="sm" className="button-outline-glow hidden sm:flex" onClick={() => setIsUploadMenuOpen(true)}>
@@ -173,7 +172,7 @@ export function Header() {
                       className="relative h-16 w-16 rounded-full p-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                     >
                       <Avatar className="h-14 w-14 border-2 border-primary/50">
-                        <AvatarImage src={mockUser.avatarUrl || undefined} alt={mockUser.name} />
+                        <AvatarImage src={mockUser.avatarUrl || undefined} alt={mockUser.name || 'User Avatar'} className="object-cover" />
                         <AvatarFallback>{mockUser.name ? mockUser.name.substring(0, 1).toUpperCase() : <UserCircle className="w-6 h-6"/>}</AvatarFallback>
                       </Avatar>
                     </Button>

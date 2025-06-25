@@ -202,7 +202,7 @@ export function ReviewCard({ review: initialReview }: ReviewCardProps) {
               alt={review.author.name}
               width={40}
               height={40}
-              className="rounded-full border hover:opacity-80 transition-opacity"
+              className="rounded-full border hover:opacity-80 transition-opacity object-cover"
               data-ai-hint="user avatar"
             />
           </Link>

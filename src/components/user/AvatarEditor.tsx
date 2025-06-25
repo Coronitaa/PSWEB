@@ -40,8 +40,8 @@ export function AvatarEditor({ isOpen, onOpenChange, imageSrc, onSave }: AvatarE
       }
     } catch (e: any) {
       toast({
-        title: "Cannot Process Image URL",
-        description: "The provided image URL could not be used, likely due to server restrictions (CORS). Please try a different URL.",
+        title: "Cannot Edit Image",
+        description: "This image URL can be displayed but not edited due to browser security (CORS). You can save the URL directly or try a different image host.",
         variant: "destructive",
         duration: 8000,
       });
@@ -91,3 +91,4 @@ export function AvatarEditor({ isOpen, onOpenChange, imageSrc, onSave }: AvatarE
     </Dialog>
   );
 }
+    

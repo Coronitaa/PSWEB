@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -52,7 +53,7 @@ const ImagePreview = ({ watchUrl, alt, fallbackText, className, isAvatar = false
     // This preview now handles both regular URLs and data URIs seamlessly
     const isValidSrc = watchUrl && (watchUrl.startsWith('http') || watchUrl.startsWith('data:image'));
     return (
-        <div className={cn("relative mt-2 flex items-center justify-center border border-dashed bg-muted/50 text-muted-foreground", isAvatar ? "rounded-full" : "rounded-md", className)}>
+        <div className={cn("relative flex items-center justify-center border border-dashed bg-muted/50 text-muted-foreground", isAvatar ? "rounded-full" : "rounded-md", className)}>
             {isValidSrc ? (
                 <Image src={watchUrl} alt={alt} fill style={{ objectFit: 'cover' }} className={cn(isAvatar ? "rounded-full" : "rounded-md")} />
             ) : (
@@ -217,28 +218,44 @@ export function EditProfileModal({ profile, isOpen, onOpenChange }: EditProfileM
                               {form.formState.errors.bio && <p className="text-xs text-destructive mt-1">{form.formState.errors.bio.message}</p>}
                           </div>
                       </TabsContent>
-                      <TabsContent value="images" className="space-y-4 m-0">
-                          <div>
+                      <TabsContent value="images" className="space-y-6 m-0">
+                          {/* Avatar Section */}
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                            <div className="md:col-span-1">
+                              <ImagePreview watchUrl={watchedAvatarUrl} alt="Avatar Preview" fallbackText="Avatar Preview" className="w-24 h-24 mx-auto" isAvatar={true} />
+                            </div>
+                            <div className="md:col-span-2 space-y-1">
                               <Label htmlFor="avatarUrl">Avatar URL</Label>
-                                <div className="flex items-center gap-2">
-                                  <Input id="avatarUrl" {...form.register('avatarUrl')} placeholder="https://..." disabled={isSubmitting}/>
-                                  <Button type="button" variant="outline" onClick={handleOpenAvatarEditor} disabled={isSubmitting || !watchedAvatarUrl}>
-                                    <Edit className="h-4 w-4 mr-2"/> Edit
-                                  </Button>
-                                </div>
-                              {form.formState.errors.avatarUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.avatarUrl.message}</p>}
-                              <ImagePreview watchUrl={watchedAvatarUrl} alt="Avatar Preview" fallbackText="Avatar Preview" className="w-24 h-24" isAvatar={true} />
-                          </div>
-                          <div>
-                              <Label htmlFor="bannerUrl">Banner URL</Label>
                               <div className="flex items-center gap-2">
-                                  <Input id="bannerUrl" {...form.register('bannerUrl')} placeholder="https://..." disabled={isSubmitting}/>
-                                  <Button type="button" variant="outline" onClick={handleOpenBannerEditor} disabled={isSubmitting || !watchedBannerUrl}>
-                                    <Edit className="h-4 w-4 mr-2"/> Edit
+                                <Input id="avatarUrl" {...form.register('avatarUrl')} placeholder="https://..." disabled={isSubmitting}/>
+                                <Button type="button" variant="outline" size="icon" onClick={handleOpenAvatarEditor} disabled={isSubmitting || !watchedAvatarUrl} title="Edit Avatar">
+                                    <Edit className="h-4 w-4"/>
+                                </Button>
+                              </div>
+                              {form.formState.errors.avatarUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.avatarUrl.message}</p>}
+                            </div>
+                          </div>
+
+                          {/* Separator */}
+                          <div className="relative">
+                            <div className="absolute inset-0 flex items-center">
+                                <span className="w-full border-t" />
+                            </div>
+                            <div className="relative flex justify-center text-xs uppercase">
+                                <span className="bg-background px-2 text-muted-foreground">Banner</span>
+                            </div>
+                          </div>
+                          
+                          {/* Banner Section */}
+                          <div>
+                              <div className="flex items-center gap-2">
+                                  <Input id="bannerUrl" {...form.register('bannerUrl')} placeholder="Banner image URL..." disabled={isSubmitting}/>
+                                  <Button type="button" variant="outline" size="icon" onClick={handleOpenBannerEditor} disabled={isSubmitting || !watchedBannerUrl} title="Edit Banner">
+                                      <Edit className="h-4 w-4"/>
                                   </Button>
                               </div>
                               {form.formState.errors.bannerUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.bannerUrl.message}</p>}
-                              <ImagePreview watchUrl={watchedBannerUrl} alt="Banner Preview" fallbackText="Banner Preview" className="w-full aspect-[16/9]"/>
+                              <ImagePreview watchUrl={watchedBannerUrl} alt="Banner Preview" fallbackText="Banner Preview" className="w-full aspect-[4/1] mt-2"/>
                           </div>
                       </TabsContent>
                       <TabsContent value="links" className="space-y-3 m-0">

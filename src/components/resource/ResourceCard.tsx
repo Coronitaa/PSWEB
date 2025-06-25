@@ -105,12 +105,12 @@ export function ResourceCard({ resource, compact = false, onHoverChange, onOverf
   const SectionIcon = sectionIconMap[resource.parentItemType];
   
   const imageGalleryForOverlay: string[] = [];
-  if (resource.showMainImageInGallery !== false && resource.imageUrl) {
-      imageGalleryForOverlay.push(resource.imageUrl);
+  if (resource.showMainImageInGallery && resource.imageUrl) {
+    imageGalleryForOverlay.push(resource.imageUrl);
   }
   if (resource.imageGallery && resource.imageGallery.length > 0) {
       resource.imageGallery.forEach(imgUrl => {
-          if (!imageGalleryForOverlay.includes(imgUrl)) {
+          if (imgUrl && !imageGalleryForOverlay.includes(imgUrl)) {
               imageGalleryForOverlay.push(imgUrl);
           }
       });

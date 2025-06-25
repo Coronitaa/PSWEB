@@ -70,19 +70,17 @@ export function ResourcePageContent({ resource, relatedResources }: ResourcePage
     };
 
     const galleryImages: string[] = [];
-    if (resource.showMainImageInGallery !== false && resource.imageUrl) {
+    if (resource.showMainImageInGallery && resource.imageUrl) {
         galleryImages.push(resource.imageUrl);
     }
     if (resource.imageGallery && resource.imageGallery.length > 0) {
         resource.imageGallery.forEach(imgUrl => {
-            if (!galleryImages.includes(imgUrl)) { 
+            if (imgUrl && !galleryImages.includes(imgUrl)) { 
                 galleryImages.push(imgUrl);
             }
         });
     }
-    if (galleryImages.length === 0 && resource.imageUrl) { // Fallback if gallery is empty and main image is hidden
-        galleryImages.push(resource.imageUrl);
-    } else if (galleryImages.length === 0) {
+    if (galleryImages.length === 0) {
         galleryImages.push('https://placehold.co/800x450.png?text=No+Image');
     }
 

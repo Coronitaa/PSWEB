@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useEditor, EditorContent, BubbleMenu, type Editor } from '@tiptap/react';
 import { Extension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
@@ -140,12 +140,12 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
   };
 
   const fontSizes = [
-    { label: 'Just a little peek', value: '12px' },
-    { label: 'Perfectly average', value: '14px' },
-    { label: 'Comfortably numb', value: '_default_size_' },
-    { label: 'Making a statement', value: '18px' },
-    { label: 'Hard to miss', value: '24px' },
-    { label: 'Absolutely massive', value: '30px' },
+    { label: "Just a little peek", value: "12px" },
+    { label: "Perfectly average", value: "14px" },
+    { label: "Comfortably numb", value: "_default_size_" },
+    { label: "Making a statement", value: "18px" },
+    { label: "Hard to miss", value: "24px" },
+    { label: "Absolutely massive", value: "30px" },
   ];
 
   return (
@@ -248,6 +248,7 @@ interface RichTextEditorProps {
 }
 
 export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps) => {
+  const toolbarRef = useRef<HTMLDivElement>(null);
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ heading: false }),
@@ -276,12 +277,30 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
   });
 
   return (
-    <div className="w-full rounded-md border border-input bg-background/50 ring-offset-background focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+    <div className="w-full rounded-md border border-input bg-card ring-offset-background focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
       {editor && (
          <BubbleMenu 
           editor={editor}
           tippyOptions={{ duration: 100 }}
           className="bg-card p-1 rounded-lg shadow-lg border border-border flex items-center gap-0.5"
+          shouldShow={({ editor, view, from, to }) => {
+            const { selection } = editor.state;
+
+            if (!editor.isFocused || selection.empty) {
+              return false;
+            }
+            if (editor.isActive('image') || editor.isActive('youtube')) {
+              return false;
+            }
+            if (toolbarRef.current) {
+              const toolbarRect = toolbarRef.current.getBoundingClientRect();
+              const selectionCoords = view.coordsAtPos(from);
+              if (selectionCoords.top < toolbarRect.bottom + 10) {
+                return false;
+              }
+            }
+            return true;
+          }}
          >
             <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleBold().run()} className={cn("h-8 w-8", editor.isActive('bold') && "bg-muted text-primary")}><Bold className="h-4 w-4" /></Button>
             <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleItalic().run()} className={cn("h-8 w-8", editor.isActive('italic') && "bg-muted text-primary")}><Italic className="h-4 w-4" /></Button>
@@ -300,7 +319,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
         </BubbleMenu>
       )}
       
-      <div className="sticky top-0 bg-card/95 backdrop-blur-sm z-10">
+      <div ref={toolbarRef} className="sticky top-0 bg-card/95 backdrop-blur-sm z-10">
         <Toolbar editor={editor} />
       </div>
 

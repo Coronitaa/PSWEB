@@ -11,6 +11,7 @@ import TiptapLink from '@tiptap/extension-link';
 import TiptapImage from '@tiptap/extension-image';
 import Youtube from '@tiptap/extension-youtube';
 import TextAlign from '@tiptap/extension-text-align';
+import TextStyle from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import Underline from '@tiptap/extension-underline';
 import { 
@@ -177,9 +178,10 @@ const MediaResizeComponent = (props: NodeViewProps) => {
         selected && 'outline-2 outline-primary outline-dashed'
       )}
       style={wrapperStyle}
+      draggable="true" data-drag-handle
     >
       {isImage && (
-        <img src={node.attrs.src} alt={node.attrs.alt} className="w-full h-auto block" draggable="true" data-drag-handle />
+        <img src={node.attrs.src} alt={node.attrs.alt} className="w-full h-auto block" />
       )}
       {isVideo && (
         <div className="aspect-video w-full relative">

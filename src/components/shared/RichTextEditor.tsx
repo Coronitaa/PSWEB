@@ -147,16 +147,32 @@ const MediaResizeComponent = (props: NodeViewProps) => {
   const float = node.attrs['data-float'];
   const width = node.attrs.width;
   const rotation = node.attrs.rotate || 0;
+  
+  const getRotatedCursor = (handleIndex: number, rotation: number): string => {
+    const handleAngles = [315, 0, 45, 90, 135, 180, 225, 270]; // NW, N, NE, E, SE, S, SW, W
+    const newAngle = (handleAngles[handleIndex] + rotation + 360) % 360;
+
+    if ((newAngle >= 337.5 || newAngle < 22.5)) return 'ns-resize'; // N
+    if ((newAngle >= 22.5 && newAngle < 67.5)) return 'nesw-resize'; // NE
+    if ((newAngle >= 67.5 && newAngle < 112.5)) return 'ew-resize'; // E
+    if ((newAngle >= 112.5 && newAngle < 157.5)) return 'nwse-resize'; // SE
+    if ((newAngle >= 157.5 && newAngle < 202.5)) return 'ns-resize'; // S
+    if ((newAngle >= 202.5 && newAngle < 247.5)) return 'nesw-resize'; // SW
+    if ((newAngle >= 247.5 && newAngle < 292.5)) return 'ew-resize'; // W
+    if ((newAngle >= 292.5 && newAngle < 337.5)) return 'nwse-resize'; // NW
+    
+    return 'auto';
+  };
 
   const handles = [
-    { pos: 'top-[-6px] left-[-6px]', cursor: 'cursor-nwse-resize', direction: 'left' },
-    { pos: 'top-[-6px] left-1/2 -translate-x-1/2', cursor: 'cursor-ns-resize', direction: 'none' },
-    { pos: 'top-[-6px] right-[-6px]', cursor: 'cursor-nesw-resize', direction: 'right' },
-    { pos: 'top-1/2 -translate-y-1/2 right-[-6px]', cursor: 'cursor-ew-resize', direction: 'right' },
-    { pos: 'bottom-[-6px] right-[-6px]', cursor: 'cursor-nwse-resize', direction: 'right' },
-    { pos: 'bottom-[-6px] left-1/2 -translate-x-1/2', cursor: 'cursor-ns-resize', direction: 'none' },
-    { pos: 'bottom-[-6px] left-[-6px]', cursor: 'cursor-nesw-resize', direction: 'left' },
-    { pos: 'top-1/2 -translate-y-1/2 left-[-6px]', cursor: 'cursor-ew-resize', direction: 'left' },
+    { pos: 'top-[-6px] left-[-6px]', direction: 'left' },
+    { pos: 'top-[-6px] left-1/2 -translate-x-1/2', direction: 'none' },
+    { pos: 'top-[-6px] right-[-6px]', direction: 'right' },
+    { pos: 'top-1/2 -translate-y-1/2 right-[-6px]', direction: 'right' },
+    { pos: 'bottom-[-6px] right-[-6px]', direction: 'right' },
+    { pos: 'bottom-[-6px] left-1/2 -translate-x-1/2', direction: 'none' },
+    { pos: 'bottom-[-6px] left-[-6px]', direction: 'left' },
+    { pos: 'top-1/2 -translate-y-1/2 left-[-6px]', direction: 'left' },
   ];
   
   const wrapperStyle: React.CSSProperties = { 
@@ -169,9 +185,9 @@ const MediaResizeComponent = (props: NodeViewProps) => {
   return (
     <NodeViewWrapper
       ref={containerRef}
-      as="span" // Using span with inline-block helps tiptap treat it as a single unit
+      as="div"
       className={cn(
-        'rich-text-media-node group clear-both relative inline-block',
+        'rich-text-media-node group clear-both relative block', // Use block for alignment
         float === 'left' && 'mr-4 float-left',
         float === 'right' && 'ml-4 float-right',
         centeringClasses,
@@ -184,7 +200,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
         <img src={node.attrs.src} alt={node.attrs.alt} className="w-full h-auto block" />
       )}
       {isVideo && (
-        <div className="aspect-video w-full relative">
+        <div className="aspect-video w-full h-full relative">
             <iframe
               className="absolute inset-0 w-full h-full"
               src={node.attrs.src}
@@ -197,14 +213,16 @@ const MediaResizeComponent = (props: NodeViewProps) => {
       
       {selected && (
         <>
-          <div 
-            className="absolute -top-10 left-1/2 flex gap-1 bg-card p-1 rounded-md shadow-lg border border-border"
-            style={{ transform: `translateX(-50%) rotate(-${rotation}deg)` }}
-          >
-            <Button type="button" size="icon" variant={float === 'left' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('left')} title="Align left"><AlignLeft className="w-4 h-4" /></Button>
-            <Button type="button" size="icon" variant={!float || float === 'center' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('center')} title="Align center"><AlignCenter className="w-4 h-4" /></Button>
-            <Button type="button" size="icon" variant={float === 'right' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('right')} title="Align right"><AlignRight className="w-4 h-4" /></Button>
-            <Button type="button" size="icon" variant='ghost' className="h-7 w-7" onClick={() => updateAttributes({ rotate: (rotation + 90) % 360 })} title="Rotate"><RotateCcw className="w-4 h-4" /></Button>
+          <div className="absolute top-0 left-1/2 w-px h-px">
+            <div 
+              className="absolute bottom-full left-1/2 mb-2 flex gap-1 bg-card p-1 rounded-md shadow-lg border border-border"
+              style={{ transform: `translateX(-50%) rotate(-${rotation}deg)` }}
+            >
+              <Button type="button" size="icon" variant={float === 'left' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('left')} title="Align left"><AlignLeft className="w-4 h-4" /></Button>
+              <Button type="button" size="icon" variant={!float || float === 'center' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('center')} title="Align center"><AlignCenter className="w-4 h-4" /></Button>
+              <Button type="button" size="icon" variant={float === 'right' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('right')} title="Align right"><AlignRight className="w-4 h-4" /></Button>
+              <Button type="button" size="icon" variant='ghost' className="h-7 w-7" onClick={() => updateAttributes({ rotate: (rotation + 90) % 360 })} title="Rotate"><RotateCcw className="w-4 h-4" /></Button>
+            </div>
           </div>
 
           {handles.map((handle, index) => (
@@ -212,10 +230,12 @@ const MediaResizeComponent = (props: NodeViewProps) => {
                 key={index}
                 className={cn(
                   "absolute w-3 h-3 bg-primary rounded-full border-2 border-card pointer-events-auto",
-                  handle.pos,
-                  handle.cursor
+                  handle.pos
                 )}
-                style={{ transform: `rotate(-${rotation}deg)` }}
+                style={{ 
+                    cursor: getRotatedCursor(index, rotation),
+                    transform: `rotate(-${rotation}deg)` 
+                }}
                 onMouseDown={createResizeHandler(handle.direction as 'left' | 'right' | 'none')}
               />
             ))}
@@ -477,15 +497,15 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
       Placeholder.configure({ placeholder: "Share the details of your resource..." }),
       TiptapLink.configure({ openOnClick: false, autolink: true, HTMLAttributes: { class: 'text-primary hover:text-accent transition-colors cursor-pointer underline' } }),
       CustomImage.configure({
-        inline: true, // Set to true to allow flowing with text initially
+        inline: false, // Set to false to behave like a block
         allowBase64: true,
       }),
       CustomYoutube.configure({
-        inline: true, // Same for youtube
+        inline: false, // Same for youtube
         controls: false,
         nocookie: true,
       }),
-      TextAlign.configure({ types: ['paragraph'] }),
+      TextAlign.configure({ types: ['paragraph', 'image', 'youtube'] }),
       Color,
       Underline,
     ],
@@ -565,3 +585,4 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
     </div>
   );
 };
+

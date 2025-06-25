@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useCallback } from 'react';
@@ -22,6 +23,7 @@ export function AvatarEditor({ isOpen, onOpenChange, imageSrc, onSave }: AvatarE
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const { toast } = useToast();
 
   const onCropComplete = useCallback((_croppedArea: Area, croppedAreaPixels: Area) => {
     setCroppedAreaPixels(croppedAreaPixels);
@@ -36,11 +38,11 @@ export function AvatarEditor({ isOpen, onOpenChange, imageSrc, onSave }: AvatarE
         onSave(croppedImage);
         onOpenChange(false);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
       toast({
-        title: "Error",
-        description: "Failed to crop the image. Please try again.",
+        title: "Error Cropping Image",
+        description: e?.message || "Failed to crop the image. The URL might be invalid or there could be a cross-origin (CORS) issue.",
         variant: "destructive"
       })
     } finally {

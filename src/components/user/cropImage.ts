@@ -1,10 +1,11 @@
+
 import type { Area } from 'react-easy-crop';
 
 export const createImage = (url: string): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
     const image = new Image();
     image.addEventListener('load', () => resolve(image));
-    image.addEventListener('error', (error) => reject(error));
+    image.addEventListener('error', () => reject(new Error('Failed to load image. This may be due to a CORS issue or an invalid URL.')));
     image.setAttribute('crossOrigin', 'anonymous'); // Needed to avoid CORS issues
     image.src = url;
   });

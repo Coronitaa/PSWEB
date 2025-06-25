@@ -109,9 +109,10 @@ const MediaResizeComponent = (props: NodeViewProps) => {
     const startWidth = containerRef.current!.offsetWidth;
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
+      const dx = moveEvent.clientX - startX;
       const newWidth = direction === 'left'
-        ? startWidth - (moveEvent.clientX - startX)
-        : startWidth + (moveEvent.clientX - startX);
+        ? startWidth - dx
+        : startWidth + dx;
       updateAttributes({ width: `${Math.max(50, newWidth)}px` });
     };
 
@@ -152,7 +153,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
         'rich-text-media-node group clear-both',
         float === 'left' && 'mr-4 float-left',
         float === 'right' && 'ml-4 float-right',
-        (float === 'center' || !float) && 'mx-auto',
+        (float === 'center' || !float) && 'block mx-auto',
         selected && 'outline-2 outline-primary outline-dashed'
       )}
       style={{ width, transform: `rotate(${rotation}deg)` }}
@@ -207,9 +208,11 @@ const CustomImage = TiptapImage.extend({
       },
       width: {
         default: '100%',
-        renderHTML: attributes => ({
-          style: `width: ${attributes.width};`,
-        }),
+        renderHTML: attributes => {
+            if (!attributes.width) return {};
+            return { style: `width: ${attributes.width};` };
+        },
+        parseHTML: element => element.style.width || null,
       },
       'data-float': {
         default: 'center',
@@ -248,9 +251,11 @@ const CustomYoutube = Youtube.extend({
             },
             width: {
                 default: '100%',
-                renderHTML: attributes => ({
-                    style: `width: ${attributes.width};`,
-                })
+                renderHTML: attributes => {
+                    if (!attributes.width) return {};
+                    return { style: `width: ${attributes.width};` };
+                },
+                parseHTML: element => element.style.width || null,
             },
             'data-float': {
                 default: 'center',

@@ -4,14 +4,15 @@ import { getResourceBySlug, getResources } from '@/lib/data';
 import { ResourcePageContent } from '@/components/resource/ResourcePageContent';
 
 interface WebResourcePageProps {
-  params: {
+  params: Promise<{
     webSlug: string;
     categorySlug: string;
     resourceSlug: string;
-  };
+  }>;
 }
 
-export default async function WebResourcePage({ params }: WebResourcePageProps) {
+export default async function WebResourcePage({ params: paramsPromise }: WebResourcePageProps) {
+  const params = await paramsPromise;
   const resource = await getResourceBySlug(params.resourceSlug);
 
   if (!resource || resource.parentItemType !== 'web' || resource.parentItemSlug !== params.webSlug || resource.categorySlug !== params.categorySlug) {

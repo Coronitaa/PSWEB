@@ -4,14 +4,15 @@ import { getResourceBySlug, getResources } from '@/lib/data';
 import { ResourcePageContent } from '@/components/resource/ResourcePageContent';
 
 interface GameResourcePageProps {
-  params: {
+  params: Promise<{
     gameSlug: string;
     categorySlug: string;
     resourceSlug: string;
-  };
+  }>;
 }
 
-export default async function GameResourcePage({ params }: GameResourcePageProps) {
+export default async function GameResourcePage({ params: paramsPromise }: GameResourcePageProps) {
+  const params = await paramsPromise;
   const resource = await getResourceBySlug(params.resourceSlug);
 
   if (!resource || resource.parentItemType !== 'game' || resource.parentItemSlug !== params.gameSlug || resource.categorySlug !== params.categorySlug) {

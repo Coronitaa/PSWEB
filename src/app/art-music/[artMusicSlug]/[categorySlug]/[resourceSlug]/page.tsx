@@ -4,14 +4,15 @@ import { getResourceBySlug, getResources } from '@/lib/data';
 import { ResourcePageContent } from '@/components/resource/ResourcePageContent';
 
 interface ArtMusicResourcePageProps {
-  params: {
+  params: Promise<{
     artMusicSlug: string;
     categorySlug: string;
     resourceSlug: string;
-  };
+  }>;
 }
 
-export default async function ArtMusicResourcePage({ params }: ArtMusicResourcePageProps) {
+export default async function ArtMusicResourcePage({ params: paramsPromise }: ArtMusicResourcePageProps) {
+  const params = await paramsPromise;
   const resource = await getResourceBySlug(params.resourceSlug);
 
   if (!resource || resource.parentItemType !== 'art-music' || resource.parentItemSlug !== params.artMusicSlug || resource.categorySlug !== params.categorySlug) {

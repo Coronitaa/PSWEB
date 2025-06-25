@@ -7,12 +7,13 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 import { getDb } from '@/lib/db';
 
 interface UserProfilePageProps {
-  params: { usertag: string };
+  params: Promise<{ usertag: string }>;
 }
 
 const RECENT_RESOURCES_CAROUSEL_COUNT = 5;
 
-export default async function UserProfilePage({ params }: UserProfilePageProps) {
+export default async function UserProfilePage({ params: paramsPromise }: UserProfilePageProps) {
+  const params = await paramsPromise;
   const profile = await getUserProfileByUsertag(params.usertag);
   if (!profile) {
     notFound();

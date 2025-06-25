@@ -4,14 +4,15 @@ import { getResourceBySlug, getResources } from '@/lib/data';
 import { ResourcePageContent } from '@/components/resource/ResourcePageContent';
 
 interface AppResourcePageProps {
-  params: {
+  params: Promise<{
     appSlug: string;
     categorySlug: string;
     resourceSlug: string;
-  };
+  }>;
 }
 
-export default async function AppResourcePage({ params }: AppResourcePageProps) {
+export default async function AppResourcePage({ params: paramsPromise }: AppResourcePageProps) {
+  const params = await paramsPromise;
   const resource = await getResourceBySlug(params.resourceSlug);
 
   if (!resource || resource.parentItemType !== 'app' || resource.parentItemSlug !== params.appSlug || resource.categorySlug !== params.categorySlug) {

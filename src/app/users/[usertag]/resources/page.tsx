@@ -10,15 +10,18 @@ import { User, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface UserResourcesPageProps {
-  params: { usertag: string };
-  searchParams: { [key: string]: string | string[] | undefined };
+  params: Promise<{ usertag: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 type SortByType = 'relevance' | 'updated_at' | 'downloads' | 'rating' | 'name';
 
 const RESOURCES_PER_PAGE = 12;
 
-export default async function UserResourcesPage({ params, searchParams }: UserResourcesPageProps) {
+export default async function UserResourcesPage({ params: paramsPromise, searchParams: searchParamsPromise }: UserResourcesPageProps) {
+  const params = await paramsPromise;
+  const searchParams = await searchParamsPromise;
+
   const profile = await getUserProfileByUsertag(params.usertag);
   if (!profile) {
     notFound();

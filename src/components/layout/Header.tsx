@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -21,7 +20,7 @@ import { cn } from '@/lib/utils';
 import { usePathname, useRouter } from 'next/navigation';
 import { toast } from '@/hooks/use-toast';
 import type { UserAppRole, ItemType } from '@/lib/types';
-import { UploadMenu } from './UploadMenu'; // Import new component
+import { UploadMenu } from './UploadMenu';
 
 interface MockUser {
   id: string;
@@ -39,7 +38,6 @@ export function Header() {
   const router = useRouter();
   const pathname = usePathname();
 
-  // Parse path to get context for UploadMenu
   const pathContext = useMemo(() => {
     const parts = pathname.split('/').filter(Boolean);
     let itemType: ItemType | undefined = undefined;
@@ -116,10 +114,19 @@ export function Header() {
   if (isLoading) {
     return (
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-14 max-w-screen-2xl items-center">
-          <Logo />
-          <div className="flex-1"></div>
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <div className="flex h-14 items-center justify-between px-6">
+          <div className="flex items-center gap-6">
+            <Logo />
+            <nav className="items-center space-x-3 lg:space-x-4 hidden md:flex">
+              <div className="h-4 w-16 bg-muted/50 rounded-md animate-pulse" />
+              <div className="h-4 w-12 bg-muted/50 rounded-md animate-pulse" />
+              <div className="h-4 w-12 bg-muted/50 rounded-md animate-pulse" />
+              <div className="h-4 w-20 bg-muted/50 rounded-md animate-pulse" />
+            </nav>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
         </div>
       </header>
     );
@@ -128,7 +135,7 @@ export function Header() {
   return (
     <>
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-14 max-w-screen-2xl items-center">
+        <div className="flex h-14 items-center justify-between px-6">
           {/* Left-aligned group */}
           <div className="flex items-center gap-6">
             <Logo />
@@ -149,7 +156,7 @@ export function Header() {
           </div>
 
           {/* Right-aligned group */}
-          <div className="ml-auto flex items-center space-x-2">
+          <div className="flex items-center space-x-2">
             {mockUser ? (
               <>
                 <Button variant="outline" size="sm" className="button-outline-glow hidden sm:flex" onClick={() => setIsUploadMenuOpen(true)}>
@@ -235,9 +242,6 @@ export function Header() {
         <UploadMenu
           isOpen={isUploadMenuOpen}
           onOpenChange={setIsUploadMenuOpen}
-          initialItemType={pathContext.itemType}
-          initialProjectSlug={pathContext.projectSlug}
-          initialCategorySlug={pathContext.categorySlug}
         />
       )}
     </>

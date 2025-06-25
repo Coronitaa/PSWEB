@@ -28,6 +28,7 @@ import { Loader2, Save, Github, Twitter, Globe, Linkedin, MessageCircle, User, I
 import { cn } from '@/lib/utils';
 import { AvatarEditor } from './AvatarEditor'; // Existing import
 import { BannerEditor } from './BannerEditor'; // New import
+import { Separator } from '../ui/separator';
 
 const profileFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters.").max(50, "Name cannot exceed 50 characters."),
@@ -219,15 +220,17 @@ export function EditProfileModal({ profile, isOpen, onOpenChange }: EditProfileM
                           </div>
                       </TabsContent>
                       <TabsContent value="images" className="space-y-6 m-0">
-                          {/* Avatar Section */}
+                        {/* Avatar Section */}
+                        <div className="space-y-4">
+                          <Label className="text-base font-medium">Avatar</Label>
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
                             <div className="md:col-span-1">
                               <ImagePreview watchUrl={watchedAvatarUrl} alt="Avatar Preview" fallbackText="Avatar Preview" className="w-24 h-24 mx-auto" isAvatar={true} />
                             </div>
                             <div className="md:col-span-2 space-y-1">
-                              <Label htmlFor="avatarUrl">Avatar URL</Label>
+                              <Label htmlFor="avatarUrl" className="text-xs text-muted-foreground">Image URL or Data URI</Label>
                               <div className="flex items-center gap-2">
-                                <Input id="avatarUrl" {...form.register('avatarUrl')} placeholder="https://..." disabled={isSubmitting}/>
+                                <Input id="avatarUrl" type="url" {...form.register('avatarUrl')} placeholder="https://..." disabled={isSubmitting}/>
                                 <Button type="button" variant="outline" size="icon" onClick={handleOpenAvatarEditor} disabled={isSubmitting || !watchedAvatarUrl} title="Edit Avatar">
                                     <Edit className="h-4 w-4"/>
                                 </Button>
@@ -235,28 +238,27 @@ export function EditProfileModal({ profile, isOpen, onOpenChange }: EditProfileM
                               {form.formState.errors.avatarUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.avatarUrl.message}</p>}
                             </div>
                           </div>
+                        </div>
 
-                          {/* Separator */}
-                          <div className="relative">
-                            <div className="absolute inset-0 flex items-center">
-                                <span className="w-full border-t" />
-                            </div>
-                            <div className="relative flex justify-center text-xs uppercase">
-                                <span className="bg-background px-2 text-muted-foreground">Banner</span>
-                            </div>
-                          </div>
-                          
-                          {/* Banner Section */}
-                          <div>
-                              <div className="flex items-center gap-2">
-                                  <Input id="bannerUrl" {...form.register('bannerUrl')} placeholder="Banner image URL..." disabled={isSubmitting}/>
-                                  <Button type="button" variant="outline" size="icon" onClick={handleOpenBannerEditor} disabled={isSubmitting || !watchedBannerUrl} title="Edit Banner">
-                                      <Edit className="h-4 w-4"/>
-                                  </Button>
+                        <Separator className="bg-border/50" />
+
+                        {/* Banner Section */}
+                        <div className="space-y-4">
+                          <Label className="text-base font-medium">Banner</Label>
+                          <div className="space-y-2">
+                            <div>
+                              <Label htmlFor="bannerUrl" className="text-xs text-muted-foreground">Image URL or Data URI</Label>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Input id="bannerUrl" type="url" {...form.register('bannerUrl')} placeholder="Banner image URL..." disabled={isSubmitting}/>
+                                <Button type="button" variant="outline" size="icon" onClick={handleOpenBannerEditor} disabled={isSubmitting || !watchedBannerUrl} title="Edit Banner">
+                                    <Edit className="h-4 w-4"/>
+                                </Button>
                               </div>
                               {form.formState.errors.bannerUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.bannerUrl.message}</p>}
-                              <ImagePreview watchUrl={watchedBannerUrl} alt="Banner Preview" fallbackText="Banner Preview" className="w-full aspect-[4/1] mt-2"/>
+                            </div>
+                            <ImagePreview watchUrl={watchedBannerUrl} alt="Banner Preview" fallbackText="Banner Preview" className="w-full aspect-[4/1]"/>
                           </div>
+                        </div>
                       </TabsContent>
                       <TabsContent value="links" className="space-y-3 m-0">
                           <div className="relative">

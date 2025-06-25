@@ -19,7 +19,7 @@ export function UserBio({ bio }: UserBioProps) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-foreground/90 whitespace-pre-line leading-relaxed">
+        <p className="text-sm text-foreground/90 whitespace-pre-line leading-relaxed break-words">
           {bio}
         </p>
       </CardContent>

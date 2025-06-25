@@ -144,26 +144,29 @@
   }
 
   /* Custom styles for Rich Text Editor Media */
-  .ProseMirror .rich-text-media-node {
+  .ProseMirror .rich-text-media-node, .prose .rich-text-media-node {
     display: block; /* Use block by default */
     position: relative;
     line-height: 0;
     margin: 1em 0; /* Add some vertical spacing */
+    max-width: 100%;
   }
-  .ProseMirror .rich-text-media-node[data-float="left"] {
+  .ProseMirror .rich-text-media-node[data-float="left"], .prose .rich-text-media-node[data-float="left"] {
     float: left;
     margin-right: 1em;
   }
-  .ProseMirror .rich-text-media-node[data-float="right"] {
+  .ProseMirror .rich-text-media-node[data-float="right"], .prose .rich-text-media-node[data-float="right"] {
     float: right;
     margin-left: 1em;
   }
-  .ProseMirror .rich-text-media-node[data-float="center"] {
+  .ProseMirror .rich-text-media-node[data-float="center"], .prose .rich-text-media-node[data-float="center"] {
     margin-left: auto;
     margin-right: auto;
   }
   /* Ensure content after a floated element clears properly */
-  .ProseMirror > :last-child {
+  .ProseMirror > :last-child::after, .prose > :last-child::after {
+    content: "";
+    display: table;
     clear: both;
   }
 }

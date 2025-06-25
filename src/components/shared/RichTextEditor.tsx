@@ -170,10 +170,10 @@ const MediaResizeComponent = (props: NodeViewProps) => {
       {selected && (
         <>
           <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex gap-1 bg-card p-1 rounded-md shadow-lg border border-border">
-            <Button size="icon" variant={float === 'left' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('left')} title="Align left"><AlignLeft className="w-4 h-4" /></Button>
-            <Button size="icon" variant={float === 'center' || !float ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('center')} title="Align center"><AlignCenter className="w-4 h-4" /></Button>
-            <Button size="icon" variant={float === 'right' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('right')} title="Align right"><AlignRight className="w-4 h-4" /></Button>
-            <Button size="icon" variant='ghost' className="h-7 w-7" onClick={() => updateAttributes({ rotate: rotation + 90 })} title="Rotate"><RotateCcw className="w-4 h-4" /></Button>
+            <Button type="button" size="icon" variant={float === 'left' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('left')} title="Align left"><AlignLeft className="w-4 h-4" /></Button>
+            <Button type="button" size="icon" variant={float === 'center' || !float ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('center')} title="Align center"><AlignCenter className="w-4 h-4" /></Button>
+            <Button type="button" size="icon" variant={float === 'right' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('right')} title="Align right"><AlignRight className="w-4 h-4" /></Button>
+            <Button type="button" size="icon" variant='ghost' className="h-7 w-7" onClick={() => updateAttributes({ rotate: rotation + 90 })} title="Rotate"><RotateCcw className="w-4 h-4" /></Button>
           </div>
 
           {handles.map((handle, index) => (
@@ -197,10 +197,13 @@ const CustomImage = TiptapImage.extend({
   addAttributes() {
     return {
       ...this.parent?.(),
+      class: {
+        default: 'rich-text-media-node',
+      },
       width: {
         default: '100%',
         renderHTML: attributes => ({
-          width: attributes.width,
+          style: `width: ${attributes.width};`,
         }),
       },
       'data-float': {
@@ -211,6 +214,12 @@ const CustomImage = TiptapImage.extend({
       },
       rotate: {
         default: 0,
+        renderHTML: attributes => {
+            if (!attributes.rotate) return {};
+            return {
+                style: `transform: rotate(${attributes.rotate}deg)`,
+            }
+        }
       },
     };
   },
@@ -223,10 +232,13 @@ const CustomYoutube = Youtube.extend({
     addAttributes() {
         return {
             ...this.parent?.(),
+            class: {
+              default: 'rich-text-media-node',
+            },
             width: {
                 default: '100%',
                 renderHTML: attributes => ({
-                    width: attributes.width
+                    style: `width: ${attributes.width};`,
                 })
             },
             'data-float': {
@@ -237,6 +249,12 @@ const CustomYoutube = Youtube.extend({
             },
             rotate: {
               default: 0,
+              renderHTML: attributes => {
+                  if (!attributes.rotate) return {};
+                  return {
+                      style: `transform: rotate(${attributes.rotate}deg)`,
+                  }
+              }
             },
         }
     },
@@ -460,9 +478,8 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
               const selectionCoords = view.coordsAtPos(from);
               
               const bubbleMenuHeight = 50; 
-              const spaceAvailable = selectionCoords.top - toolbarRect.bottom;
               
-              if (spaceAvailable < bubbleMenuHeight) {
+              if (selectionCoords.top < toolbarRect.bottom + bubbleMenuHeight) {
                 return false;
               }
             }

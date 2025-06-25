@@ -100,7 +100,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const createResizeHandler = (direction: 'left' | 'right' | 'none') => (e: React.MouseEvent) => {
-    if (direction === 'none') return;
+    if (direction === 'none' || !containerRef.current) return;
     
     e.preventDefault();
     e.stopPropagation();
@@ -124,8 +124,8 @@ const MediaResizeComponent = (props: NodeViewProps) => {
       
       // Apply change based on which handle is dragged
       const newWidth = direction === 'left'
-        ? startWidth - dx_local
-        : startWidth + dx_local;
+        ? startWidth - (dx_local * 2) // Multiply by 2 because we move from both sides
+        : startWidth + (dx_local * 2);
 
       updateAttributes({ width: `${Math.max(50, newWidth)}px` });
     };
@@ -149,19 +149,20 @@ const MediaResizeComponent = (props: NodeViewProps) => {
   const rotation = node.attrs.rotate || 0;
   
   const getRotatedCursor = (handleIndex: number, rotation: number): string => {
-    const handleAngles = [315, 0, 45, 90, 135, 180, 225, 270]; // NW, N, NE, E, SE, S, SW, W
-    const newAngle = (handleAngles[handleIndex] + rotation + 360) % 360;
+    // N, NE, E, SE, S, SW, W, NW
+    const cursors = ['ns-resize', 'nesw-resize', 'ew-resize', 'nwse-resize', 'ns-resize', 'nesw-resize', 'ew-resize', 'nwse-resize'];
+    // Angle of the cursor direction from 0 (East) counter-clockwise
+    const cursorAngles = [90, 45, 0, 315, 270, 225, 180, 135];
+    const handleAngle = cursorAngles[handleIndex];
+    // Calculate the final angle of the cursor by adding the rotation of the object
+    const finalAngle = (handleAngle - rotation + 360) % 360;
 
-    if ((newAngle >= 337.5 || newAngle < 22.5)) return 'ns-resize'; // N
-    if ((newAngle >= 22.5 && newAngle < 67.5)) return 'nesw-resize'; // NE
-    if ((newAngle >= 67.5 && newAngle < 112.5)) return 'ew-resize'; // E
-    if ((newAngle >= 112.5 && newAngle < 157.5)) return 'nwse-resize'; // SE
-    if ((newAngle >= 157.5 && newAngle < 202.5)) return 'ns-resize'; // S
-    if ((newAngle >= 202.5 && newAngle < 247.5)) return 'nesw-resize'; // SW
-    if ((newAngle >= 247.5 && newAngle < 292.5)) return 'ew-resize'; // W
-    if ((newAngle >= 292.5 && newAngle < 337.5)) return 'nwse-resize'; // NW
+    // Find the closest cursor direction for the final angle
+    const slice = 360 / 8;
+    const halfSlice = slice / 2;
+    const closestIndex = Math.round((finalAngle - halfSlice + 360) % 360 / slice) % 8;
     
-    return 'auto';
+    return cursors[closestIndex];
   };
 
   const handles = [
@@ -177,70 +178,71 @@ const MediaResizeComponent = (props: NodeViewProps) => {
   
   const wrapperStyle: React.CSSProperties = { 
       width,
-      transform: `rotate(${rotation}deg)` 
   };
-  
-  const centeringClasses = float === 'center' ? 'mx-auto' : '';
 
   return (
     <NodeViewWrapper
-      ref={containerRef}
       as="div"
       className={cn(
-        'rich-text-media-node group clear-both relative block', // Use block for alignment
-        float === 'left' && 'mr-4 float-left',
-        float === 'right' && 'ml-4 float-right',
-        centeringClasses,
+        'rich-text-media-node group clear-both relative',
+        float === 'center' ? 'mx-auto block' : '',
+        float === 'left' ? 'mr-4 float-left' : '',
+        float === 'right' ? 'ml-4 float-right' : '',
         selected && 'outline-2 outline-primary outline-dashed'
       )}
       style={wrapperStyle}
       draggable="true" data-drag-handle
     >
-      {isImage && (
-        <img src={node.attrs.src} alt={node.attrs.alt} className="w-full h-auto block" />
-      )}
-      {isVideo && (
-        <div className="aspect-video w-full h-full relative">
-            <iframe
-              className="absolute inset-0 w-full h-full"
-              src={node.attrs.src}
-              frameBorder="0"
-              allowFullScreen
-              style={{ pointerEvents: 'none' }}
-            />
-        </div>
-      )}
+      <div 
+        className="relative" 
+        style={{ transform: `rotate(${rotation}deg)` }}
+        ref={containerRef}
+      >
+        {isImage && (
+          <img src={node.attrs.src} alt={node.attrs.alt} className="w-full h-auto block" />
+        )}
+        {isVideo && (
+          <div className="aspect-video w-full h-full relative">
+              <iframe
+                className="absolute inset-0 w-full h-full"
+                src={node.attrs.src}
+                frameBorder="0"
+                allowFullScreen
+                style={{ pointerEvents: selected ? 'none' : 'auto' }}
+              />
+          </div>
+        )}
       
-      {selected && (
-        <>
-          <div className="absolute top-0 left-1/2 w-px h-px">
+        {selected && createPortal(
+          <>
             <div 
-              className="absolute bottom-full left-1/2 mb-2 flex gap-1 bg-card p-1 rounded-md shadow-lg border border-border"
-              style={{ transform: `translateX(-50%) rotate(-${rotation}deg)` }}
+              className="absolute top-[-44px] left-1/2 -translate-x-1/2 z-[1] flex gap-1 bg-card p-1 rounded-md shadow-lg border border-border"
+              style={{ transform: `rotate(-${rotation}deg)` }}
             >
               <Button type="button" size="icon" variant={float === 'left' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('left')} title="Align left"><AlignLeft className="w-4 h-4" /></Button>
               <Button type="button" size="icon" variant={!float || float === 'center' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('center')} title="Align center"><AlignCenter className="w-4 h-4" /></Button>
               <Button type="button" size="icon" variant={float === 'right' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('right')} title="Align right"><AlignRight className="w-4 h-4" /></Button>
               <Button type="button" size="icon" variant='ghost' className="h-7 w-7" onClick={() => updateAttributes({ rotate: (rotation + 90) % 360 })} title="Rotate"><RotateCcw className="w-4 h-4" /></Button>
             </div>
-          </div>
 
-          {handles.map((handle, index) => (
-              <div
-                key={index}
-                className={cn(
-                  "absolute w-3 h-3 bg-primary rounded-full border-2 border-card pointer-events-auto",
-                  handle.pos
-                )}
-                style={{ 
-                    cursor: getRotatedCursor(index, rotation),
-                    transform: `rotate(-${rotation}deg)` 
-                }}
-                onMouseDown={createResizeHandler(handle.direction as 'left' | 'right' | 'none')}
-              />
-            ))}
-        </>
-      )}
+            {handles.map((handle, index) => (
+                <div
+                  key={index}
+                  className={cn(
+                    "absolute w-3 h-3 bg-primary rounded-full border-2 border-card pointer-events-auto",
+                    handle.pos
+                  )}
+                  style={{ 
+                      cursor: getRotatedCursor(index, rotation),
+                      transform: `rotate(-${rotation}deg)` 
+                  }}
+                  onMouseDown={createResizeHandler(handle.direction as 'left' | 'right' | 'none')}
+                />
+              ))}
+          </>,
+          containerRef.current!
+        )}
+      </div>
     </NodeViewWrapper>
   );
 };
@@ -497,11 +499,11 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
       Placeholder.configure({ placeholder: "Share the details of your resource..." }),
       TiptapLink.configure({ openOnClick: false, autolink: true, HTMLAttributes: { class: 'text-primary hover:text-accent transition-colors cursor-pointer underline' } }),
       CustomImage.configure({
-        inline: false, // Set to false to behave like a block
+        inline: false, 
         allowBase64: true,
       }),
       CustomYoutube.configure({
-        inline: false, // Same for youtube
+        inline: false, 
         controls: false,
         nocookie: true,
       }),
@@ -586,3 +588,6 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
   );
 };
 
+
+
+    

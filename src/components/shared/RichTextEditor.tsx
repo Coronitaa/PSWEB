@@ -1,8 +1,9 @@
 
+
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useEditor, EditorContent, BubbleMenu, type Editor } from '@tiptap/react';
+import { useEditor, EditorContent, BubbleMenu, type Editor, NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from '@tiptap/react';
 import { Extension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -33,13 +34,7 @@ export interface FontSizeOptions {
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     fontSize: {
-      /**
-       * Set the font size
-       */
       setFontSize: (size: string) => ReturnType,
-      /**
-       * Unset the font size
-       */
       unsetFontSize: () => ReturnType,
     }
   }
@@ -93,6 +88,132 @@ export const FontSize = Extension.create<FontSizeOptions>({
       },
     }
   },
+});
+
+const MediaResizeComponent = (props: NodeViewProps) => {
+  const { node, updateAttributes, selected } = props;
+  const isImage = node.type.name === 'image';
+  const isVideo = node.type.name === 'youtube';
+
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startWidth = containerRef.current!.offsetWidth;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const currentX = moveEvent.clientX;
+      const newWidth = startWidth + (currentX - startX);
+      updateAttributes({ width: `${Math.max(50, newWidth)}px` }); // Min width 50px
+    };
+
+    const handleMouseUp = () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const setAlignment = (align: 'left' | 'center' | 'right' | null) => {
+    updateAttributes({ 'data-float': align });
+  };
+  
+  const float = node.attrs['data-float'];
+  const width = node.attrs.width;
+
+  return (
+    <NodeViewWrapper
+      ref={containerRef}
+      as="div"
+      className={cn(
+        'rich-text-media-node group clear-both',
+        float === 'left' && 'mr-4 float-left',
+        float === 'right' && 'ml-4 float-right',
+        float === 'center' && 'mx-auto flex justify-center',
+        selected && 'outline-2 outline-primary outline-dashed'
+      )}
+      style={{ width }}
+    >
+      {isImage && (
+        <img src={node.attrs.src} alt={node.attrs.alt} className="w-full h-auto block" />
+      )}
+      {isVideo && (
+        <div className="aspect-video w-full">
+            <iframe
+              className="w-full h-full"
+              src={node.attrs.src}
+              frameBorder="0"
+              allowFullScreen
+              style={{ pointerEvents: 'none' }} // Prevent interaction with video iframe
+            />
+        </div>
+      )}
+      
+      {selected && (
+        <>
+          <div
+            className="absolute -bottom-1 -right-1 w-4 h-4 bg-primary rounded-full cursor-nwse-resize"
+            onMouseDown={handleResize}
+          />
+          <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex gap-1 bg-card p-1 rounded-md shadow-lg border border-border">
+            <Button size="icon" variant={float === 'left' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('left')} title="Align left"><AlignLeft className="w-4 h-4" /></Button>
+            <Button size="icon" variant={float === 'center' || !float ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('center')} title="Align center"><AlignCenter className="w-4 h-4" /></Button>
+            <Button size="icon" variant={float === 'right' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('right')} title="Align right"><AlignRight className="w-4 h-4" /></Button>
+          </div>
+        </>
+      )}
+    </NodeViewWrapper>
+  );
+};
+
+const CustomImage = TiptapImage.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      width: {
+        default: '100%',
+        renderHTML: attributes => ({
+          width: attributes.width,
+        }),
+      },
+      'data-float': {
+        default: 'center',
+        renderHTML: attributes => ({
+          'data-float': attributes['data-float'],
+        }),
+      },
+    };
+  },
+  addNodeView() {
+    return ReactNodeViewRenderer(MediaResizeComponent);
+  },
+});
+
+const CustomYoutube = Youtube.extend({
+    addAttributes() {
+        return {
+            ...this.parent?.(),
+            width: {
+                default: '100%',
+                renderHTML: attributes => ({
+                    width: attributes.width
+                })
+            },
+            'data-float': {
+                default: 'center',
+                renderHTML: attributes => ({
+                    'data-float': attributes['data-float']
+                })
+            }
+        }
+    },
+    addNodeView() {
+        return ReactNodeViewRenderer(MediaResizeComponent)
+    }
 });
 
 
@@ -258,8 +379,14 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
       }),
       Placeholder.configure({ placeholder: "Share the details of your resource..." }),
       TiptapLink.configure({ openOnClick: false, autolink: true, HTMLAttributes: { class: 'text-primary hover:text-accent transition-colors cursor-pointer underline' } }),
-      TiptapImage.configure({ inline: false, allowBase64: true }),
-      Youtube.configure({ controls: false, nocookie: true }),
+      CustomImage.configure({
+        inline: false,
+        allowBase64: true,
+      }),
+      CustomYoutube.configure({
+        controls: false,
+        nocookie: true,
+      }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Color,
       Underline,
@@ -288,7 +415,6 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
               return false;
             }
             
-            // Don't show for images or videos
             const { from: selectionFrom, to: selectionTo } = editor.state.selection;
             let isMediaSelection = false;
             editor.state.doc.nodesBetween(selectionFrom, selectionTo, (node) => {
@@ -300,23 +426,19 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
               return false;
             }
       
-            // Don't show if it would cover the toolbar
             if (toolbarRef.current) {
               const toolbarRect = toolbarRef.current.getBoundingClientRect();
               const selectionCoords = view.coordsAtPos(from);
               
-              // Estimate bubble menu height to be around 40px.
-              // If the space between the toolbar and the selection is less than that,
-              // the bubble menu (which appears above the selection) would overlap.
               const spaceAvailable = selectionCoords.top - toolbarRect.bottom;
-              const bubbleMenuEstimatedHeight = 40; 
+              const bubbleMenuEstimatedHeight = 50; 
               
               if (spaceAvailable < bubbleMenuEstimatedHeight) {
                 return false;
               }
             }
             
-            return from !== to; // Only show when there's a text selection
+            return from !== to;
           }}
          >
             <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleBold().run()} className={cn("h-8 w-8", editor.isActive('bold') && "bg-muted text-primary")}><Bold className="h-4 w-4" /></Button>

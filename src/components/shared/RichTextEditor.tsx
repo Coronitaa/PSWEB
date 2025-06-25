@@ -15,7 +15,7 @@ import TextStyle from '@tiptap/extension-text-style';
 import Underline from '@tiptap/extension-underline';
 import { 
   Bold, Italic, Link as LinkIcon, List, ListOrdered, Strikethrough, Underline as UnderlineIcon,
-  AlignLeft, AlignCenter, AlignRight, Image as ImageIcon, Video, Palette, Heading2, Heading3
+  AlignLeft, AlignCenter, AlignRight, Image as ImageIcon, Video, Palette
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -284,22 +284,39 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
           tippyOptions={{ duration: 100 }}
           className="bg-card p-1 rounded-lg shadow-lg border border-border flex items-center gap-0.5"
           shouldShow={({ editor, view, from, to }) => {
-            const { selection } = editor.state;
-
-            if (!editor.isFocused || selection.empty) {
+            if (!editor.isFocused) {
               return false;
             }
-            if (editor.isActive('image') || editor.isActive('youtube')) {
+            
+            // Don't show for images or videos
+            const { from: selectionFrom, to: selectionTo } = editor.state.selection;
+            let isMediaSelection = false;
+            editor.state.doc.nodesBetween(selectionFrom, selectionTo, (node) => {
+              if (node.type.name === 'image' || node.type.name === 'youtube') {
+                isMediaSelection = true;
+              }
+            });
+            if (isMediaSelection) {
               return false;
             }
+      
+            // Don't show if it would cover the toolbar
             if (toolbarRef.current) {
               const toolbarRect = toolbarRef.current.getBoundingClientRect();
               const selectionCoords = view.coordsAtPos(from);
-              if (selectionCoords.top < toolbarRect.bottom + 10) {
+              
+              // Estimate bubble menu height to be around 40px.
+              // If the space between the toolbar and the selection is less than that,
+              // the bubble menu (which appears above the selection) would overlap.
+              const spaceAvailable = selectionCoords.top - toolbarRect.bottom;
+              const bubbleMenuEstimatedHeight = 40; 
+              
+              if (spaceAvailable < bubbleMenuEstimatedHeight) {
                 return false;
               }
             }
-            return true;
+            
+            return from !== to; // Only show when there's a text selection
           }}
          >
             <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleBold().run()} className={cn("h-8 w-8", editor.isActive('bold') && "bg-muted text-primary")}><Bold className="h-4 w-4" /></Button>

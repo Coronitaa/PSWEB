@@ -16,7 +16,7 @@ import TextStyle from '@tiptap/extension-text-style';
 import Underline from '@tiptap/extension-underline';
 import { 
   Bold, Italic, Link as LinkIcon, List, ListOrdered, Strikethrough, Underline as UnderlineIcon,
-  AlignLeft, AlignCenter, AlignRight, Image as ImageIcon, Video, Palette
+  AlignLeft, AlignCenter, AlignRight, Image as ImageIcon, Video, Palette, RotateCcw
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { createPortal } from 'react-dom';
+
 
 export interface FontSizeOptions {
   types: string[],
@@ -124,6 +126,18 @@ const MediaResizeComponent = (props: NodeViewProps) => {
   
   const float = node.attrs['data-float'];
   const width = node.attrs.width;
+  const rotation = node.attrs.rotate || 0;
+
+  const handles = [
+    { pos: 'top-[-6px] left-[-6px]', cursor: 'cursor-nwse-resize' },
+    { pos: 'top-[-6px] left-1/2 -translate-x-1/2', cursor: 'cursor-ns-resize' },
+    { pos: 'top-[-6px] right-[-6px]', cursor: 'cursor-nesw-resize' },
+    { pos: 'top-1/2 -translate-y-1/2 right-[-6px]', cursor: 'cursor-ew-resize' },
+    { pos: 'bottom-[-6px] right-[-6px]', cursor: 'cursor-nwse-resize' },
+    { pos: 'bottom-[-6px] left-1/2 -translate-x-1/2', cursor: 'cursor-ns-resize' },
+    { pos: 'bottom-[-6px] left-[-6px]', cursor: 'cursor-nesw-resize' },
+    { pos: 'top-1/2 -translate-y-1/2 left-[-6px]', cursor: 'cursor-ew-resize' },
+  ];
 
   return (
     <NodeViewWrapper
@@ -136,7 +150,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
         float === 'center' && 'mx-auto flex justify-center',
         selected && 'outline-2 outline-primary outline-dashed'
       )}
-      style={{ width }}
+      style={{ width, transform: `rotate(${rotation}deg)` }}
     >
       {isImage && (
         <img src={node.attrs.src} alt={node.attrs.alt} className="w-full h-auto block" />
@@ -155,15 +169,24 @@ const MediaResizeComponent = (props: NodeViewProps) => {
       
       {selected && (
         <>
-          <div
-            className="absolute -bottom-1 -right-1 w-4 h-4 bg-primary rounded-full cursor-nwse-resize"
-            onMouseDown={handleResize}
-          />
           <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex gap-1 bg-card p-1 rounded-md shadow-lg border border-border">
             <Button size="icon" variant={float === 'left' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('left')} title="Align left"><AlignLeft className="w-4 h-4" /></Button>
             <Button size="icon" variant={float === 'center' || !float ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('center')} title="Align center"><AlignCenter className="w-4 h-4" /></Button>
             <Button size="icon" variant={float === 'right' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('right')} title="Align right"><AlignRight className="w-4 h-4" /></Button>
+            <Button size="icon" variant='ghost' className="h-7 w-7" onClick={() => updateAttributes({ rotate: rotation + 90 })} title="Rotate"><RotateCcw className="w-4 h-4" /></Button>
           </div>
+
+          {handles.map((handle, index) => (
+            <div
+              key={index}
+              className={cn(
+                "absolute w-3 h-3 bg-primary rounded-full border-2 border-white",
+                handle.pos,
+                handle.cursor
+              )}
+              onMouseDown={handleResize}
+            />
+          ))}
         </>
       )}
     </NodeViewWrapper>
@@ -185,6 +208,9 @@ const CustomImage = TiptapImage.extend({
         renderHTML: attributes => ({
           'data-float': attributes['data-float'],
         }),
+      },
+      rotate: {
+        default: 0,
       },
     };
   },
@@ -208,7 +234,10 @@ const CustomYoutube = Youtube.extend({
                 renderHTML: attributes => ({
                     'data-float': attributes['data-float']
                 })
-            }
+            },
+            rotate: {
+              default: 0,
+            },
         }
     },
     addNodeView() {
@@ -430,10 +459,10 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
               const toolbarRect = toolbarRef.current.getBoundingClientRect();
               const selectionCoords = view.coordsAtPos(from);
               
+              const bubbleMenuHeight = 50; 
               const spaceAvailable = selectionCoords.top - toolbarRect.bottom;
-              const bubbleMenuEstimatedHeight = 50; 
               
-              if (spaceAvailable < bubbleMenuEstimatedHeight) {
+              if (spaceAvailable < bubbleMenuHeight) {
                 return false;
               }
             }

@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -26,7 +25,8 @@ import { useToast } from '@/hooks/use-toast';
 import { updateProfile } from '@/app/actions/clientWrappers';
 import { Loader2, Save, Github, Twitter, Globe, Linkedin, MessageCircle, User, ImageIcon, Link as LinkIcon, Edit } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { AvatarEditor } from './AvatarEditor'; // New import
+import { AvatarEditor } from './AvatarEditor'; // Existing import
+import { BannerEditor } from './BannerEditor'; // New import
 
 const profileFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters.").max(50, "Name cannot exceed 50 characters."),
@@ -70,6 +70,10 @@ export function EditProfileModal({ profile, isOpen, onOpenChange }: EditProfileM
   
   const [isAvatarEditorOpen, setIsAvatarEditorOpen] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+
+  const [isBannerEditorOpen, setIsBannerEditorOpen] = useState(false);
+  const [bannerImageToCrop, setBannerImageToCrop] = useState<string | null>(null);
+
 
   const form = useForm<z.infer<typeof profileFormSchema>>({
     resolver: zodResolver(profileFormSchema),
@@ -126,6 +130,25 @@ export function EditProfileModal({ profile, isOpen, onOpenChange }: EditProfileM
   const handleAvatarSave = (croppedImage: string) => {
     form.setValue('avatarUrl', croppedImage, { shouldDirty: true });
     setIsAvatarEditorOpen(false);
+  };
+
+  const handleOpenBannerEditor = () => {
+    const url = form.getValues('bannerUrl');
+    if (url && (url.startsWith('http') || url.startsWith('data:image'))) {
+        setBannerImageToCrop(url);
+        setIsBannerEditorOpen(true);
+    } else {
+        toast({
+            title: "Invalid URL",
+            description: "Please enter a valid image URL to edit the banner.",
+            variant: "destructive"
+        })
+    }
+  };
+
+  const handleBannerSave = (croppedImage: string) => {
+    form.setValue('bannerUrl', croppedImage, { shouldDirty: true });
+    setIsBannerEditorOpen(false);
   };
 
   const onSubmit = async (data: z.infer<typeof profileFormSchema>) => {
@@ -208,7 +231,12 @@ export function EditProfileModal({ profile, isOpen, onOpenChange }: EditProfileM
                           </div>
                           <div>
                               <Label htmlFor="bannerUrl">Banner URL</Label>
-                              <Input id="bannerUrl" {...form.register('bannerUrl')} placeholder="https://..." disabled={isSubmitting}/>
+                              <div className="flex items-center gap-2">
+                                  <Input id="bannerUrl" {...form.register('bannerUrl')} placeholder="https://..." disabled={isSubmitting}/>
+                                  <Button type="button" variant="outline" onClick={handleOpenBannerEditor} disabled={isSubmitting || !watchedBannerUrl}>
+                                    <Edit className="h-4 w-4 mr-2"/> Edit
+                                  </Button>
+                              </div>
                               {form.formState.errors.bannerUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.bannerUrl.message}</p>}
                               <ImagePreview watchUrl={watchedBannerUrl} alt="Banner Preview" fallbackText="Banner Preview" className="w-full aspect-[16/9]"/>
                           </div>
@@ -258,6 +286,14 @@ export function EditProfileModal({ profile, isOpen, onOpenChange }: EditProfileM
           onOpenChange={setIsAvatarEditorOpen}
           imageSrc={imageToCrop}
           onSave={handleAvatarSave}
+        />
+      )}
+      {bannerImageToCrop && (
+        <BannerEditor
+          isOpen={isBannerEditorOpen}
+          onOpenChange={setIsBannerEditorOpen}
+          imageSrc={bannerImageToCrop}
+          onSave={handleBannerSave}
         />
       )}
     </>

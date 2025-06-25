@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -127,23 +128,26 @@ export function Header() {
   return (
     <>
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-14 max-w-screen-2xl items-center">
-          <Logo />
-          <nav className="ml-6 flex-grow items-center space-x-3 lg:space-x-4 hidden md:flex">
-            <Link draggable="false" href="/games" className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors flex items-center">
-              <Gamepad2 className="mr-1.5" /> Games
-            </Link>
-            <Link draggable="false" href="/web" className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors flex items-center">
-              <Code className="mr-1.5" /> Web
-            </Link>
-            <Link draggable="false" href="/apps" className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors flex items-center">
-              <TabletSmartphone className="mr-1.5" /> Apps
-            </Link>
-            <Link draggable="false" href="/art-music" className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors flex items-center">
-              <Music className="mr-1.5" /> Art & Music
-            </Link>
-          </nav>
-          <div className="flex flex-1 items-center justify-end space-x-2">
+        <div className="container flex h-14 max-w-screen-2xl items-center justify-between">
+          <div className="flex items-center gap-6">
+            <Logo />
+            <nav className="items-center space-x-3 lg:space-x-4 hidden md:flex">
+              <Link draggable="false" href="/games" className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors flex items-center">
+                <Gamepad2 className="mr-1.5" /> Games
+              </Link>
+              <Link draggable="false" href="/web" className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors flex items-center">
+                <Code className="mr-1.5" /> Web
+              </Link>
+              <Link draggable="false" href="/apps" className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors flex items-center">
+                <TabletSmartphone className="mr-1.5" /> Apps
+              </Link>
+              <Link draggable="false" href="/art-music" className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors flex items-center">
+                <Music className="mr-1.5" /> Art & Music
+              </Link>
+            </nav>
+          </div>
+
+          <div className="flex items-center justify-end space-x-2">
             {mockUser ? (
               <>
                 <Button variant="outline" size="sm" className="button-outline-glow hidden sm:flex" onClick={() => setIsUploadMenuOpen(true)}>
@@ -157,9 +161,9 @@ export function Header() {
                   <DropdownMenuTrigger asChild draggable="false">
                     <Button
                       variant="ghost"
-                      className="relative h-10 w-10 rounded-full p-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      className="relative h-14 w-14 rounded-full p-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                     >
-                      <Avatar className="h-9 w-9 border-2 border-primary/50">
+                      <Avatar className="h-12 w-12 border-2 border-primary/50">
                         <AvatarImage src={mockUser.avatarUrl || undefined} alt={mockUser.name} />
                         <AvatarFallback>{mockUser.name ? mockUser.name.substring(0, 1).toUpperCase() : <UserCircle className="w-6 h-6"/>}</AvatarFallback>
                       </Avatar>

@@ -12,7 +12,6 @@ import TiptapImage from '@tiptap/extension-image';
 import Youtube from '@tiptap/extension-youtube';
 import TextAlign from '@tiptap/extension-text-align';
 import { Color } from '@tiptap/extension-color';
-import TextStyle from '@tiptap/extension-text-style';
 import Underline from '@tiptap/extension-underline';
 import { 
   Bold, Italic, Link as LinkIcon, List, ListOrdered, Strikethrough, Underline as UnderlineIcon,
@@ -106,13 +105,27 @@ const MediaResizeComponent = (props: NodeViewProps) => {
     e.stopPropagation();
 
     const startX = e.clientX;
+    const startY = e.clientY;
     const startWidth = containerRef.current!.offsetWidth;
 
+    const rad = (node.attrs.rotate || 0) * (Math.PI / 180);
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+
     const handleMouseMove = (moveEvent: MouseEvent) => {
+      // Screen-space delta
       const dx = moveEvent.clientX - startX;
+      const dy = moveEvent.clientY - startY;
+
+      // Rotate delta into the node's coordinate system
+      // We only care about the change along the node's x-axis for width
+      const dx_local = dx * cos + dy * sin;
+      
+      // Apply change based on which handle is dragged
       const newWidth = direction === 'left'
-        ? startWidth - dx
-        : startWidth + dx;
+        ? startWidth - dx_local
+        : startWidth + dx_local;
+
       updateAttributes({ width: `${Math.max(50, newWidth)}px` });
     };
 
@@ -145,56 +158,54 @@ const MediaResizeComponent = (props: NodeViewProps) => {
     { pos: 'top-1/2 -translate-y-1/2 left-[-6px]', cursor: 'cursor-ew-resize', direction: 'left' },
   ];
   
-  const wrapperStyle: React.CSSProperties = { width };
-  if (float === 'center' || !float) {
-      wrapperStyle.display = 'block'; // Make sure it's a block for auto margins to work
-      wrapperStyle.marginLeft = 'auto';
-      wrapperStyle.marginRight = 'auto';
-  }
+  const wrapperStyle: React.CSSProperties = { 
+      width,
+      transform: `rotate(${rotation}deg)` 
+  };
+  
+  const centeringClasses = float === 'center' ? 'mx-auto' : '';
 
   return (
     <NodeViewWrapper
       ref={containerRef}
-      as="div"
+      as="span" // Using span with inline-block helps tiptap treat it as a single unit
       className={cn(
-        'rich-text-media-node group clear-both relative',
+        'rich-text-media-node group clear-both relative inline-block',
         float === 'left' && 'mr-4 float-left',
         float === 'right' && 'ml-4 float-right',
+        centeringClasses,
         selected && 'outline-2 outline-primary outline-dashed'
       )}
       style={wrapperStyle}
     >
-      <div style={{ transform: `rotate(${rotation}deg)` }}>
-          {isImage && (
-            <img src={node.attrs.src} alt={node.attrs.alt} className="w-full h-auto block" />
-          )}
-          {isVideo && (
-            <div className="aspect-video w-full relative">
-                <iframe
-                  className="absolute inset-0 w-full h-full"
-                  src={node.attrs.src}
-                  frameBorder="0"
-                  allowFullScreen
-                  style={{ pointerEvents: 'none' }}
-                />
-            </div>
-          )}
-      </div>
+      {isImage && (
+        <img src={node.attrs.src} alt={node.attrs.alt} className="w-full h-auto block" draggable="true" data-drag-handle />
+      )}
+      {isVideo && (
+        <div className="aspect-video w-full relative">
+            <iframe
+              className="absolute inset-0 w-full h-full"
+              src={node.attrs.src}
+              frameBorder="0"
+              allowFullScreen
+              style={{ pointerEvents: 'none' }}
+            />
+        </div>
+      )}
       
       {selected && (
         <>
-          <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex gap-1 bg-card p-1 rounded-md shadow-lg border border-border">
+          <div 
+            className="absolute -top-10 left-1/2 flex gap-1 bg-card p-1 rounded-md shadow-lg border border-border"
+            style={{ transform: `translateX(-50%) rotate(-${rotation}deg)` }}
+          >
             <Button type="button" size="icon" variant={float === 'left' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('left')} title="Align left"><AlignLeft className="w-4 h-4" /></Button>
             <Button type="button" size="icon" variant={!float || float === 'center' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('center')} title="Align center"><AlignCenter className="w-4 h-4" /></Button>
             <Button type="button" size="icon" variant={float === 'right' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('right')} title="Align right"><AlignRight className="w-4 h-4" /></Button>
             <Button type="button" size="icon" variant='ghost' className="h-7 w-7" onClick={() => updateAttributes({ rotate: (rotation + 90) % 360 })} title="Rotate"><RotateCcw className="w-4 h-4" /></Button>
           </div>
 
-          <div 
-            className="absolute inset-0 pointer-events-none"
-            style={{ transform: `rotate(${rotation}deg)` }}
-          >
-            {handles.map((handle, index) => (
+          {handles.map((handle, index) => (
               <div
                 key={index}
                 className={cn(
@@ -206,7 +217,6 @@ const MediaResizeComponent = (props: NodeViewProps) => {
                 onMouseDown={createResizeHandler(handle.direction as 'left' | 'right' | 'none')}
               />
             ))}
-          </div>
         </>
       )}
     </NodeViewWrapper>
@@ -214,6 +224,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
 };
 
 const CustomImage = TiptapImage.extend({
+  draggable: true,
   addAttributes() {
     return {
       ...this.parent?.(),
@@ -245,8 +256,8 @@ const CustomImage = TiptapImage.extend({
         },
         parseHTML: element => {
           const transform = element.style.transform;
-          const match = transform?.match(/rotate\((\d+)deg\)/);
-          return match ? parseInt(match[1], 10) : 0;
+          const match = transform?.match(/rotate\(([\d.-]+)deg\)/);
+          return match ? parseFloat(match[1]) : 0;
         },
       },
     };
@@ -257,6 +268,7 @@ const CustomImage = TiptapImage.extend({
 });
 
 const CustomYoutube = Youtube.extend({
+    draggable: true,
     addAttributes() {
         return {
             ...this.parent?.(),
@@ -288,8 +300,8 @@ const CustomYoutube = Youtube.extend({
               },
               parseHTML: element => {
                 const transform = element.style.transform;
-                const match = transform?.match(/rotate\((\d+)deg\)/);
-                return match ? parseInt(match[1], 10) : 0;
+                const match = transform?.match(/rotate\(([\d.-]+)deg\)/);
+                return match ? parseFloat(match[1]) : 0;
               },
             },
         }
@@ -463,14 +475,15 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
       Placeholder.configure({ placeholder: "Share the details of your resource..." }),
       TiptapLink.configure({ openOnClick: false, autolink: true, HTMLAttributes: { class: 'text-primary hover:text-accent transition-colors cursor-pointer underline' } }),
       CustomImage.configure({
-        inline: false,
+        inline: true, // Set to true to allow flowing with text initially
         allowBase64: true,
       }),
       CustomYoutube.configure({
+        inline: true, // Same for youtube
         controls: false,
         nocookie: true,
       }),
-      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      TextAlign.configure({ types: ['paragraph'] }),
       Color,
       Underline,
     ],

@@ -103,7 +103,22 @@ export function ResourceCard({ resource, compact = false, onHoverChange, onOverf
     : null;
 
   const SectionIcon = sectionIconMap[resource.parentItemType];
-  const imageGalleryForOverlay = resource.imageGallery && resource.imageGallery.length > 0 ? resource.imageGallery : (resource.imageUrl ? [resource.imageUrl] : []);
+  
+  const imageGalleryForOverlay: string[] = [];
+  if (resource.showMainImageInGallery !== false && resource.imageUrl) {
+      imageGalleryForOverlay.push(resource.imageUrl);
+  }
+  if (resource.imageGallery && resource.imageGallery.length > 0) {
+      resource.imageGallery.forEach(imgUrl => {
+          if (!imageGalleryForOverlay.includes(imgUrl)) {
+              imageGalleryForOverlay.push(imgUrl);
+          }
+      });
+  }
+  if (imageGalleryForOverlay.length === 0 && resource.imageUrl) {
+      imageGalleryForOverlay.push(resource.imageUrl);
+  }
+
   const hasGalleryForOverlay = imageGalleryForOverlay.length > 0;
   
   const resourcePath = `/${getItemTypePlural(resource.parentItemType)}/${resource.parentItemSlug}/${resource.categorySlug}/${resource.slug}`;

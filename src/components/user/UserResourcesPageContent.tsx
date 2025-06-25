@@ -6,12 +6,12 @@ import { useState, useEffect, useCallback, useRef, useTransition, useMemo } from
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import type { Resource, UserProfile, ItemWithDetails, ItemType, Category } from '@/lib/types';
 import { ResourceCard } from '@/components/resource/ResourceCard';
-import { Loader2, Search } from 'lucide-react';
+import { Loader2, Search, ListFilter } from 'lucide-react';
 import { fetchPaginatedAuthorResourcesAction } from '@/app/actions/resourceActions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { ITEM_TYPE_NAMES } from '@/lib/types';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 
@@ -91,10 +91,11 @@ export function UserResourcesPageContent({
         searchQuery: currentSearchParams.get('q') || undefined,
         page,
         limit: resourcesPerPage,
+        sortBy: currentSearchParams.get('q') ? 'relevance' : 'updated_at',
       };
 
       try {
-        const data = await fetchPaginatedAuthorResourcesAction(params);
+        const data = await fetchPaginatedAuthorResourcesAction(params as any);
         if (page === 1 || options?.isNewFilter) {
           setResources(data.resources);
           setCurrentPage(1);
@@ -175,8 +176,14 @@ export function UserResourcesPageContent({
   return (
     <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
       <aside className="md:col-span-3 lg:col-span-3 space-y-6">
-        <Card className="p-4 bg-card/80 backdrop-blur-sm shadow-md sticky top-24">
-            <CardContent className="p-0">
+        <Card className="bg-card/80 backdrop-blur-sm shadow-md sticky top-24">
+            <CardHeader className="pb-3 pt-4 px-4">
+                <CardTitle className="text-lg flex items-center">
+                    <ListFilter className="w-5 h-5 mr-2 text-primary" />
+                    Filters
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 pt-2">
                 <div className="space-y-4">
                 <div>
                     <Label htmlFor="section-filter" className="text-xs">Section</Label>

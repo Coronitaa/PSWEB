@@ -1056,7 +1056,7 @@ export async function getAuthorPublishedResources(
   userId: string,
   options: {
     limit?: number;
-    sortBy?: 'updated_at' | 'created_at' | 'downloads' | 'rating';
+    sortBy?: 'updated_at' | 'created_at' | 'downloads' | 'rating' | 'relevance';
     order?: 'ASC' | 'DESC';
     excludeIds?: string[];
     itemType?: ItemType;
@@ -1069,7 +1069,6 @@ export async function getAuthorPublishedResources(
   const db = await getDb();
   const { limit = 12, sortBy = 'created_at', order = 'DESC', excludeIds = [], itemType, parentItemId, categoryId, page = 1, searchQuery } = options;
 
-  let countQuery = `SELECT COUNT(r.id) as total FROM resources r JOIN items pi ON r.parent_item_id = pi.id WHERE`;
   let baseQuery = `
     SELECT r.*,
            p.name as author_name, p.usertag as author_usertag, p.avatar_url as author_avatar_url,
@@ -1082,53 +1081,56 @@ export async function getAuthorPublishedResources(
   `;
   
   const whereClauses: string[] = ["r.author_id = ?", "r.status = 'published'"];
-  const queryParams: any[] = [userId];
+  const whereQueryParams: any[] = [userId];
 
   if (excludeIds && excludeIds.length > 0) {
     whereClauses.push(`r.id NOT IN (${excludeIds.map(() => '?').join(',')})`);
-    queryParams.push(...excludeIds);
+    whereQueryParams.push(...excludeIds);
   }
 
   if (itemType) {
     whereClauses.push("pi.item_type = ?");
-    queryParams.push(itemType);
+    whereQueryParams.push(itemType);
   }
   if (parentItemId) {
     whereClauses.push("r.parent_item_id = ?");
-    queryParams.push(parentItemId);
+    whereQueryParams.push(parentItemId);
   }
   if (categoryId) {
     whereClauses.push("r.category_id = ?");
-    queryParams.push(categoryId);
+    whereQueryParams.push(categoryId);
   }
   if (searchQuery) {
-    whereClauses.push('(LOWER(r.name) LIKE LOWER(?) OR LOWER(r.description) LIKE LOWER(?))');
-    queryParams.push(`%${searchQuery}%`, `%${searchQuery}%`);
+    whereClauses.push('(LOWER(r.name) LIKE LOWER(?) OR LOWER(r.description) LIKE LOWER(?) OR LOWER(c.description) LIKE LOWER(?))');
+    whereQueryParams.push(`%${searchQuery}%`, `%${searchQuery}%`, `%${searchQuery}%`);
   }
 
   const whereString = whereClauses.join(' AND ');
   baseQuery += ' WHERE ' + whereString;
-  countQuery += ' ' + whereString;
   
-  let orderByField = 'r.created_at';
-  if (sortBy === 'updated_at') orderByField = 'r.updated_at';
-  else if (sortBy === 'downloads') orderByField = 'r.downloads';
-  else if (sortBy === 'rating') orderByField = 'r.rating';
+  const countQuery = `SELECT COUNT(r.id) as total FROM resources r JOIN items pi ON r.parent_item_id = pi.id JOIN categories c ON r.category_id = c.id WHERE ${whereString}`;
+  const totalRow = await db.get(countQuery, ...whereQueryParams);
+  const total = totalRow?.total || 0;
+  
+  let fullQueryParams = [...whereQueryParams];
   
   if (searchQuery && sortBy === 'relevance') {
-    baseQuery += ` ORDER BY CASE WHEN LOWER(r.name) = LOWER(?) THEN 0 ELSE 1 END, CASE WHEN LOWER(r.name) LIKE LOWER(?) THEN 1 ELSE 2 END, r.downloads DESC`;
-    queryParams.push(searchQuery.toLowerCase(), `${searchQuery}%`);
+    baseQuery += ` ORDER BY CASE WHEN LOWER(r.name) = LOWER(?) THEN 0 ELSE 1 END, CASE WHEN LOWER(r.name) LIKE LOWER(?) THEN 1 ELSE 2 END, CASE WHEN LOWER(c.description) LIKE LOWER(?) THEN 3 ELSE 4 END, r.downloads DESC`;
+    fullQueryParams.push(searchQuery.toLowerCase(), `${searchQuery}%`, `%${searchQuery}%`);
   } else {
+    let orderByField = 'r.created_at';
+    if (sortBy === 'updated_at') orderByField = 'r.updated_at';
+    else if (sortBy === 'downloads') orderByField = 'r.downloads';
+    else if (sortBy === 'rating') orderByField = 'r.rating';
     baseQuery += ` ORDER BY ${orderByField} ${order === 'ASC' ? 'ASC' : 'DESC'}`;
   }
 
 
   const offset = (page - 1) * limit;
   baseQuery += ` LIMIT ? OFFSET ?`;
+  fullQueryParams.push(limit, offset);
   
-  const resourceRows = await db.all(baseQuery, ...queryParams, limit, offset);
-  const totalRow = await db.get(countQuery, ...queryParams.slice(0, queryParams.length - (searchQuery ? 2 : 0) ));
-  const total = totalRow?.total || 0;
+  const resourceRows = await db.all(baseQuery, ...fullQueryParams);
   const hasMore = page * limit < total;
   
   if (!resourceRows) return { resources: [], total: 0, hasMore: false };

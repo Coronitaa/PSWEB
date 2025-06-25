@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useEditor, EditorContent, BubbleMenu, type Editor } from '@tiptap/react';
 import { Extension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
@@ -15,7 +15,7 @@ import TextStyle from '@tiptap/extension-text-style';
 import Underline from '@tiptap/extension-underline';
 import { 
   Bold, Italic, Link as LinkIcon, List, ListOrdered, Strikethrough, Underline as UnderlineIcon,
-  AlignLeft, AlignCenter, AlignRight, Image as ImageIcon, Video, Palette
+  AlignLeft, AlignCenter, AlignRight, Image as ImageIcon, Video, Palette, Heading2, Heading3
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -140,10 +140,12 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
   };
 
   const fontSizes = [
-    { label: 'Small', value: '14px' },
-    { label: 'Normal', value: '_default_size_' },
-    { label: 'Large', value: '18px' },
-    { label: 'X-Large', value: '24px' },
+    { label: 'Just a little peek', value: '12px' },
+    { label: 'Perfectly average', value: '14px' },
+    { label: 'Comfortably numb', value: '_default_size_' },
+    { label: 'Making a statement', value: '18px' },
+    { label: 'Hard to miss', value: '24px' },
+    { label: 'Absolutely massive', value: '30px' },
   ];
 
   return (
@@ -159,12 +161,12 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
                 }
             }}
         >
-          <SelectTrigger className="w-28 h-8 text-xs">
+          <SelectTrigger className="w-40 h-8 text-xs">
               <SelectValue placeholder="Text size" />
           </SelectTrigger>
           <SelectContent>
               {fontSizes.map(size => (
-                  <SelectItem key={size.label} value={size.value} style={{ fontSize: size.value === '_default_size_' ? '16px' : size.value }}>{size.label}</SelectItem>
+                  <SelectItem key={size.label} value={size.value} className="text-xs" style={{ fontSize: size.value === '_default_size_' ? '16px' : size.value }}>{size.label}</SelectItem>
               ))}
           </SelectContent>
         </Select>

@@ -115,9 +115,6 @@ export function ResourceCard({ resource, compact = false, onHoverChange, onOverf
           }
       });
   }
-  if (imageGalleryForOverlay.length === 0 && resource.imageUrl) {
-      imageGalleryForOverlay.push(resource.imageUrl);
-  }
 
   const hasGalleryForOverlay = imageGalleryForOverlay.length > 0;
   

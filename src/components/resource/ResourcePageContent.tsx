@@ -1,4 +1,5 @@
 
+
 "use client"; 
 
 import { useState, useEffect } from 'react'; 
@@ -149,7 +150,6 @@ export function ResourcePageContent({ resource, relatedResources }: ResourcePage
                   {resource.files && resource.files.length > 0 ? (
                     <ResourceFilesTabContent
                         files={resource.files}
-                        allChangelogEntries={resource.changelogEntries || []}
                         resourceId={resource.id}
                         dynamicAvailableFileTagGroups={dynamicAvailableFileTagGroups}
                     />

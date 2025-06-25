@@ -13,15 +13,13 @@ import { cn } from '@/lib/utils';
 import { formatTimeAgo } from '@/lib/utils';
 import { incrementResourceDownloadCountAction } from '@/app/actions/resourceActions';
 import { useToast } from '@/hooks/use-toast';
+import { format, parseISO, isValid } from 'date-fns';
 
 interface ResourceFilesTabContentProps {
   files: ResourceFile[];
-  allChangelogEntries?: ChangelogEntry[]; // This might be redundant if changelogNotes are on file objects
   resourceId: string; // ID del recurso padre
   dynamicAvailableFileTagGroups: DynamicAvailableFilterTags;
 }
-
-const CLEAR_FILTER_VALUE = "_ANY_";
 
 const SimpleMarkdown: React.FC<{ text: string }> = ({ text }) => {
   return (
@@ -39,6 +37,35 @@ const SimpleMarkdown: React.FC<{ text: string }> = ({ text }) => {
       })}
     </div>
   );
+};
+
+// New component to handle client-side relative time rendering safely
+const ClientRelativeTime: React.FC<{ dateString: string }> = ({ dateString }) => {
+  const getInitialFormat = (dateStr: string): string => {
+    try {
+      let processedDateString = dateStr;
+      if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d{1,3})?$/.test(dateStr)) {
+        processedDateString = dateStr.replace(' ', 'T') + 'Z';
+      } else if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?$/.test(dateStr) && !dateStr.endsWith('Z')) {
+        processedDateString = dateStr + 'Z';
+      }
+      const parsedDate = parseISO(processedDateString);
+      if (isValid(parsedDate)) {
+        return format(parsedDate, 'MMM d, yyyy HH:mm');
+      }
+    } catch (e) { /* ignore */ }
+    return dateStr;
+  };
+
+  // Set the initial state to match the server-rendered value
+  const [formattedDate, setFormattedDate] = useState(() => getInitialFormat(dateString));
+
+  useEffect(() => {
+    // After hydration, update to the client-side relative time
+    setFormattedDate(formatTimeAgo(dateString));
+  }, [dateString]);
+
+  return <>{formattedDate}</>;
 };
 
 export function ResourceFilesTabContent({ files, resourceId, dynamicAvailableFileTagGroups }: ResourceFilesTabContentProps) {
@@ -75,6 +102,7 @@ export function ResourceFilesTabContent({ files, resourceId, dynamicAvailableFil
   }, [files, selectedChannelId, selectedFileTagFilters]);
   
   const hasActiveFilters = selectedChannelId || Object.values(selectedFileTagFilters).some(v => v !== undefined);
+  const CLEAR_FILTER_VALUE = "_ANY_";
 
   const handleClearFilters = () => {
     setSelectedChannelId(undefined);
@@ -199,8 +227,7 @@ export function ResourceFilesTabContent({ files, resourceId, dynamicAvailableFil
         <ul className="space-y-4">
           {filteredFiles.map(file => {
             const channelClasses = getChannelSpecificClasses(file.channel);
-            const fileDate = file.updatedAt || file.createdAt; // Use updated_at (set at creation) or fallback to createdAt
-            const fileDateFormatted = fileDate ? formatTimeAgo(fileDate) : 'N/A';
+            const fileDate = file.updatedAt || file.createdAt;
 
             return (
             <li
@@ -227,7 +254,8 @@ export function ResourceFilesTabContent({ files, resourceId, dynamicAvailableFil
                     <span>Version: {file.versionName}</span>
                     {file.size && <span>Size: {file.size}</span>}
                     <span className="flex items-center">
-                        <CalendarDays className="w-3 h-3 mr-1 text-accent/80"/> {fileDateFormatted}
+                        <CalendarDays className="w-3 h-3 mr-1 text-accent/80"/>
+                        {fileDate ? <ClientRelativeTime dateString={fileDate} /> : 'N/A'}
                     </span>
                   </div>
                   

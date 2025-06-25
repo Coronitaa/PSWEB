@@ -453,20 +453,19 @@ export function ResourceForm({
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit, (errors) => console.error("Form validation errors:", JSON.stringify(errors, null, 2)))} className="flex flex-col flex-grow min-h-0">
-      <Tabs defaultValue="general" className="w-full flex flex-col flex-grow min-h-0">
-        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 mb-6 bg-card-foreground/5 rounded-lg shrink-0">
-          <TabsTrigger value="general">General</TabsTrigger>
-          <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="visuals">Visuals</TabsTrigger>
-          <TabsTrigger value="files">Files</TabsTrigger>
-          <TabsTrigger value="tags">Tags</TabsTrigger>
-          <TabsTrigger value="links">Links</TabsTrigger>
-        </TabsList>
-
-        <Card className="bg-card/80 backdrop-blur-sm shadow-lg border-none flex flex-col flex-grow min-h-0">
-          <div className="flex-grow overflow-y-auto custom-scrollbar">
-            <CardContent className="p-0">
-              <TabsContent value="general" className="p-6 space-y-6">
+      <Card className="bg-card/80 backdrop-blur-sm shadow-lg border-none flex flex-col flex-grow min-h-0">
+        <Tabs defaultValue="general" className="w-full flex flex-col flex-grow min-h-0">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 mb-4 bg-card-foreground/5 rounded-lg shrink-0 mx-6 mt-6">
+            <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="visuals">Visuals</TabsTrigger>
+            <TabsTrigger value="files">Files</TabsTrigger>
+            <TabsTrigger value="tags">Tags</TabsTrigger>
+            <TabsTrigger value="links">Links</TabsTrigger>
+          </TabsList>
+  
+          <div className="flex-grow overflow-y-auto min-h-0">
+              <TabsContent value="general" className="p-6 pt-2 space-y-6 m-0">
                 <CardTitle className="text-xl mb-4">Basic Information</CardTitle>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
@@ -512,27 +511,29 @@ export function ResourceForm({
                 {form.formState.errors.selectedDynamicTags?.root && <p className="text-sm text-destructive mt-2 bg-destructive/10 p-2 rounded-md flex items-center"><Info className="w-4 h-4 mr-2"/>{form.formState.errors.selectedDynamicTags.root.message}</p>}
                 {form.formState.errors.files?.root && <p className="text-sm text-destructive mt-2 bg-destructive/10 p-2 rounded-md flex items-center"><Info className="w-4 h-4 mr-2"/>{form.formState.errors.files.root.message}</p>}
               </TabsContent>
-
-              <TabsContent value="details" className="p-6 space-y-6">
+  
+              <TabsContent value="details" className="p-6 pt-2 space-y-6 m-0">
                 <CardTitle className="text-xl mb-4">Detailed Information</CardTitle>
                 <div><Label htmlFor="detailedDescription">Detailed Description (Markdown)</Label><Textarea id="detailedDescription" {...form.register('detailedDescription')} rows={10} /></div>
                 {form.formState.errors.detailedDescription && <p className="text-xs text-destructive mt-1">{form.formState.errors.detailedDescription.message}</p>}
                 <div><Label htmlFor="requirements">Requirements (Markdown)</Label><Textarea id="requirements" {...form.register('requirements')} rows={5} /></div>
                 {form.formState.errors.requirements && <p className="text-xs text-destructive mt-1">{form.formState.errors.requirements.message}</p>}
               </TabsContent>
-
-              <TabsContent value="visuals" className="p-6 space-y-6">
+  
+              <TabsContent value="visuals" className="p-6 pt-2 space-y-6 m-0">
                 <CardTitle className="text-xl mb-4 flex items-center"><ImageIcon className="w-5 h-5 mr-2 text-primary" />Visuals</CardTitle>
                 
-                <div className="space-y-2">
-                    <Label>Main Image</Label>
-                    <div className="flex gap-4 items-start">
-                        <ImagePreview watchUrl={watchedImageUrl} alt="Main Image Preview" fallbackText="Main Image Preview" className="h-28 w-48 shrink-0"/>
-                        <div className="w-1/2">
-                            <Input id="imageUrl" {...form.register('imageUrl')} placeholder="https://..." />
-                            {form.formState.errors.imageUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageUrl.message}</p>}
-                        </div>
-                    </div>
+                <div className="space-y-4">
+                  <Label>Main Image</Label>
+                  <div className="grid grid-cols-12 gap-4">
+                      <div className="col-span-5">
+                          <ImagePreview watchUrl={watchedImageUrl} alt="Main Image Preview" fallbackText="Main Image Preview" className="h-28 shrink-0"/>
+                      </div>
+                      <div className="col-span-7">
+                          <Input id="imageUrl" {...form.register('imageUrl')} placeholder="https://..." />
+                          {form.formState.errors.imageUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageUrl.message}</p>}
+                      </div>
+                  </div>
                 </div>
 
                 <Separator />
@@ -540,13 +541,13 @@ export function ResourceForm({
                 <div className="space-y-2">
                     <Label>Image Gallery</Label>
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                        <div className="lg:col-span-5">
+                        <div className="lg:col-span-7">
                             <div className="mt-1 rounded-lg border bg-background/30 min-h-[220px] p-2">
                                 <ImageGalleryCarousel images={galleryImagesForPreview} />
                             </div>
                         </div>
-                        <div className="lg:col-span-7 space-y-2">
-                            <div className="border rounded-md bg-muted/30 p-4 h-full overflow-y-auto space-y-2">
+                        <div className="lg:col-span-5 space-y-2">
+                            <div className="border rounded-md bg-muted/30 p-2 space-y-2 h-[236px] overflow-y-auto custom-scrollbar">
                               {galleryFields.map((field, index) => (
                                 <div 
                                   key={field.id}
@@ -577,8 +578,8 @@ export function ResourceForm({
 
                 {form.formState.errors.imageGallery && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageGallery.message}</p>}
               </TabsContent>
-
-              <TabsContent value="files" className="p-6 flex flex-col h-full">
+  
+              <TabsContent value="files" className="p-6 pt-2 flex flex-col h-full m-0">
                   <div className="flex justify-between items-center mb-4 shrink-0">
                       <CardTitle className="text-xl flex items-center"><Archive className="w-5 h-5 mr-2 text-primary" />File Versions</CardTitle>
                       <Button type="button" variant="outline" size="sm" onClick={openNewFileDialog} className="button-outline-glow"><FileUp className="mr-2 h-4 w-4" />Add File Version</Button>
@@ -586,14 +587,14 @@ export function ResourceForm({
                   {form.formState.errors.files?.root && <p className="text-sm text-destructive mb-2 bg-destructive/10 p-2 rounded-md flex items-center shrink-0"><Info className="w-4 h-4 mr-2"/>{form.formState.errors.files.root.message}</p>}
                   {form.formState.errors.files?.message && <p className="text-xs text-destructive mt-1 shrink-0">{form.formState.errors.files.message}</p>}
                   
-                  <div className="flex-grow overflow-y-auto pr-3 -mr-3 custom-scrollbar">
+                  <div className="space-y-3">
                       {fileFields.length === 0 ? (
                           <div className="text-sm text-muted-foreground text-center py-4 flex-grow flex items-center justify-center">
                               No file versions added. Click "Add File Version" to start.
                           </div>
                       ) : (
-                          <div className="space-y-3">
-                              {fileFields.map((field, index) => {
+                          
+                              fileFields.map((field, index) => {
                               const fileData = form.watch(`files.${index}`);
                               const channelInfo = FILE_CHANNELS.find(c => c.id === fileData.channelId);
                               const channelColorStyle = channelInfo ? { borderColor: channelInfo.borderColor || channelInfo.color } : { borderColor: 'hsl(var(--border))' };
@@ -638,13 +639,13 @@ export function ResourceForm({
                                   </div>
                                   </div>
                               </Card>
-                              );})}
-                          </div>
+                              );})
+                          
                       )}
                   </div>
               </TabsContent>
-
-              <TabsContent value="tags" className="p-6 space-y-6">
+  
+              <TabsContent value="tags" className="p-6 pt-2 space-y-6 m-0">
                 <CardTitle className="text-xl mb-4 flex items-center"><Sparkles className="w-5 h-5 mr-2 text-primary" />Resource Tags</CardTitle>
                 {form.formState.errors.selectedDynamicTags?.root && <p className="text-sm text-destructive mb-2 bg-destructive/10 p-2 rounded-md flex items-center"><Info className="w-4 h-4 mr-2"/>{form.formState.errors.selectedDynamicTags.root.message}</p>}
                 {dynamicTagGroups.length > 0 ? (
@@ -677,8 +678,8 @@ export function ResourceForm({
                   </div>
                 ) : (<p className="text-sm text-muted-foreground">No tag groups configured for this resource's category.</p>)}
               </TabsContent>
-
-              <TabsContent value="links" className="p-6 space-y-6">
+  
+              <TabsContent value="links" className="p-6 pt-2 space-y-6 m-0">
                 <CardTitle className="text-xl mb-4 flex items-center"><LinkIconLucide className="w-5 h-5 mr-2 text-primary" />External Links</CardTitle>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div><Label htmlFor="links.discord">Discord URL</Label><Input id="links.discord" {...form.register('links.discord')} />{form.formState.errors.links?.discord && <p className="text-xs text-destructive mt-1">{form.formState.errors.links.discord.message}</p>}</div>
@@ -688,8 +689,8 @@ export function ResourceForm({
                   <div><Label htmlFor="links.projectUrl">Main Project/Resource Site</Label><Input id="links.projectUrl" {...form.register('links.projectUrl')} />{form.formState.errors.links?.projectUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.links.projectUrl.message}</p>}</div>
                 </div>
               </TabsContent>
-            </CardContent>
-          </div>
+            </div>
+  
           <CardFooter className="flex justify-between items-center border-t border-border/20 pt-6 p-6 shrink-0">
             <div>
               {(!isLoadingRole && !isNew && initialData?.id && (currentUserRole === 'admin' || currentUserRole === 'mod')) && (
@@ -704,8 +705,8 @@ export function ResourceForm({
             </div>
             <Button type="submit" className="button-primary-glow" disabled={isSaving || isLoadingRole}>{(isSaving || isLoadingRole) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}<Save className="mr-2 h-4 w-4" />{isNew ? 'Create Resource' : 'Save Changes'}</Button>
           </CardFooter>
-        </Card>
-      </Tabs>
+        </Tabs>
+      </Card>
 
       <Dialog open={isFileModalOpen} onOpenChange={(open) => { if (!open) setEditingFileIndex(null); setIsFileModalOpen(open); }}>
         <DialogContent className="sm:max-w-lg md:max-w-xl lg:max-w-2xl max-h-[85vh] flex flex-col p-0">

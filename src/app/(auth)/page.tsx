@@ -1,9 +1,5 @@
-
-import AdminDashboardPage from '@/app/admin/page'; // Import the actual dashboard content
-
-export default function AuthenticatedRootPage() {
-  // This page is the content for the /admin route.
-  // The AdminSidebar is already provided by the (auth)/layout.tsx file.
-  // We render the content of the admin dashboard here.
-  return <AdminDashboardPage />;
+// This file is being removed as part of a structural refactor.
+// The content for the admin dashboard is handled by /src/app/admin/page.tsx.
+export default function RemovedAuthPage() {
+  return null;
 }

@@ -3,7 +3,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import type { ItemWithDetails, GenericListItem } from '@/lib/types';
-import { ItemCard } from '@/components/game/GameCard';
+import { ItemCard } from '@/components/shared/ItemCard';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, ListFilter, TabletSmartphone } from 'lucide-react';
@@ -121,8 +121,6 @@ export function AppItemsPageContent({ initialItems }: { initialItems: ItemWithDe
               <ItemCard 
                 key={item.id} 
                 item={item}
-                categories={item.categories} 
-                stats={item.stats} 
                 basePath="/apps"
               />
             ))}

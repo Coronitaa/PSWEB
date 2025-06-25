@@ -117,16 +117,23 @@ export function EditProfileModal({ profile, isOpen, onOpenChange }: EditProfileM
   
   const handleOpenAvatarEditor = () => {
     const url = form.getValues('avatarUrl');
-    if (url && (url.startsWith('http') || url.startsWith('data:image'))) {
-        setImageToCrop(url);
-        setIsAvatarEditorOpen(true);
-    } else {
+    if (!url || !(url.startsWith('http') || url.startsWith('data:image'))) {
         toast({
             title: "Invalid URL",
             description: "Please enter a valid image URL to edit the avatar.",
             variant: "destructive"
-        })
+        });
+        return;
     }
+    if (url.toLowerCase().endsWith('.gif')) {
+        toast({
+            title: "Animated GIFs cannot be cropped",
+            description: "The GIF will be used as-is. Cropping is disabled for animated images.",
+        });
+        return;
+    }
+    setImageToCrop(url);
+    setIsAvatarEditorOpen(true);
   };
 
   const handleAvatarSave = (croppedImage: string) => {
@@ -136,16 +143,23 @@ export function EditProfileModal({ profile, isOpen, onOpenChange }: EditProfileM
 
   const handleOpenBannerEditor = () => {
     const url = form.getValues('bannerUrl');
-    if (url && (url.startsWith('http') || url.startsWith('data:image'))) {
-        setBannerImageToCrop(url);
-        setIsBannerEditorOpen(true);
-    } else {
+    if (!url || !(url.startsWith('http') || url.startsWith('data:image'))) {
         toast({
             title: "Invalid URL",
             description: "Please enter a valid image URL to edit the banner.",
             variant: "destructive"
-        })
+        });
+        return;
     }
+    if (url.toLowerCase().endsWith('.gif')) {
+        toast({
+            title: "Animated GIFs cannot be cropped",
+            description: "The GIF will be used as-is. Cropping is disabled for animated images.",
+        });
+        return;
+    }
+    setBannerImageToCrop(url);
+    setIsBannerEditorOpen(true);
   };
 
   const handleBannerSave = (croppedImage: string) => {

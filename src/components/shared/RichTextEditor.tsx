@@ -1,7 +1,7 @@
 
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useEditor, EditorContent, BubbleMenu, type Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -20,88 +20,146 @@ import {
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
 const Toolbar = ({ editor }: { editor: Editor | null }) => {
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [url, setUrl] = useState('');
+
   if (!editor) {
     return null;
   }
 
-  const setLink = () => {
+  const openLinkModal = () => {
     const previousUrl = editor.getAttributes('link').href;
-    const url = window.prompt('URL', previousUrl);
+    setUrl(previousUrl || '');
+    setIsLinkModalOpen(true);
+  };
+  
+  const setLink = () => {
     if (url === null) return;
     if (url === '') {
       editor.chain().focus().extendMarkRange('link').unsetLink().run();
-      return;
+    } else {
+      editor.chain().focus().extendMarkRange('link').setLink({ href: url, target: '_blank' }).run();
     }
-    editor.chain().focus().extendMarkRange('link').setLink({ href: url, target: '_blank' }).run();
+    setIsLinkModalOpen(false);
+    setUrl('');
   };
-  
+
   const addImage = () => {
-    const url = window.prompt('Image URL');
     if (url) {
       editor.chain().focus().setImage({ src: url }).run();
     }
+    setIsImageModalOpen(false);
+    setUrl('');
   };
 
   const addYoutubeVideo = () => {
-    const url = prompt('Enter YouTube URL');
     if (url) {
       editor.chain().focus().setYoutubeVideo({ src: url }).run();
     }
+    setIsVideoModalOpen(false);
+    setUrl('');
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-1 p-1">
-      <Select
-        value={
-            editor.isActive('heading', { level: 2 }) ? 'h2' :
-            editor.isActive('heading', { level: 3 }) ? 'h3' : 'p'
-        }
-        onValueChange={(value) => {
-            if (value === 'p') editor.chain().focus().setParagraph().run();
-            if (value === 'h2') editor.chain().focus().toggleHeading({ level: 2 }).run();
-            if (value === 'h3') editor.chain().focus().toggleHeading({ level: 3 }).run();
-        }}
-      >
-        <SelectTrigger className="w-28 h-8 text-xs">
-            <SelectValue placeholder="Text style" />
-        </SelectTrigger>
-        <SelectContent>
-            <SelectItem value="p">Paragraph</SelectItem>
-            <SelectItem value="h2">Heading 2</SelectItem>
-            <SelectItem value="h3">Heading 3</SelectItem>
-        </SelectContent>
-      </Select>
-      <Separator orientation="vertical" className="h-6" />
-      <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleBold().run()} className={cn("h-8 w-8", editor.isActive('bold') && "bg-muted text-primary")}><Bold className="h-4 w-4" /></Button>
-      <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleItalic().run()} className={cn("h-8 w-8", editor.isActive('italic') && "bg-muted text-primary")}><Italic className="h-4 w-4" /></Button>
-      <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleUnderline().run()} className={cn("h-8 w-8", editor.isActive('underline') && "bg-muted text-primary")}><UnderlineIcon className="h-4 w-4" /></Button>
-      <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleStrike().run()} className={cn("h-8 w-8", editor.isActive('strike') && "bg-muted text-primary")}><Strikethrough className="h-4 w-4" /></Button>
-      <Separator orientation="vertical" className="h-6" />
-       <Button variant="ghost" size="icon" className="h-8 w-8 p-1.5 relative">
-            <Palette className="h-4 w-4"/>
-            <input
-              type="color"
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              onInput={(event) => editor.chain().focus().setColor((event.target as HTMLInputElement).value).run()}
-              value={editor.getAttributes('textStyle').color || '#ffffff'}
-              data-testid="setColor"
-            />
-        </Button>
-      <Separator orientation="vertical" className="h-6" />
-      <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().setTextAlign('left').run()} className={cn("h-8 w-8", editor.isActive({ textAlign: 'left' }) && "bg-muted text-primary")}><AlignLeft className="h-4 w-4" /></Button>
-      <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().setTextAlign('center').run()} className={cn("h-8 w-8", editor.isActive({ textAlign: 'center' }) && "bg-muted text-primary")}><AlignCenter className="h-4 w-4" /></Button>
-      <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().setTextAlign('right').run()} className={cn("h-8 w-8", editor.isActive({ textAlign: 'right' }) && "bg-muted text-primary")}><AlignRight className="h-4 w-4" /></Button>
-      <Separator orientation="vertical" className="h-6" />
-      <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleBulletList().run()} className={cn("h-8 w-8", editor.isActive('bulletList') && "bg-muted text-primary")}><List className="h-4 w-4" /></Button>
-      <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleOrderedList().run()} className={cn("h-8 w-8", editor.isActive('orderedList') && "bg-muted text-primary")}><ListOrdered className="h-4 w-4" /></Button>
-      <Separator orientation="vertical" className="h-6" />
-      <Button type="button" variant="ghost" size="icon" onClick={setLink} className={cn("h-8 w-8", editor.isActive('link') && "bg-muted text-primary")}><Link className="h-4 w-4" /></Button>
-      <Button type="button" variant="ghost" size="icon" onClick={addImage} className="h-8 w-8"><ImageIcon className="h-4 w-4" /></Button>
-      <Button type="button" variant="ghost" size="icon" onClick={addYoutubeVideo} className="h-8 w-8"><Video className="h-4 w-4" /></Button>
-    </div>
+    <>
+      <div className="flex flex-wrap items-center gap-1 p-1 border-b">
+        <Select
+          value={
+              editor.isActive('heading', { level: 2 }) ? 'h2' :
+              editor.isActive('heading', { level: 3 }) ? 'h3' : 'p'
+          }
+          onValueChange={(value) => {
+              if (value === 'p') editor.chain().focus().setParagraph().run();
+              if (value === 'h2') editor.chain().focus().toggleHeading({ level: 2 }).run();
+              if (value === 'h3') editor.chain().focus().toggleHeading({ level: 3 }).run();
+          }}
+        >
+          <SelectTrigger className="w-28 h-8 text-xs">
+              <SelectValue placeholder="Text style" />
+          </SelectTrigger>
+          <SelectContent>
+              <SelectItem value="p">Paragraph</SelectItem>
+              <SelectItem value="h2">Heading 2</SelectItem>
+              <SelectItem value="h3">Heading 3</SelectItem>
+          </SelectContent>
+        </Select>
+        <Separator orientation="vertical" className="h-6" />
+        <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleBold().run()} className={cn("h-8 w-8", editor.isActive('bold') && "bg-muted text-primary")}><Bold className="h-4 w-4" /></Button>
+        <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleItalic().run()} className={cn("h-8 w-8", editor.isActive('italic') && "bg-muted text-primary")}><Italic className="h-4 w-4" /></Button>
+        <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleUnderline().run()} className={cn("h-8 w-8", editor.isActive('underline') && "bg-muted text-primary")}><UnderlineIcon className="h-4 w-4" /></Button>
+        <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleStrike().run()} className={cn("h-8 w-8", editor.isActive('strike') && "bg-muted text-primary")}><Strikethrough className="h-4 w-4" /></Button>
+        <Separator orientation="vertical" className="h-6" />
+        <Button variant="ghost" size="icon" className="h-8 w-8 p-1.5 relative">
+              <Palette className="h-4 w-4"/>
+              <input
+                type="color"
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                onInput={(event) => editor.chain().focus().setColor((event.target as HTMLInputElement).value).run()}
+                value={editor.getAttributes('textStyle').color || '#ffffff'}
+                data-testid="setColor"
+              />
+          </Button>
+        <Separator orientation="vertical" className="h-6" />
+        <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().setTextAlign('left').run()} className={cn("h-8 w-8", editor.isActive({ textAlign: 'left' }) && "bg-muted text-primary")}><AlignLeft className="h-4 w-4" /></Button>
+        <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().setTextAlign('center').run()} className={cn("h-8 w-8", editor.isActive({ textAlign: 'center' }) && "bg-muted text-primary")}><AlignCenter className="h-4 w-4" /></Button>
+        <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().setTextAlign('right').run()} className={cn("h-8 w-8", editor.isActive({ textAlign: 'right' }) && "bg-muted text-primary")}><AlignRight className="h-4 w-4" /></Button>
+        <Separator orientation="vertical" className="h-6" />
+        <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleBulletList().run()} className={cn("h-8 w-8", editor.isActive('bulletList') && "bg-muted text-primary")}><List className="h-4 w-4" /></Button>
+        <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleOrderedList().run()} className={cn("h-8 w-8", editor.isActive('orderedList') && "bg-muted text-primary")}><ListOrdered className="h-4 w-4" /></Button>
+        <Separator orientation="vertical" className="h-6" />
+        <Button type="button" variant="ghost" size="icon" onClick={openLinkModal} className={cn("h-8 w-8", editor.isActive('link') && "bg-muted text-primary")}><Link className="h-4 w-4" /></Button>
+        <Button type="button" variant="ghost" size="icon" onClick={() => { setUrl(''); setIsImageModalOpen(true); }} className="h-8 w-8"><ImageIcon className="h-4 w-4" /></Button>
+        <Button type="button" variant="ghost" size="icon" onClick={() => { setUrl(''); setIsVideoModalOpen(true); }} className="h-8 w-8"><Video className="h-4 w-4" /></Button>
+      </div>
+
+      <Dialog open={isLinkModalOpen} onOpenChange={setIsLinkModalOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Set Link URL</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="linkUrl">URL</Label>
+            <Input id="linkUrl" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://example.com" />
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+            <Button type="button" onClick={setLink}>Set Link</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Embed Image</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="imageUrl">Image URL</Label>
+            <Input id="imageUrl" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://example.com/image.png" />
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+            <Button type="button" onClick={addImage}>Add Image</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={isVideoModalOpen} onOpenChange={setIsVideoModalOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Embed YouTube Video</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="videoUrl">YouTube URL</Label>
+            <Input id="videoUrl" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://youtube.com/watch?v=..." />
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+            <Button type="button" onClick={addYoutubeVideo}>Add Video</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
@@ -127,7 +185,12 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
     onUpdate: ({ editor }) => { onChange(editor.getHTML()); },
     editorProps: {
       attributes: {
-        class: cn('prose dark:prose-invert max-w-none prose-sm sm:prose-base', 'prose-headings:text-primary prose-a:text-primary', 'focus:outline-none'),
+        class: cn(
+          'prose dark:prose-invert max-w-none prose-sm sm:prose-base',
+          // Removed prose-headings:text-primary to fix color issue
+          'prose-a:text-primary',
+          'focus:outline-none'
+        ),
       },
     },
   });
@@ -160,7 +223,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
         </BubbleMenu>
       )}
       
-      <div className="sticky top-0 bg-card/95 backdrop-blur-sm z-10 border-b">
+      <div className="sticky top-0 bg-card/95 backdrop-blur-sm z-10">
         <Toolbar editor={editor} />
       </div>
 

@@ -3,6 +3,7 @@
 
 import React, { useState } from 'react';
 import { useEditor, EditorContent, BubbleMenu, type Editor } from '@tiptap/react';
+import { Extension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import TiptapLink from '@tiptap/extension-link';
@@ -13,8 +14,8 @@ import { Color } from '@tiptap/extension-color';
 import TextStyle from '@tiptap/extension-text-style';
 import Underline from '@tiptap/extension-underline';
 import { 
-  Bold, Italic, Link, List, ListOrdered, Strikethrough, Underline as UnderlineIcon,
-  Heading2, Heading3, Pilcrow, AlignLeft, AlignCenter, AlignRight, Image as ImageIcon, Video, Palette
+  Bold, Italic, Link as LinkIcon, List, ListOrdered, Strikethrough, Underline as UnderlineIcon,
+  AlignLeft, AlignCenter, AlignRight, Image as ImageIcon, Video, Palette
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,76 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+
+export interface FontSizeOptions {
+  types: string[],
+}
+
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    fontSize: {
+      /**
+       * Set the font size
+       */
+      setFontSize: (size: string) => ReturnType,
+      /**
+       * Unset the font size
+       */
+      unsetFontSize: () => ReturnType,
+    }
+  }
+}
+
+export const FontSize = Extension.create<FontSizeOptions>({
+  name: 'fontSize',
+
+  addOptions() {
+    return {
+      types: ['textStyle'],
+    }
+  },
+
+  addGlobalAttributes() {
+    return [
+      {
+        types: this.options.types,
+        attributes: {
+          fontSize: {
+            default: null,
+            parseHTML: element => element.style.fontSize.replace(/['"]+/g, ''),
+            renderHTML: attributes => {
+              if (!attributes.fontSize) {
+                return {}
+              }
+
+              return {
+                style: `font-size: ${attributes.fontSize}`,
+              }
+            },
+          },
+        },
+      },
+    ]
+  },
+
+  addCommands() {
+    return {
+      setFontSize: fontSize => ({ chain }) => {
+        return chain()
+          .setMark('textStyle', { fontSize })
+          .run()
+      },
+      unsetFontSize: () => ({ chain }) => {
+        return chain()
+          .setMark('textStyle', { fontSize: null })
+          // @ts-ignore
+          .removeEmptyTextStyle()
+          .run()
+      },
+    }
+  },
+});
+
 
 const Toolbar = ({ editor }: { editor: Editor | null }) => {
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
@@ -68,27 +139,33 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
     setUrl('');
   };
 
+  const fontSizes = [
+    { label: 'Small', value: '14px' },
+    { label: 'Normal', value: '' }, // This will be the "unset" option
+    { label: 'Large', value: '18px' },
+    { label: 'X-Large', value: '24px' },
+  ];
+
   return (
     <>
       <div className="flex flex-wrap items-center gap-1 p-1 border-b">
         <Select
-          value={
-              editor.isActive('heading', { level: 2 }) ? 'h2' :
-              editor.isActive('heading', { level: 3 }) ? 'h3' : 'p'
-          }
-          onValueChange={(value) => {
-              if (value === 'p') editor.chain().focus().setParagraph().run();
-              if (value === 'h2') editor.chain().focus().toggleHeading({ level: 2 }).run();
-              if (value === 'h3') editor.chain().focus().toggleHeading({ level: 3 }).run();
-          }}
+            value={editor.getAttributes('textStyle').fontSize || ''}
+            onValueChange={(value) => {
+                if (value) {
+                    editor.chain().focus().setFontSize(value).run();
+                } else {
+                    editor.chain().focus().unsetFontSize().run();
+                }
+            }}
         >
           <SelectTrigger className="w-28 h-8 text-xs">
-              <SelectValue placeholder="Text style" />
+              <SelectValue placeholder="Text size" />
           </SelectTrigger>
           <SelectContent>
-              <SelectItem value="p">Paragraph</SelectItem>
-              <SelectItem value="h2">Heading 2</SelectItem>
-              <SelectItem value="h3">Heading 3</SelectItem>
+              {fontSizes.map(size => (
+                  <SelectItem key={size.label} value={size.value} style={{ fontSize: size.value || '16px' }}>{size.label}</SelectItem>
+              ))}
           </SelectContent>
         </Select>
         <Separator orientation="vertical" className="h-6" />
@@ -115,7 +192,7 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
         <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleBulletList().run()} className={cn("h-8 w-8", editor.isActive('bulletList') && "bg-muted text-primary")}><List className="h-4 w-4" /></Button>
         <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleOrderedList().run()} className={cn("h-8 w-8", editor.isActive('orderedList') && "bg-muted text-primary")}><ListOrdered className="h-4 w-4" /></Button>
         <Separator orientation="vertical" className="h-6" />
-        <Button type="button" variant="ghost" size="icon" onClick={openLinkModal} className={cn("h-8 w-8", editor.isActive('link') && "bg-muted text-primary")}><Link className="h-4 w-4" /></Button>
+        <Button type="button" variant="ghost" size="icon" onClick={openLinkModal} className={cn("h-8 w-8", editor.isActive('link') && "bg-muted text-primary")}><LinkIcon className="h-4 w-4" /></Button>
         <Button type="button" variant="ghost" size="icon" onClick={() => { setUrl(''); setIsImageModalOpen(true); }} className="h-8 w-8"><ImageIcon className="h-4 w-4" /></Button>
         <Button type="button" variant="ghost" size="icon" onClick={() => { setUrl(''); setIsVideoModalOpen(true); }} className="h-8 w-8"><Video className="h-4 w-4" /></Button>
       </div>
@@ -171,13 +248,16 @@ interface RichTextEditorProps {
 export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps) => {
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ heading: { levels: [2, 3] } }),
+      StarterKit.configure({ heading: false }),
+      TextStyle,
+      FontSize.configure({
+        types: ['textStyle'],
+      }),
       Placeholder.configure({ placeholder: "Share the details of your resource..." }),
       TiptapLink.configure({ openOnClick: false, autolink: true, HTMLAttributes: { class: 'text-primary hover:text-accent transition-colors cursor-pointer underline' } }),
       TiptapImage.configure({ inline: false, allowBase64: true }),
       Youtube.configure({ controls: false, nocookie: true }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
-      TextStyle,
       Color,
       Underline,
     ],
@@ -187,8 +267,6 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
       attributes: {
         class: cn(
           'prose dark:prose-invert max-w-none prose-sm sm:prose-base',
-          // Removed prose-headings:text-primary to fix color issue
-          'prose-a:text-primary',
           'focus:outline-none'
         ),
       },
@@ -206,9 +284,6 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
             <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleBold().run()} className={cn("h-8 w-8", editor.isActive('bold') && "bg-muted text-primary")}><Bold className="h-4 w-4" /></Button>
             <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleItalic().run()} className={cn("h-8 w-8", editor.isActive('italic') && "bg-muted text-primary")}><Italic className="h-4 w-4" /></Button>
             <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleUnderline().run()} className={cn("h-8 w-8", editor.isActive('underline') && "bg-muted text-primary")}><UnderlineIcon className="h-4 w-4" /></Button>
-            <Separator orientation="vertical" className="h-6" />
-            <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={cn("h-8 w-8", editor.isActive('heading', {level: 2}) && "bg-muted text-primary")}><Heading2 className="h-4 w-4" /></Button>
-            <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} className={cn("h-8 w-8", editor.isActive('heading', {level: 3}) && "bg-muted text-primary")}><Heading3 className="h-4 w-4" /></Button>
             <Separator orientation="vertical" className="h-6" />
              <Button variant="ghost" size="icon" className="h-8 w-8 p-1.5 relative">
                 <Palette className="h-4 w-4"/>

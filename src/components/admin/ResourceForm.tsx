@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useForm, Controller, useFieldArray, useWatch } from 'react-hook-form';
@@ -452,20 +451,22 @@ export function ResourceForm({
   const fileApplicableTagGroups = dynamicTagGroups.filter(group => group.appliesToFiles);
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit, (errors) => console.error("Form validation errors:", JSON.stringify(errors, null, 2)))} className="flex flex-col flex-grow min-h-0">
-      <Card className="bg-card/80 backdrop-blur-sm shadow-lg border-none flex flex-col flex-grow min-h-0">
-        <Tabs defaultValue="general" className="w-full flex flex-col flex-grow min-h-0">
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 mb-4 bg-card-foreground/5 rounded-lg shrink-0 mx-6 mt-6">
-            <TabsTrigger value="general">General</TabsTrigger>
-            <TabsTrigger value="details">Details</TabsTrigger>
-            <TabsTrigger value="visuals">Visuals</TabsTrigger>
-            <TabsTrigger value="files">Files</TabsTrigger>
-            <TabsTrigger value="tags">Tags</TabsTrigger>
-            <TabsTrigger value="links">Links</TabsTrigger>
-          </TabsList>
+    <form onSubmit={form.handleSubmit(onSubmit, (errors) => console.error("Form validation errors:", JSON.stringify(errors, null, 2)))} className="space-y-6">
+      <Card className="bg-card/80 backdrop-blur-sm shadow-lg border-none">
+        <Tabs defaultValue="general" className="w-full">
+          <div className="overflow-x-auto whitespace-nowrap px-6 pt-4">
+            <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 mb-4 bg-card-foreground/5 rounded-lg shrink-0">
+              <TabsTrigger value="general">General</TabsTrigger>
+              <TabsTrigger value="details">Details</TabsTrigger>
+              <TabsTrigger value="visuals">Visuals</TabsTrigger>
+              <TabsTrigger value="files">Files</TabsTrigger>
+              <TabsTrigger value="tags">Tags</TabsTrigger>
+              <TabsTrigger value="links">Links</TabsTrigger>
+            </TabsList>
+          </div>
   
-          <div className="flex-grow overflow-y-auto min-h-0">
-              <TabsContent value="general" className="p-6 pt-2 space-y-6 m-0">
+          <div className="space-y-6 p-6 pt-2">
+              <TabsContent value="general" className="space-y-6 m-0">
                 <CardTitle className="text-xl mb-4">Basic Information</CardTitle>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
@@ -512,7 +513,7 @@ export function ResourceForm({
                 {form.formState.errors.files?.root && <p className="text-sm text-destructive mt-2 bg-destructive/10 p-2 rounded-md flex items-center"><Info className="w-4 h-4 mr-2"/>{form.formState.errors.files.root.message}</p>}
               </TabsContent>
   
-              <TabsContent value="details" className="p-6 pt-2 space-y-6 m-0">
+              <TabsContent value="details" className="space-y-6 m-0">
                 <CardTitle className="text-xl mb-4">Detailed Information</CardTitle>
                 <div><Label htmlFor="detailedDescription">Detailed Description (Markdown)</Label><Textarea id="detailedDescription" {...form.register('detailedDescription')} rows={10} /></div>
                 {form.formState.errors.detailedDescription && <p className="text-xs text-destructive mt-1">{form.formState.errors.detailedDescription.message}</p>}
@@ -520,7 +521,7 @@ export function ResourceForm({
                 {form.formState.errors.requirements && <p className="text-xs text-destructive mt-1">{form.formState.errors.requirements.message}</p>}
               </TabsContent>
   
-              <TabsContent value="visuals" className="p-6 pt-2 space-y-6 m-0">
+              <TabsContent value="visuals" className="space-y-6 m-0">
                 <CardTitle className="text-xl mb-4 flex items-center"><ImageIcon className="w-5 h-5 mr-2 text-primary" />Visuals</CardTitle>
                 
                 <div className="space-y-4">
@@ -579,8 +580,8 @@ export function ResourceForm({
                 {form.formState.errors.imageGallery && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageGallery.message}</p>}
               </TabsContent>
   
-              <TabsContent value="files" className="p-6 pt-2 flex flex-col h-full m-0">
-                  <div className="flex justify-between items-center mb-4 shrink-0">
+              <TabsContent value="files" className="space-y-4 m-0">
+                  <div className="flex justify-between items-center">
                       <CardTitle className="text-xl flex items-center"><Archive className="w-5 h-5 mr-2 text-primary" />File Versions</CardTitle>
                       <Button type="button" variant="outline" size="sm" onClick={openNewFileDialog} className="button-outline-glow"><FileUp className="mr-2 h-4 w-4" />Add File Version</Button>
                   </div>
@@ -645,7 +646,7 @@ export function ResourceForm({
                   </div>
               </TabsContent>
   
-              <TabsContent value="tags" className="p-6 pt-2 space-y-6 m-0">
+              <TabsContent value="tags" className="space-y-6 m-0">
                 <CardTitle className="text-xl mb-4 flex items-center"><Sparkles className="w-5 h-5 mr-2 text-primary" />Resource Tags</CardTitle>
                 {form.formState.errors.selectedDynamicTags?.root && <p className="text-sm text-destructive mb-2 bg-destructive/10 p-2 rounded-md flex items-center"><Info className="w-4 h-4 mr-2"/>{form.formState.errors.selectedDynamicTags.root.message}</p>}
                 {dynamicTagGroups.length > 0 ? (
@@ -679,7 +680,7 @@ export function ResourceForm({
                 ) : (<p className="text-sm text-muted-foreground">No tag groups configured for this resource's category.</p>)}
               </TabsContent>
   
-              <TabsContent value="links" className="p-6 pt-2 space-y-6 m-0">
+              <TabsContent value="links" className="space-y-6 m-0">
                 <CardTitle className="text-xl mb-4 flex items-center"><LinkIconLucide className="w-5 h-5 mr-2 text-primary" />External Links</CardTitle>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div><Label htmlFor="links.discord">Discord URL</Label><Input id="links.discord" {...form.register('links.discord')} />{form.formState.errors.links?.discord && <p className="text-xs text-destructive mt-1">{form.formState.errors.links.discord.message}</p>}</div>
@@ -689,9 +690,9 @@ export function ResourceForm({
                   <div><Label htmlFor="links.projectUrl">Main Project/Resource Site</Label><Input id="links.projectUrl" {...form.register('links.projectUrl')} />{form.formState.errors.links?.projectUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.links.projectUrl.message}</p>}</div>
                 </div>
               </TabsContent>
-            </div>
+          </div>
   
-          <CardFooter className="flex justify-between items-center border-t border-border/20 pt-6 p-6 shrink-0">
+          <CardFooter className="flex justify-between items-center border-t border-border/20 pt-6 p-6">
             <div>
               {(!isLoadingRole && !isNew && initialData?.id && (currentUserRole === 'admin' || currentUserRole === 'mod')) && (
                 <AlertDialog>

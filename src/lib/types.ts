@@ -262,6 +262,7 @@ export interface Resource {
   detailedDescription: string | null;
   imageUrl: string | null;
   imageGallery?: string[] | null;
+  showMainImageInGallery?: boolean;
   downloads: number;
   followers: number; 
   links?: ResourceLinks | null;
@@ -346,6 +347,7 @@ export interface ResourceFormData {
   detailedDescription?: string;
   imageUrl?: string;
   imageGallery?: string[]; 
+  showMainImageInGallery?: boolean;
   requirements?: string;
   links?: ResourceLinks;
   status: ProjectStatus;

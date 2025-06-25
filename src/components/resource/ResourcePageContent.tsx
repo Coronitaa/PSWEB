@@ -69,7 +69,7 @@ export function ResourcePageContent({ resource, relatedResources }: ResourcePage
     };
 
     const galleryImages: string[] = [];
-    if (resource.imageUrl) {
+    if (resource.showMainImageInGallery !== false && resource.imageUrl) {
         galleryImages.push(resource.imageUrl);
     }
     if (resource.imageGallery && resource.imageGallery.length > 0) {
@@ -79,8 +79,10 @@ export function ResourcePageContent({ resource, relatedResources }: ResourcePage
             }
         });
     }
-    if (galleryImages.length === 0) {
-        galleryImages.push('https://placehold.co/800x450.png?text=No+Image'); 
+    if (galleryImages.length === 0 && resource.imageUrl) { // Fallback if gallery is empty and main image is hidden
+        galleryImages.push(resource.imageUrl);
+    } else if (galleryImages.length === 0) {
+        galleryImages.push('https://placehold.co/800x450.png?text=No+Image');
     }
 
     const handleTabChange = (newTab: string) => {

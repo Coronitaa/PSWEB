@@ -37,6 +37,7 @@ import { cn } from '@/lib/utils';
 import { mapConfigToTagInterface, formatTimeAgo, getItemTypePlural } from '@/lib/utils';
 import Image from 'next/image';
 import { ImageGalleryCarousel } from '../shared/ImageGalleryCarousel';
+import { Checkbox } from '../ui/checkbox';
 
 const CLEAR_SELECTION_VALUE = "__CLEAR_SELECTION__";
 
@@ -64,6 +65,7 @@ const resourceFormSchema = z.object({
   imageGallery: z.array(z.object({
     value: z.string().url({ message: "Please enter a valid URL." }).min(1, "URL cannot be empty.")
   })).optional(),
+  showMainImageInGallery: z.boolean().default(true),
   requirements: z.string().optional(),
   status: z.custom<ProjectStatus>((val) => PROJECT_STATUSES_CONST.includes(val as ProjectStatus), "Invalid project status"),
   links: z.object({
@@ -182,6 +184,7 @@ export function ResourceForm({
         detailedDescription: '',
         imageUrl: 'https://placehold.co/800x450.png',
         imageGallery: [],
+        showMainImageInGallery: true,
         requirements: '',
         status: 'published' as ProjectStatus,
         links: { discord: '', wiki: '', issues: '', source: '', projectUrl: '' },
@@ -225,6 +228,7 @@ export function ResourceForm({
       detailedDescription: initialData?.detailedDescription || '',
       imageUrl: initialData?.imageUrl || 'https://placehold.co/800x450.png',
       imageGallery: initialData?.imageGallery?.map(url => ({ value: url })) || [],
+      showMainImageInGallery: initialData?.showMainImageInGallery ?? true,
       requirements: initialData?.requirements || '',
       status: initialData?.status || 'draft',
       links: {
@@ -263,10 +267,15 @@ export function ResourceForm({
 
   const watchedImageUrl = useWatch({ control: form.control, name: 'imageUrl' });
   const watchedGallery = useWatch({ control: form.control, name: 'imageGallery' });
+  const watchedShowMainImage = useWatch({ control: form.control, name: 'showMainImageInGallery' });
 
   const galleryImagesForPreview = useMemo(() => {
-    return watchedGallery?.map(item => item.value).filter(url => url && url.startsWith('http')) || [];
-  }, [watchedGallery]);
+    const gallery = watchedGallery?.map(item => item.value).filter(url => url && url.startsWith('http')) || [];
+    if (watchedShowMainImage && watchedImageUrl && !gallery.includes(watchedImageUrl)) {
+      return [watchedImageUrl, ...gallery];
+    }
+    return gallery;
+  }, [watchedGallery, watchedImageUrl, watchedShowMainImage]);
 
 
   const onSubmit = async (data: FormValues) => {
@@ -289,6 +298,7 @@ export function ResourceForm({
         const resourceFormData: ResourceFormData = {
           ...data, 
           imageGallery: data.imageGallery?.map(item => item.value) || [],
+          showMainImageInGallery: data.showMainImageInGallery,
           selectedDynamicTags: data.selectedDynamicTags || {},
           files: data.files.map(f => ({
             ...f,
@@ -527,8 +537,8 @@ export function ResourceForm({
                 <div className="space-y-4">
                   <Label>Main Image</Label>
                   <div className="grid grid-cols-12 gap-4">
-                      <div className="col-span-5">
-                          <ImagePreview watchUrl={watchedImageUrl} alt="Main Image Preview" fallbackText="Main Image Preview" className="h-28 shrink-0"/>
+                      <div className="col-span-5 aspect-[3/2] shrink-0">
+                          <ImagePreview watchUrl={watchedImageUrl} alt="Main Image Preview" fallbackText="Main Image Preview" className="h-full w-full"/>
                       </div>
                       <div className="col-span-7">
                           <Input id="imageUrl" {...form.register('imageUrl')} placeholder="https://..." />
@@ -540,7 +550,28 @@ export function ResourceForm({
                 <Separator />
               
                 <div className="space-y-2">
-                    <Label>Image Gallery</Label>
+                    <div className="flex items-center justify-between">
+                      <Label>Image Gallery</Label>
+                      <Controller
+                          name="showMainImageInGallery"
+                          control={form.control}
+                          render={({ field }) => (
+                              <div className="flex items-center space-x-2">
+                                  <Checkbox
+                                      id="showMainImageInGallery"
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                  />
+                                  <label
+                                      htmlFor="showMainImageInGallery"
+                                      className="text-sm font-medium leading-none text-muted-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                  >
+                                      Include main image in gallery
+                                  </label>
+                              </div>
+                          )}
+                      />
+                    </div>
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                         <div className="lg:col-span-7">
                             <div className="mt-1 rounded-lg border bg-background/30 min-h-[220px] p-2">

@@ -1,7 +1,8 @@
+
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useEditor, EditorContent, BubbleMenu, Editor } from '@tiptap/react';
+import { useEditor, EditorContent, Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import TiptapLink from '@tiptap/extension-link';
@@ -20,10 +21,95 @@ interface RichTextEditorProps {
   onChange: (html: string) => void;
 }
 
-export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps) => {
+const Toolbar = ({ editor }: { editor: Editor }) => {
   const [isLinkPopoverOpen, setIsLinkPopoverOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
 
+  const handleSetLink = useCallback(() => {
+    if (linkUrl) {
+      editor.chain().focus().extendMarkRange('link').setLink({ href: linkUrl, target: '_blank' }).run();
+    } else {
+      editor.chain().focus().extendMarkRange('link').unsetLink().run();
+    }
+    setIsLinkPopoverOpen(false);
+    setLinkUrl('');
+  }, [editor, linkUrl]);
+
+  useEffect(() => {
+    if (isLinkPopoverOpen) {
+      setLinkUrl(editor.getAttributes('link').href || '');
+    }
+  }, [isLinkPopoverOpen, editor]);
+
+  const headingLevel = editor.isActive('heading', { level: 2 }) ? 2 : editor.isActive('heading', { level: 3 }) ? 3 : 0;
+  
+  const toggleHeading = () => {
+    if (headingLevel === 2) editor.chain().focus().toggleHeading({ level: 3 }).run();
+    else if (headingLevel === 3) editor.chain().focus().setParagraph().run();
+    else editor.chain().focus().toggleHeading({ level: 2 }).run();
+  };
+
+  return (
+    <div className="flex items-center gap-1 p-2 border-b bg-card/50">
+      <Button type="button" variant="ghost" size="icon" onClick={toggleHeading} className={cn("h-8 w-8", headingLevel > 0 && "bg-muted text-primary")}>
+        {headingLevel === 2 && <Heading2 className="h-4 w-4" />}
+        {headingLevel === 3 && <Heading3 className="h-4 w-4" />}
+        {headingLevel === 0 && <Pilcrow className="h-4 w-4" />}
+      </Button>
+      <Separator orientation="vertical" className="h-6" />
+      <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleBold().run()} className={cn("h-8 w-8", editor.isActive('bold') && "bg-muted text-primary")}>
+        <Bold className="h-4 w-4" />
+      </Button>
+      <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleItalic().run()} className={cn("h-8 w-8", editor.isActive('italic') && "bg-muted text-primary")}>
+        <Italic className="h-4 w-4" />
+      </Button>
+      <Popover open={isLinkPopoverOpen} onOpenChange={setIsLinkPopoverOpen}>
+        <PopoverTrigger asChild>
+          <Button type="button" variant="ghost" size="icon" className={cn("h-8 w-8", editor.isActive('link') && "bg-muted text-primary")}>
+            <Link className="h-4 w-4" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-80" onOpenAutoFocus={(e) => e.preventDefault()}>
+          <div className="grid gap-4">
+            <div className="space-y-2">
+              <h4 className="font-medium leading-none">Set Link</h4>
+              <p className="text-sm text-muted-foreground">Paste the URL for the link.</p>
+            </div>
+            <Input
+              value={linkUrl}
+              onChange={(e) => setLinkUrl(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSetLink();
+                }
+              }}
+              placeholder="https://example.com"
+            />
+            <div className="flex justify-between">
+              <Button type="button" variant="outline" size="sm" onClick={() => {
+                  editor.chain().focus().extendMarkRange('link').unsetLink().run();
+                  setIsLinkPopoverOpen(false);
+              }}>
+                Remove link
+              </Button>
+              <Button type="button" size="sm" onClick={handleSetLink}>Set link</Button>
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
+      <Separator orientation="vertical" className="h-6" />
+      <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleBulletList().run()} className={cn("h-8 w-8", editor.isActive('bulletList') && "bg-muted text-primary")}>
+        <List className="h-4 w-4" />
+      </Button>
+      <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleOrderedList().run()} className={cn("h-8 w-8", editor.isActive('orderedList') && "bg-muted text-primary")}>
+        <ListOrdered className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+};
+
+export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps) => {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -57,7 +143,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
     editorProps: {
       attributes: {
         class: cn(
-          'prose dark:prose-invert max-w-none',
+          'prose dark:prose-invert max-w-none prose-sm sm:prose-base',
           'prose-headings:text-primary prose-a:text-primary',
           'focus:outline-none'
         ),
@@ -65,96 +151,16 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
     },
   });
 
-  const handleSetLink = useCallback(() => {
-    if (!editor) return;
-    if (linkUrl) {
-      editor.chain().focus().extendMarkRange('link').setLink({ href: linkUrl, target: '_blank' }).run();
-    } else {
-      editor.chain().focus().extendMarkRange('link').unsetLink().run();
-    }
-    setIsLinkPopoverOpen(false);
-    setLinkUrl('');
-  }, [editor, linkUrl]);
-
-  useEffect(() => {
-    if (isLinkPopoverOpen && editor) {
-      setLinkUrl(editor.getAttributes('link').href || '');
-    }
-  }, [isLinkPopoverOpen, editor]);
-
   if (!editor) {
     return null;
   }
 
-  const headingLevel = editor.isActive('heading', { level: 2 }) ? 2 : editor.isActive('heading', { level: 3 }) ? 3 : 0;
-  
-  const toggleHeading = () => {
-    if (headingLevel === 2) editor.chain().focus().toggleHeading({ level: 3 }).run();
-    else if (headingLevel === 3) editor.chain().focus().setParagraph().run();
-    else editor.chain().focus().toggleHeading({ level: 2 }).run();
-  };
-
   return (
-    <div className="flex min-h-[250px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-base ring-offset-background focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
-      <EditorContent editor={editor} className="w-full" />
-      <BubbleMenu editor={editor} tippyOptions={{ duration: 100, placement: 'top-start' }}>
-        <div className="flex items-center gap-1 p-1 rounded-md bg-card border shadow-lg">
-          <Button type="button" variant="ghost" size="icon" onClick={toggleHeading} className={cn(headingLevel > 0 && "bg-muted text-primary")}>
-            {headingLevel === 2 && <Heading2 className="h-4 w-4" />}
-            {headingLevel === 3 && <Heading3 className="h-4 w-4" />}
-            {headingLevel === 0 && <Pilcrow className="h-4 w-4" />}
-          </Button>
-          <Separator orientation="vertical" className="h-6" />
-          <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleBold().run()} className={cn(editor.isActive('bold') && "bg-muted text-primary")}>
-            <Bold className="h-4 w-4" />
-          </Button>
-          <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleItalic().run()} className={cn(editor.isActive('italic') && "bg-muted text-primary")}>
-            <Italic className="h-4 w-4" />
-          </Button>
-          <Popover open={isLinkPopoverOpen} onOpenChange={setIsLinkPopoverOpen}>
-            <PopoverTrigger asChild>
-              <Button type="button" variant="ghost" size="icon" className={cn(editor.isActive('link') && "bg-muted text-primary")}>
-                <Link className="h-4 w-4" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80" onOpenAutoFocus={(e) => e.preventDefault()}>
-              <div className="grid gap-4">
-                <div className="space-y-2">
-                  <h4 className="font-medium leading-none">Set Link</h4>
-                  <p className="text-sm text-muted-foreground">Paste the URL for the link.</p>
-                </div>
-                <Input
-                  value={linkUrl}
-                  onChange={(e) => setLinkUrl(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleSetLink();
-                    }
-                  }}
-                  placeholder="https://example.com"
-                />
-                <div className="flex justify-between">
-                  <Button type="button" variant="outline" size="sm" onClick={() => {
-                      editor.chain().focus().extendMarkRange('link').unsetLink().run();
-                      setIsLinkPopoverOpen(false);
-                  }}>
-                    Remove link
-                  </Button>
-                  <Button type="button" size="sm" onClick={handleSetLink}>Set link</Button>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-          <Separator orientation="vertical" className="h-6" />
-          <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleBulletList().run()} className={cn(editor.isActive('bulletList') && "bg-muted text-primary")}>
-            <List className="h-4 w-4" />
-          </Button>
-          <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleOrderedList().run()} className={cn(editor.isActive('orderedList') && "bg-muted text-primary")}>
-            <ListOrdered className="h-4 w-4" />
-          </Button>
-        </div>
-      </BubbleMenu>
+    <div className="w-full rounded-md border border-input bg-transparent ring-offset-background focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+      <Toolbar editor={editor} />
+      <div className="min-h-[250px] overflow-y-auto px-3 py-2">
+        <EditorContent editor={editor} />
+      </div>
     </div>
   );
 };

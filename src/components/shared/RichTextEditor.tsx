@@ -99,21 +99,21 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
       <EditorContent editor={editor} className="w-full" />
       <BubbleMenu editor={editor} tippyOptions={{ duration: 100, placement: 'top-start' }}>
         <div className="flex items-center gap-1 p-1 rounded-md bg-card border shadow-lg">
-          <Button variant="ghost" size="icon" onClick={toggleHeading} className={cn(headingLevel > 0 && "bg-muted text-primary")}>
+          <Button type="button" variant="ghost" size="icon" onClick={toggleHeading} className={cn(headingLevel > 0 && "bg-muted text-primary")}>
             {headingLevel === 2 && <Heading2 className="h-4 w-4" />}
             {headingLevel === 3 && <Heading3 className="h-4 w-4" />}
             {headingLevel === 0 && <Pilcrow className="h-4 w-4" />}
           </Button>
           <Separator orientation="vertical" className="h-6" />
-          <Button variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleBold().run()} className={cn(editor.isActive('bold') && "bg-muted text-primary")}>
+          <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleBold().run()} className={cn(editor.isActive('bold') && "bg-muted text-primary")}>
             <Bold className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleItalic().run()} className={cn(editor.isActive('italic') && "bg-muted text-primary")}>
+          <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleItalic().run()} className={cn(editor.isActive('italic') && "bg-muted text-primary")}>
             <Italic className="h-4 w-4" />
           </Button>
           <Popover open={isLinkPopoverOpen} onOpenChange={setIsLinkPopoverOpen}>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className={cn(editor.isActive('link') && "bg-muted text-primary")}>
+              <Button type="button" variant="ghost" size="icon" className={cn(editor.isActive('link') && "bg-muted text-primary")}>
                 <Link className="h-4 w-4" />
               </Button>
             </PopoverTrigger>
@@ -135,22 +135,22 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
                   placeholder="https://example.com"
                 />
                 <div className="flex justify-between">
-                  <Button variant="outline" size="sm" onClick={() => {
+                  <Button type="button" variant="outline" size="sm" onClick={() => {
                       editor.chain().focus().extendMarkRange('link').unsetLink().run();
                       setIsLinkPopoverOpen(false);
                   }}>
                     Remove link
                   </Button>
-                  <Button size="sm" onClick={handleSetLink}>Set link</Button>
+                  <Button type="button" size="sm" onClick={handleSetLink}>Set link</Button>
                 </div>
               </div>
             </PopoverContent>
           </Popover>
           <Separator orientation="vertical" className="h-6" />
-          <Button variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleBulletList().run()} className={cn(editor.isActive('bulletList') && "bg-muted text-primary")}>
+          <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleBulletList().run()} className={cn(editor.isActive('bulletList') && "bg-muted text-primary")}>
             <List className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleOrderedList().run()} className={cn(editor.isActive('orderedList') && "bg-muted text-primary")}>
+          <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleOrderedList().run()} className={cn(editor.isActive('orderedList') && "bg-muted text-primary")}>
             <ListOrdered className="h-4 w-4" />
           </Button>
         </div>

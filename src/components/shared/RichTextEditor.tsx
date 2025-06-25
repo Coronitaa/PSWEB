@@ -144,40 +144,48 @@ const MediaResizeComponent = (props: NodeViewProps) => {
     { pos: 'bottom-[-6px] left-[-6px]', cursor: 'cursor-nesw-resize', direction: 'left' },
     { pos: 'top-1/2 -translate-y-1/2 left-[-6px]', cursor: 'cursor-ew-resize', direction: 'left' },
   ];
+  
+  const wrapperStyle: React.CSSProperties = { width };
+  if (float === 'center' || !float) {
+      wrapperStyle.marginLeft = 'auto';
+      wrapperStyle.marginRight = 'auto';
+  }
 
   return (
     <NodeViewWrapper
       ref={containerRef}
       as="div"
       className={cn(
-        'rich-text-media-node group clear-both',
+        'rich-text-media-node group clear-both relative', // Added relative
         float === 'left' && 'mr-4 float-left',
         float === 'right' && 'ml-4 float-right',
-        (float === 'center' || !float) && 'block mx-auto',
+        (float === 'center' || !float) && 'block', // Use block for centering
         selected && 'outline-2 outline-primary outline-dashed'
       )}
-      style={{ width, transform: `rotate(${rotation}deg)` }}
+      style={wrapperStyle}
     >
-      {isImage && (
-        <img src={node.attrs.src} alt={node.attrs.alt} className="w-full h-auto block" />
-      )}
-      {isVideo && (
-        <div className="aspect-video w-full">
-            <iframe
-              className="w-full h-full"
-              src={node.attrs.src}
-              frameBorder="0"
-              allowFullScreen
-              style={{ pointerEvents: 'none' }} // Prevent interaction with video iframe
-            />
-        </div>
-      )}
+      <div style={{ transform: `rotate(${rotation}deg)` }}>
+          {isImage && (
+            <img src={node.attrs.src} alt={node.attrs.alt} className="w-full h-auto block" />
+          )}
+          {isVideo && (
+            <div className="aspect-video w-full">
+                <iframe
+                  className="w-full h-full"
+                  src={node.attrs.src}
+                  frameBorder="0"
+                  allowFullScreen
+                  style={{ pointerEvents: 'none' }}
+                />
+            </div>
+          )}
+      </div>
       
       {selected && (
         <>
           <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex gap-1 bg-card p-1 rounded-md shadow-lg border border-border">
             <Button type="button" size="icon" variant={float === 'left' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('left')} title="Align left"><AlignLeft className="w-4 h-4" /></Button>
-            <Button type="button" size="icon" variant={float === 'center' || !float ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('center')} title="Align center"><AlignCenter className="w-4 h-4" /></Button>
+            <Button type="button" size="icon" variant={!float || float === 'center' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('center')} title="Align center"><AlignCenter className="w-4 h-4" /></Button>
             <Button type="button" size="icon" variant={float === 'right' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('right')} title="Align right"><AlignRight className="w-4 h-4" /></Button>
             <Button type="button" size="icon" variant='ghost' className="h-7 w-7" onClick={() => updateAttributes({ rotate: (rotation + 90) % 360 })} title="Rotate"><RotateCcw className="w-4 h-4" /></Button>
           </div>

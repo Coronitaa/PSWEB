@@ -1,4 +1,3 @@
-
 import Link from 'next/link';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
@@ -26,16 +25,14 @@ export default async function GamePage({ params: paramsPromise }: GamePageProps)
     notFound();
   }
 
-  // Use game.id to fetch categories
   const categories = await getCategoriesForItemGeneric(game.id, 'game');
-  const stats = await getItemStatsGeneric(game.id, 'game'); // Also use game.id for consistency
+  const stats = await getItemStatsGeneric(game.id, 'game');
 
   const initialCategoryResources: Record<string, Resource[]> = {};
   if (Array.isArray(categories)) {
     for (const category of categories) {
       if (category && typeof category.slug === 'string') {
         try {
-          // Pass game.slug for parentItemSlug as getHighlightedResources expects slug
           initialCategoryResources[category.slug] = await getHighlightedResources(game.slug, 'game', category.slug, FETCH_ITEMS_FOR_GAME_PAGE_CAROUSEL);
         } catch (error) {
           console.error(`Error fetching highlighted resources for category ${category.slug} in game ${game.slug}:`, error);
@@ -46,7 +43,6 @@ export default async function GamePage({ params: paramsPromise }: GamePageProps)
       }
     }
   }
-
 
   return (
     <div className="space-y-8">
@@ -60,8 +56,9 @@ export default async function GamePage({ params: paramsPromise }: GamePageProps)
         </BreadcrumbList>
       </Breadcrumb>
 
-      <section className="relative -mx-4 -mt-4 group">
-        <div className="relative h-64 md:h-80 lg:h-96 w-full overflow-hidden">
+      {/* SECCIÓN MODIFICADA */}
+      <section className="relative group -mt-8">
+        <div className="relative h-64 md:h-80 lg:h-96 w-screen -translate-x-1/2 left-1/2 overflow-hidden">
           <Image
             src={game.bannerUrl}
             alt={`${game.name} banner`}
@@ -140,7 +137,6 @@ export default async function GamePage({ params: paramsPromise }: GamePageProps)
         categories={categories}
         initialCategoryResources={initialCategoryResources}
       />
-
     </div>
   );
 }

@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -65,14 +64,13 @@ export function UserProfileHeader({ profile }: UserProfileHeaderProps) {
     }
   }, [profile.id]);
 
-
   const verifiedBadge = profile.badges?.find(b => b.id === 'badge-verified');
   const otherBadges = profile.badges?.filter(b => b.id !== 'badge-verified');
 
   return (
     <>
-    <section className="relative -mx-4 -mt-8 rounded-b-xl overflow-hidden">
-      <div className="relative h-48 md:h-64 w-full">
+    <section className="relative -mt-8 rounded-b-xl overflow-hidden">
+      <div className="relative h-48 md:h-64 w-screen -translate-x-1/2 left-1/2">
         <Image
           src={profile.bannerUrl || `https://placehold.co/1200x300/1f1f1f/E64A8B?text=${profile.name ? profile.name.substring(0,1) : 'P'}`}
           alt={`${profile.name || 'User'}'s banner`}

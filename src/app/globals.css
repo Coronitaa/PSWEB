@@ -1,6 +1,52 @@
+/* react-best-gradient-color-picker styles */
+.rcp{
+    background: hsl(var(--popover));
+    -webkit-user-select: none;
+    user-select: none;
+    border-radius: 6px;
+    border: 1px solid hsl(var(--border));
+    box-shadow: 0 0 16px rgba(0,0,0,.3);
+    color: hsl(var(--popover-foreground));
+}
+
+.rcp-transparent-bg{
+    background-image:
+        linear-gradient(45deg, hsl(var(--muted-foreground) / 0.3) 25%, transparent 25%),
+        linear-gradient(135deg, hsl(var(--muted-foreground) / 0.3) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, hsl(var(--muted-foreground) / 0.3) 75%),
+        linear-gradient(135deg, transparent 75%, hsl(var(--muted-foreground) / 0.3) 75%);
+    background-size: 10px 10px;
+    background-position:0 0, 5px 0, 5px -5px, 0px 5px;
+}
+
+.rcp-field{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    font-family: sans-serif;
+    margin-bottom: 8px;
+    font-size: 12px;
+}
+.rcp-field input{
+    background-color: hsl(var(--input));
+    border: 1px solid hsl(var(--border));
+    border-radius: 4px;
+    color: hsl(var(--foreground));
+    padding: 4px;
+    text-align: center;
+    font-family: sans-serif;
+    outline: none;
+    width: 32px;
+    font-size: 12px;
+}
+
+.rcp-field label{
+    color: hsl(var(--muted-foreground));
+}
+/* End of react-best-gradient-color-picker styles */
 
 
-@import 'react-best-gradient-color-picker/dist/index.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

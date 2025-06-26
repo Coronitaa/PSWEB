@@ -1,11 +1,10 @@
 
-
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useEditor, EditorContent, BubbleMenu, type Editor, NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from '@tiptap/react';
 import { Extension } from '@tiptap/core';
-import StarterKit from '@tiptap/extension-starter-kit';
+import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import TiptapLink from '@tiptap/extension-link';
 import TiptapImage from '@tiptap/extension-image';
@@ -14,7 +13,6 @@ import TextAlign from '@tiptap/extension-text-align';
 import { Color } from '@tiptap/extension-color';
 import TextStyle from '@tiptap/extension-text-style';
 import Underline from '@tiptap/extension-underline';
-import 'react-best-gradient-color-picker/dist/index.css';
 import { 
   Bold, Italic, Link as LinkIcon, List, ListOrdered, Strikethrough, Underline as UnderlineIcon,
   AlignLeft, AlignCenter, AlignRight, Image as ImageIcon, Video, Palette, RotateCw, Text
@@ -870,17 +868,3 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
     </div>
   );
 };
-
-    
-
-
-
-
-
-
-
-
-
-
-
-

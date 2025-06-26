@@ -145,22 +145,26 @@
 
   /* Custom styles for Rich Text Editor Media */
   .ProseMirror .rich-text-media-node, .prose .rich-text-media-node {
-    display: block; /* Use block by default */
+    display: inline-block; /* Changed to allow shrink-wrapping for rotation calculations */
     position: relative;
     line-height: 0;
     margin: 1em 0; /* Add some vertical spacing */
     max-width: 100%;
+    clear: both; /* Ensure floated content doesn't wrap around it incorrectly */
   }
   .ProseMirror .rich-text-media-node[data-float="left"], .prose .rich-text-media-node[data-float="left"] {
     float: left;
     margin-right: 1em;
+    margin-left: 0;
   }
   .ProseMirror .rich-text-media-node[data-float="right"], .prose .rich-text-media-node[data-float="right"] {
     float: right;
     margin-left: 1em;
+    margin-right: 0;
   }
   .ProseMirror .rich-text-media-node[data-float="center"], .prose .rich-text-media-node[data-float="center"] {
-    display: block;
+    display: block; /* Center needs to be block to use auto margins */
+    float: none;
     margin-left: auto;
     margin-right: auto;
   }
@@ -193,6 +197,9 @@
       code { @apply bg-muted text-accent px-1 py-0.5 rounded-sm text-sm; }
       pre { @apply bg-muted p-4 rounded-md overflow-x-auto; }
       blockquote { @apply border-l-4 border-primary pl-4 italic text-muted-foreground; } /* Primary border for blockquote */
+    }
+    .prose .rich-text-media-node {
+       @apply overflow-hidden;
     }
     .dark .prose-invert {
       h1, h2, h3, h4, h5, h6 { @apply text-primary; } 

@@ -286,15 +286,18 @@ const CustomYoutube = Youtube.extend({
               default: 'rich-text-media-node',
             },
             width: {
-                ...this.parent?.().width,
                 default: 640,
                 renderHTML: attributes => ({
-                    style: `width: ${attributes.width}; height: ${attributes.height};`
+                    style: `width: ${attributes.width}; height: ${attributes.height || 'auto'};`
                 }),
+                parseHTML: element => element.style.width || null,
             },
             height: {
-                ...this.parent?.().height,
                 default: 480,
+                renderHTML: attributes => ({
+                  style: `height: ${attributes.height};`,
+                }),
+                parseHTML: element => element.style.height || null,
             },
             'data-float': {
                 default: 'center',

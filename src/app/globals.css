@@ -191,13 +191,12 @@
 
    /* Prose styles for markdown content */
     .prose {
-      @apply overflow-x-hidden;
-      h1, h2, h3, h4, h5, h6 { @apply text-primary; } /* Primary headings */
-      a { @apply text-accent hover:text-accent/80; } /* Accent links */
-      strong { @apply text-foreground/90; }
-      code { @apply bg-muted text-accent px-1 py-0.5 rounded-sm text-sm; }
-      pre { @apply bg-muted p-4 rounded-md overflow-x-auto; }
-      blockquote { @apply border-l-4 border-primary pl-4 italic text-muted-foreground; } /* Primary border for blockquote */
+     @apply overflow-x-hidden;
+     h1, h2, h3, h4, h5, h6 { @apply text-primary; }
+      a { @apply text-accent hover:text-accent/80; } 
+     code { @apply bg-muted text-accent px-1 py-0.5 rounded-sm text-sm; }
+     pre { @apply bg-muted p-4 rounded-md overflow-x-auto; }
+     blockquote { @apply border-l-4 border-primary pl-4 italic text-muted-foreground; }
     }
     .prose .rich-text-media-node {
        

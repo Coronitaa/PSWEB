@@ -242,7 +242,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
     const initialRotation = rotation;
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
-        const currentAngle = Math.atan2(moveEvent.clientY - centerY, moveEvent.clientX - centerX) * (180 / Math.PI);
+        const currentAngle = Math.atan2(moveEvent.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
         const newRotation = initialRotation + (currentAngle - startAngle);
         updateAttributes({ rotate: newRotation });
     };
@@ -257,6 +257,12 @@ const MediaResizeComponent = (props: NodeViewProps) => {
   };
 
   const imageContent = <img src={node.attrs.src} alt={node.attrs.alt} className="w-full h-full block object-fill" />;
+
+  const handleLinkClick = (e: React.MouseEvent) => {
+    if (editor.isEditable) {
+      e.preventDefault();
+    }
+  };
 
   return (
     <NodeViewWrapper
@@ -279,7 +285,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
       >
         {isImage && (
             href ? (
-              <a href={href} target="_blank" rel="noopener noreferrer nofollow" className="w-full h-full block cursor-pointer">
+              <a href={href} target="_blank" rel="noopener noreferrer nofollow" className="w-full h-full block cursor-pointer" onClick={handleLinkClick}>
                 {imageContent}
               </a>
             ) : imageContent
@@ -392,6 +398,15 @@ const CustomImage = TiptapImage.extend({
         default: null,
       },
     };
+  },
+  renderHTML({ HTMLAttributes }) {
+    const { href, ...imgAttributes } = HTMLAttributes;
+    const imgTag: (string | Record<string, any>)[] = ['img', imgAttributes];
+
+    if (href) {
+      return ['a', { href, target: '_blank', rel: 'noopener noreferrer nofollow' }, imgTag];
+    }
+    return imgTag;
   },
   addNodeView() {
     return ReactNodeViewRenderer(MediaResizeComponent);
@@ -733,6 +748,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
 };
 
     
+
 
 
 

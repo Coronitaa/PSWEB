@@ -166,9 +166,13 @@ const MediaResizeComponent = (props: NodeViewProps) => {
                 src={node.attrs.src}
                 frameBorder="0"
                 allowFullScreen
-                // This is key to prevent playing the video when selected
-                style={{ pointerEvents: selected ? 'none' : 'auto' }} 
               />
+              {selected && (
+                  <div 
+                      className="absolute inset-0 z-10 cursor-move" 
+                      aria-hidden="true" 
+                  />
+              )}
           </div>
         )}
       

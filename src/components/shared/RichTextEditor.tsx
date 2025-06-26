@@ -16,7 +16,7 @@ import { Color } from '@tiptap/extension-color';
 import Underline from '@tiptap/extension-underline';
 import { 
   Bold, Italic, Link as LinkIcon, List, ListOrdered, Strikethrough, Underline as UnderlineIcon,
-  AlignLeft, AlignCenter, AlignRight, Image as ImageIcon, Video, Palette, RotateCw
+  AlignLeft, AlignCenter, AlignRight, Image as ImageIcon, Video, Palette, RotateCw, Text
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -279,7 +279,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
       >
         {isImage && (
             href ? (
-              <a href={href} target="_blank" rel="noopener noreferrer nofollow" onClick={e => e.preventDefault()} className="w-full h-full block cursor-pointer">
+              <a href={href} target="_blank" rel="noopener noreferrer nofollow" className="w-full h-full block cursor-pointer">
                 {imageContent}
               </a>
             ) : imageContent
@@ -310,7 +310,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
                     <div
                       key={index}
                       className={cn(
-                        "absolute w-2.5 h-2.5 bg-primary rounded-full border-2 border-card pointer-events-auto z-20",
+                        "absolute w-2.5 h-2.5 bg-primary rounded-full border border-card pointer-events-auto z-20",
                         handle.pos
                       )}
                       style={handleStyles[index]}
@@ -318,7 +318,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
                     />
             ))}
               <div
-                className="absolute bottom-0 right-0 translate-x-[150%] translate-y-[150%] p-1 bg-card rounded-full border-2 border-primary pointer-events-auto z-20 cursor-alias"
+                className="absolute bottom-0 right-0 translate-x-[150%] translate-y-[150%] p-1 bg-card rounded-full border border-primary pointer-events-auto z-20 cursor-alias"
                 onMouseDown={createRotationHandler}
                 title="Rotate"
               >
@@ -468,23 +468,27 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
     setIsLinkModalOpen(true);
   };
   
+  const handleClearLink = () => {
+    const isImageActive = editor.isActive('image');
+    if (isImageActive) {
+      editor.chain().focus().updateAttributes('image', { href: null, target: null }).run();
+    } else {
+      editor.chain().focus().extendMarkRange('link').unsetLink().run();
+    }
+    setIsLinkModalOpen(false);
+    setUrl('');
+  };
+
   const setLink = () => {
     if (url === null) return;
-    const isImageActive = editor.isActive('image');
-
-    // Unset link
+    
     if (url === '') {
-      if (isImageActive) {
-        editor.chain().focus().updateAttributes('image', { href: null, target: null }).run();
-      } else {
-        editor.chain().focus().extendMarkRange('link').unsetLink().run();
-      }
-      setIsLinkModalOpen(false);
-      setUrl('');
+      handleClearLink();
       return;
     }
 
-    // Set link
+    const isImageActive = editor.isActive('image');
+
     if (isImageActive) {
       editor.chain().focus().updateAttributes('image', { href: url, target: '_blank' }).run();
     } else {
@@ -577,9 +581,18 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
             <Label htmlFor="linkUrl">URL</Label>
             <Input id="linkUrl" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://example.com" />
           </div>
-          <DialogFooter>
-            <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-            <Button type="button" onClick={setLink}>Set Link</Button>
+          <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-between sm:space-x-2">
+            <div>
+              {url && (
+                <Button type="button" variant="ghost" className="w-full sm:w-auto justify-start text-destructive hover:text-destructive hover:bg-destructive/10" onClick={handleClearLink}>
+                  Clear Link
+                </Button>
+              )}
+            </div>
+            <div className="flex justify-end gap-2">
+                <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+                <Button type="button" onClick={setLink}>{url ? 'Update Link' : 'Set Link'}</Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -720,6 +733,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
 };
 
     
+
 
 
 

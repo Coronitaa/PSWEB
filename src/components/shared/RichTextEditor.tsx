@@ -23,6 +23,8 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import ColorPicker from 'react-best-gradient-color-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
@@ -38,6 +40,10 @@ declare module '@tiptap/core' {
     fontSize: {
       setFontSize: (size: string) => ReturnType,
       unsetFontSize: () => ReturnType,
+    }
+    textGradient: {
+      setTextGradient: (gradient: string) => ReturnType,
+      unsetTextGradient: () => ReturnType,
     }
   }
 }
@@ -91,6 +97,55 @@ export const FontSize = Extension.create<FontSizeOptions>({
     }
   },
 });
+
+export const TextGradient = Extension.create({
+  name: 'textGradient',
+
+  addOptions() {
+    return {
+      types: ['textStyle'],
+    }
+  },
+
+  addGlobalAttributes() {
+    return [
+      {
+        types: this.options.types,
+        attributes: {
+          textGradient: {
+            default: null,
+            parseHTML: element => element.style.backgroundImage,
+            renderHTML: attributes => {
+              if (!attributes.textGradient) {
+                return {}
+              }
+              return {
+                style: `background-image: ${attributes.textGradient}; -webkit-background-clip: text; background-clip: text; color: transparent;`,
+              }
+            },
+          },
+        },
+      },
+    ]
+  },
+
+  addCommands() {
+    return {
+      setTextGradient: (gradient: string) => ({ chain }) => {
+        return chain()
+          .setMark('textStyle', { textGradient: gradient })
+          .run()
+      },
+      unsetTextGradient: () => ({ chain }) => {
+        return chain()
+          .setMark('textStyle', { textGradient: null })
+           // @ts-ignore
+          .removeEmptyTextStyle()
+          .run()
+      },
+    }
+  },
+})
 
 const MediaResizeComponent = (props: NodeViewProps) => {
   const { node, updateAttributes, selected, editor } = props;
@@ -500,6 +555,50 @@ const CustomYoutube = Youtube.extend({
     }
 });
 
+const GradientColorPicker = ({ editor }: { editor: Editor }) => {
+    const [color, setColor] = useState('#ffffff');
+    const [isOpen, setIsOpen] = useState(false);
+
+    useEffect(() => {
+        if (!editor || !isOpen) return;
+
+        const updateColorState = () => {
+            const attrs = editor.getAttributes('textStyle');
+            const currentColor = attrs.textGradient || attrs.color || '#ffffff';
+            setColor(currentColor);
+        };
+
+        updateColorState();
+
+        editor.on('selectionUpdate', updateColorState);
+        return () => {
+            editor.off('selectionUpdate', updateColorState);
+        }
+    }, [editor, isOpen]);
+
+    const handleColorChange = (value: string) => {
+        setColor(value); // for the picker's state
+        if (value.startsWith('linear-gradient')) {
+            editor.chain().focus().unsetColor().setTextGradient(value).run();
+        } else {
+            editor.chain().focus().unsetTextGradient().setColor(value).run();
+        }
+    };
+    
+    return (
+        <Popover open={isOpen} onOpenChange={setIsOpen}>
+            <PopoverTrigger asChild>
+                <Button type="button" variant="ghost" size="icon" className="h-8 w-8">
+                    <Palette className="h-4 w-4" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 border-0">
+                <ColorPicker value={color} onChange={handleColorChange} hideEyeDrop hideAdvancedSliders hideColorGuide hideInputType />
+            </PopoverContent>
+        </Popover>
+    );
+};
+
 
 const Toolbar = ({ editor }: { editor: Editor | null }) => {
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
@@ -605,16 +704,7 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
         <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleUnderline().run()} className={cn("h-8 w-8", editor.isActive('underline') && "bg-muted text-primary")}><UnderlineIcon className="h-4 w-4" /></Button>
         <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleStrike().run()} className={cn("h-8 w-8", editor.isActive('strike') && "bg-muted text-primary")}><Strikethrough className="h-4 w-4" /></Button>
         <Separator orientation="vertical" className="h-6" />
-        <Button variant="ghost" size="icon" className="h-8 w-8 p-1.5 relative">
-              <Palette className="h-4 w-4"/>
-              <input
-                type="color"
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                onInput={(event) => editor.chain().focus().setColor((event.target as HTMLInputElement).value).run()}
-                value={editor.getAttributes('textStyle').color || '#ffffff'}
-                data-testid="setColor"
-              />
-          </Button>
+        <GradientColorPicker editor={editor} />
         <Separator orientation="vertical" className="h-6" />
         <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().setTextAlign('left').run()} className={cn("h-8 w-8", editor.isActive({ textAlign: 'left' }) && "bg-muted text-primary")}><AlignLeft className="h-4 w-4" /></Button>
         <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().setTextAlign('center').run()} className={cn("h-8 w-8", editor.isActive({ textAlign: 'center' }) && "bg-muted text-primary")}><AlignCenter className="h-4 w-4" /></Button>
@@ -691,6 +781,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
     extensions: [
       StarterKit.configure({ heading: false }),
       TextStyle,
+      TextGradient,
       FontSize.configure({
         types: ['textStyle'],
       }),
@@ -761,16 +852,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
             <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleItalic().run()} className={cn("h-8 w-8", editor.isActive('italic') && "bg-muted text-primary")}><Italic className="h-4 w-4" /></Button>
             <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleUnderline().run()} className={cn("h-8 w-8", editor.isActive('underline') && "bg-muted text-primary")}><UnderlineIcon className="h-4 w-4" /></Button>
             <Separator orientation="vertical" className="h-6" />
-             <Button variant="ghost" size="icon" className="h-8 w-8 p-1.5 relative">
-                <Palette className="h-4 w-4"/>
-                <input
-                  type="color"
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  onInput={(event) => editor.chain().focus().setColor((event.target as HTMLInputElement).value).run()}
-                  value={editor.getAttributes('textStyle').color || '#ffffff'}
-                  data-testid="setColorBubble"
-                />
-            </Button>
+            <GradientColorPicker editor={editor} />
         </BubbleMenu>
       )}
       
@@ -786,6 +868,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
 };
 
     
+
 
 
 

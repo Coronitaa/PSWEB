@@ -108,6 +108,11 @@ const MediaResizeComponent = (props: NodeViewProps) => {
   const height = node.attrs.height;
   const rotation = node.attrs.rotate || 0;
 
+  const rotateByAxis = (degrees: number) => {
+    const currentRotation = node.attrs.rotate || 0;
+    updateAttributes({ rotate: currentRotation + degrees });
+  };
+
   const handles = [
     { pos: 'top-0 left-0 -translate-x-1/2 -translate-y-1/2', direction: 'top-left' },
     { pos: 'top-0 left-1/2 -translate-x-1/2 -translate-y-1/2', direction: 'top' },
@@ -131,31 +136,19 @@ const MediaResizeComponent = (props: NodeViewProps) => {
   };
   
   const getCursorForAngle = (angle: number): string => {
-    // Normalize the angle to be between 0 and 360
     const normalizedAngle = (angle % 360 + 360) % 360;
-
-    // Each slice is 45 degrees wide.
     const slice = Math.round(normalizedAngle / 45) % 8;
 
     switch (slice) {
-      case 0: // ~0 degrees
-        return 'ew-resize';
-      case 1: // ~45 degrees
-        return 'nesw-resize';
-      case 2: // ~90 degrees
-        return 'ns-resize';
-      case 3: // ~135 degrees
-        return 'nwse-resize';
-      case 4: // ~180 degrees
-        return 'ew-resize';
-      case 5: // ~225 degrees
-        return 'nesw-resize';
-      case 6: // ~270 degrees
-        return 'ns-resize';
-      case 7: // ~315 degrees
-        return 'nwse-resize';
-      default:
-        return 'auto';
+      case 0: return 'ew-resize';
+      case 1: return 'nesw-resize';
+      case 2: return 'ns-resize';
+      case 3: return 'nwse-resize';
+      case 4: return 'ew-resize';
+      case 5: return 'nesw-resize';
+      case 6: return 'ns-resize';
+      case 7: return 'nwse-resize';
+      default: return 'auto';
     }
   };
 
@@ -178,7 +171,6 @@ const MediaResizeComponent = (props: NodeViewProps) => {
       const dx = moveEvent.clientX - startX;
       const dy = moveEvent.clientY - startY;
 
-      // Rotate mouse deltas to match the object's coordinate system
       const cos = Math.cos(angleRad);
       const sin = Math.sin(angleRad);
       const dxRot = dx * cos + dy * sin;
@@ -197,16 +189,15 @@ const MediaResizeComponent = (props: NodeViewProps) => {
       if (!shouldDeform) {
         const isCorner = direction.includes('-');
         if (isCorner) {
-          // For corners, maintain aspect ratio based on the larger delta
           if (Math.abs(dxRot) > Math.abs(dyRot)) {
             newHeight = newWidth / aspectRatio;
           } else {
             newWidth = newHeight * aspectRatio;
           }
-        } else { // Side handle
+        } else {
           if (direction.includes('left') || direction.includes('right')) {
             newHeight = newWidth / aspectRatio;
-          } else { // top or bottom
+          } else {
             newWidth = newHeight * aspectRatio;
           }
         }
@@ -267,7 +258,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
         ref={containerRef}
         className={cn(
           "relative w-full",
-          selected && 'outline-2 outline-primary outline-dashed'
+          selected && 'border-2 border-primary border-dashed'
         )}
         style={{
             height: height || 'auto',
@@ -331,6 +322,10 @@ const MediaResizeComponent = (props: NodeViewProps) => {
               <Button type="button" size="icon" variant={float === 'left' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('left')} title="Align left"><AlignLeft className="w-4 h-4" /></Button>
               <Button type="button" size="icon" variant={!float || float === 'center' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('center')} title="Align center"><AlignCenter className="w-4 h-4" /></Button>
               <Button type="button" size="icon" variant={float === 'right' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('right')} title="Align right"><AlignRight className="w-4 h-4" /></Button>
+              <div className="w-px h-5 bg-border mx-1 self-center" />
+              <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => rotateByAxis(90)} title="Rotate 90°">
+                  <RotateCw className="w-4 h-4" />
+              </Button>
             </div>
       )}
     </NodeViewWrapper>
@@ -691,4 +686,5 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
 };
 
     
+
 

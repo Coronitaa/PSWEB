@@ -108,15 +108,45 @@ const MediaResizeComponent = (props: NodeViewProps) => {
   const rotation = node.attrs.rotate || 0;
 
   const handles = [
-    { pos: 'top-0 left-0 -translate-x-1/2 -translate-y-1/2', cursor: 'nwse-resize', direction: 'top-left' },
-    { pos: 'top-0 left-1/2 -translate-x-1/2 -translate-y-1/2', cursor: 'ns-resize', direction: 'top' },
-    { pos: 'top-0 right-0 translate-x-1/2 -translate-y-1/2', cursor: 'nesw-resize', direction: 'top-right' },
-    { pos: 'top-1/2 left-0 -translate-x-1/2 -translate-y-1/2', cursor: 'ew-resize', direction: 'left' },
-    { pos: 'top-1/2 right-0 translate-x-1/2 -translate-y-1/2', cursor: 'ew-resize', direction: 'right' },
-    { pos: 'bottom-0 left-0 -translate-x-1/2 translate-y-1/2', cursor: 'nesw-resize', direction: 'bottom-left' },
-    { pos: 'bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2', cursor: 'ns-resize', direction: 'bottom' },
-    { pos: 'bottom-0 right-0 translate-x-1/2 translate-y-1/2', cursor: 'nwse-resize', direction: 'bottom-right' },
+    { pos: 'top-0 left-0 -translate-x-1/2 -translate-y-1/2', direction: 'top-left' },
+    { pos: 'top-0 left-1/2 -translate-x-1/2 -translate-y-1/2', direction: 'top' },
+    { pos: 'top-0 right-0 translate-x-1/2 -translate-y-1/2', direction: 'top-right' },
+    { pos: 'top-1/2 left-0 -translate-x-1/2 -translate-y-1/2', direction: 'left' },
+    { pos: 'top-1/2 right-0 translate-x-1/2 -translate-y-1/2', direction: 'right' },
+    { pos: 'bottom-0 left-0 -translate-x-1/2 translate-y-1/2', direction: 'bottom-left' },
+    { pos: 'bottom-0 left-1/2 -translate-x-1/2 -translate-y-1/2', direction: 'bottom' },
+    { pos: 'bottom-0 right-0 translate-x-1/2 translate-y-1/2', direction: 'bottom-right' },
   ];
+  
+  const initialHandleAngles: { [key: string]: number } = {
+    'top-left': 135,
+    'top': 90,
+    'top-right': 45,
+    'left': 180,
+    'right': 0,
+    'bottom-left': 225,
+    'bottom': 270,
+    'bottom-right': 315,
+  };
+  
+  const getCursorForAngle = (angle: number): string => {
+    const normalizedAngle = (angle % 360 + 360) % 360;
+
+    if ((normalizedAngle >= 337.5 && normalizedAngle < 360) || (normalizedAngle >= 0 && normalizedAngle < 22.5) || (normalizedAngle >= 157.5 && normalizedAngle < 202.5)) {
+      return 'ew-resize';
+    }
+    if ((normalizedAngle >= 22.5 && normalizedAngle < 67.5) || (normalizedAngle >= 202.5 && normalizedAngle < 247.5)) {
+      return 'nesw-resize';
+    }
+    if ((normalizedAngle >= 67.5 && normalizedAngle < 112.5) || (normalizedAngle >= 247.5 && normalizedAngle < 292.5)) {
+      return 'ns-resize';
+    }
+    if ((normalizedAngle >= 112.5 && normalizedAngle < 157.5) || (normalizedAngle >= 292.5 && normalizedAngle < 337.5)) {
+      return 'nwse-resize';
+    }
+    return 'auto'; // Fallback
+  };
+
 
   const createResizeHandler = (direction: string) => (e: React.MouseEvent) => {
     e.preventDefault();
@@ -257,17 +287,23 @@ const MediaResizeComponent = (props: NodeViewProps) => {
       
         {selected && (
           <>
-            {handles.map((handle, index) => (
-                <div
-                  key={index}
-                  className={cn(
-                    "absolute w-2.5 h-2.5 bg-primary rounded-full border-2 border-card pointer-events-auto z-20",
-                    handle.pos
-                  )}
-                  style={{ cursor: handle.cursor }}
-                  onMouseDown={createResizeHandler(handle.direction)}
-                />
-              ))}
+            {handles.map((handle, index) => {
+                const initialAngle = initialHandleAngles[handle.direction];
+                const finalAngle = initialAngle + rotation;
+                const cursorStyle = getCursorForAngle(finalAngle);
+
+                return (
+                    <div
+                      key={index}
+                      className={cn(
+                        "absolute w-2.5 h-2.5 bg-primary rounded-full border-2 border-card pointer-events-auto z-20",
+                        handle.pos
+                      )}
+                      style={{ cursor: cursorStyle }}
+                      onMouseDown={createResizeHandler(handle.direction)}
+                    />
+                );
+            })}
               <div
                 className="absolute bottom-0 right-0 translate-x-[150%] translate-y-[150%] p-1 bg-card rounded-full border-2 border-primary pointer-events-auto z-20 cursor-alias"
                 onMouseDown={createRotationHandler}

@@ -4,15 +4,35 @@
 import sqlite3 from 'sqlite3';
 import { open, type Database } from 'sqlite';
 import path from 'path';
+import fs from 'fs';
 
 let dbInstance: Database | null = null;
 
-const DB_FILE_PATH = path.join(process.cwd(), 'local.sqlite3');
+const DB_FILE_PATH = path.join('/tmp', 'local.sqlite3');
+const SEED_FILE_PATH = path.join(process.cwd(), 'local.sqlite3');
+
+async function ensureDbFileExists() {
+  try {
+    // Check if the database in /tmp already exists
+    await fs.promises.access(DB_FILE_PATH, fs.constants.F_OK);
+  } catch (error) {
+    // If it doesn't exist, copy it from the project root
+    try {
+      await fs.promises.copyFile(SEED_FILE_PATH, DB_FILE_PATH);
+      console.log(`Database seeded from ${SEED_FILE_PATH} to ${DB_FILE_PATH}`);
+    } catch (copyError) {
+      console.warn(`Could not copy seed database from ${SEED_FILE_PATH}. A new empty database will be created at ${DB_FILE_PATH}. Error: ${copyError}`);
+      // If the seed file doesn't exist, an empty file will be created by sqlite.open()
+    }
+  }
+}
 
 export async function getDb(): Promise<Database> {
   if (dbInstance) {
     return dbInstance;
   }
+
+  await ensureDbFileExists();
 
   dbInstance = await open({
     filename: DB_FILE_PATH,

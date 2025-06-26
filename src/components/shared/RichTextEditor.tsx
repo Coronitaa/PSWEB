@@ -16,7 +16,7 @@ import { Color } from '@tiptap/extension-color';
 import Underline from '@tiptap/extension-underline';
 import { 
   Bold, Italic, Link as LinkIcon, List, ListOrdered, Strikethrough, Underline as UnderlineIcon,
-  AlignLeft, AlignCenter, AlignRight, Image as ImageIcon, Video, Palette, RotateCcw
+  AlignLeft, AlignCenter, AlignRight, Image as ImageIcon, Video, Palette
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -99,33 +99,22 @@ const MediaResizeComponent = (props: NodeViewProps) => {
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const createResizeHandler = (direction: 'left' | 'right' | 'none') => (e: React.MouseEvent) => {
-    if (direction === 'none' || !containerRef.current) return;
+  // Simplified resize handler without rotation
+  const createResizeHandler = (direction: 'left' | 'right') => (e: React.MouseEvent) => {
+    if (!containerRef.current) return;
     
     e.preventDefault();
     e.stopPropagation();
 
     const startX = e.clientX;
-    const startY = e.clientY;
     const startWidth = containerRef.current!.offsetWidth;
 
-    const rad = (node.attrs.rotate || 0) * (Math.PI / 180);
-    const cos = Math.cos(rad);
-    const sin = Math.sin(rad);
-
     const handleMouseMove = (moveEvent: MouseEvent) => {
-      // Screen-space delta
       const dx = moveEvent.clientX - startX;
-      const dy = moveEvent.clientY - startY;
-
-      // Rotate delta into the node's coordinate system
-      // We only care about the change along the node's x-axis for width
-      const dx_local = dx * cos + dy * sin;
       
-      // Apply change based on which handle is dragged
       const newWidth = direction === 'left'
-        ? startWidth - (dx_local * 2) // Multiply by 2 because we move from both sides
-        : startWidth + (dx_local * 2);
+        ? startWidth - (dx * 2) // Grow from both sides
+        : startWidth + (dx * 2);
 
       updateAttributes({ width: `${Math.max(50, newWidth)}px` });
     };
@@ -139,42 +128,17 @@ const MediaResizeComponent = (props: NodeViewProps) => {
     window.addEventListener('mouseup', handleMouseUp);
   };
 
-
   const setAlignment = (align: 'left' | 'center' | 'right' | null) => {
     updateAttributes({ 'data-float': align });
   };
   
   const float = node.attrs['data-float'];
   const width = node.attrs.width;
-  const rotation = node.attrs.rotate || 0;
-  
-  const getRotatedCursor = (handleIndex: number, rotation: number): string => {
-    // Cursors for 0-7: E, NE, N, NW, W, SW, S, SE
-    const cursors = ['ew-resize', 'nesw-resize', 'ns-resize', 'nwse-resize', 'ew-resize', 'nesw-resize', 'ns-resize', 'nwse-resize'];
-    // Angles for the handle positions (0=right-center, 1=top-right, etc.)
-    const handleAngles = [135, 90, 45, 0, 315, 270, 225, 180];
-    
-    const handleInitialAngle = handleAngles[handleIndex];
-    // Calculate the visual angle of the handle after rotation
-    const finalAngle = (handleInitialAngle - rotation + 360) % 360;
-
-    // Map the final angle to the closest 45-degree increment (0-7)
-    const slice = 45;
-    const halfSlice = slice / 2;
-    const closestIndex = Math.floor((finalAngle + halfSlice) / slice) % 8;
-    
-    return cursors[closestIndex];
-  };
 
   const handles = [
-    { pos: 'top-[-6px] left-[-6px]', direction: 'left' },
-    { pos: 'top-[-6px] left-1/2 -translate-x-1/2', direction: 'none' },
-    { pos: 'top-[-6px] right-[-6px]', direction: 'right' },
-    { pos: 'top-1/2 -translate-y-1/2 right-[-6px]', direction: 'right' },
-    { pos: 'bottom-[-6px] right-[-6px]', direction: 'right' },
-    { pos: 'bottom-[-6px] left-1/2 -translate-x-1/2', direction: 'none' },
-    { pos: 'bottom-[-6px] left-[-6px]', direction: 'left' },
-    { pos: 'top-1/2 -translate-y-1/2 left-[-6px]', direction: 'left' },
+    { pos: 'top-1/2 -translate-y-1/2 left-[-6px]', direction: 'left', cursor: 'ew-resize' },
+    { pos: 'top-1/2 -translate-y-1/2 right-[-6px]', direction: 'right', cursor: 'ew-resize' },
+    // You can add top/bottom handles here if needed, but keeping it simple for now.
   ];
   
   return (
@@ -191,7 +155,6 @@ const MediaResizeComponent = (props: NodeViewProps) => {
           "relative",
           selected && 'outline-2 outline-primary outline-dashed'
         )}
-        style={{ transform: `rotate(${rotation}deg)` }}
       >
         {isImage && (
           <img src={node.attrs.src} alt={node.attrs.alt} className="w-full h-auto block" />
@@ -203,25 +166,18 @@ const MediaResizeComponent = (props: NodeViewProps) => {
                 src={node.attrs.src}
                 frameBorder="0"
                 allowFullScreen
-                style={{ pointerEvents: selected ? 'none' : 'auto' }}
+                // This is key to prevent playing the video when selected
+                style={{ pointerEvents: selected ? 'none' : 'auto' }} 
               />
           </div>
         )}
       
         {selected && (
           <>
-            <div 
-              className="absolute inset-0 pointer-events-none"
-              style={{ transform: `rotate(-${rotation}deg)` }}
-            >
-              <div 
-                className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[calc(100%+12px)] z-[1] flex gap-1 bg-card p-1 rounded-md shadow-lg border border-border pointer-events-auto"
-              >
-                <Button type="button" size="icon" variant={float === 'left' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('left')} title="Align left"><AlignLeft className="w-4 h-4" /></Button>
-                <Button type="button" size="icon" variant={!float || float === 'center' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('center')} title="Align center"><AlignCenter className="w-4 h-4" /></Button>
-                <Button type="button" size="icon" variant={float === 'right' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('right')} title="Align right"><AlignRight className="w-4 h-4" /></Button>
-                <Button type="button" size="icon" variant='ghost' className="h-7 w-7" onClick={() => updateAttributes({ rotate: (rotation + 90) % 360 })} title="Rotate"><RotateCcw className="w-4 h-4" /></Button>
-              </div>
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[calc(100%+12px)] z-[1] flex gap-1 bg-card p-1 rounded-md shadow-lg border border-border pointer-events-auto">
+              <Button type="button" size="icon" variant={float === 'left' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('left')} title="Align left"><AlignLeft className="w-4 h-4" /></Button>
+              <Button type="button" size="icon" variant={!float || float === 'center' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('center')} title="Align center"><AlignCenter className="w-4 h-4" /></Button>
+              <Button type="button" size="icon" variant={float === 'right' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('right')} title="Align right"><AlignRight className="w-4 h-4" /></Button>
             </div>
 
             {handles.map((handle, index) => (
@@ -231,11 +187,8 @@ const MediaResizeComponent = (props: NodeViewProps) => {
                     "absolute w-3 h-3 bg-primary rounded-full border-2 border-card pointer-events-auto",
                     handle.pos
                   )}
-                  style={{ 
-                      cursor: getRotatedCursor(index, rotation),
-                      transform: `rotate(-${rotation}deg)` 
-                  }}
-                  onMouseDown={createResizeHandler(handle.direction as 'left' | 'right' | 'none')}
+                  style={{ cursor: handle.cursor }}
+                  onMouseDown={createResizeHandler(handle.direction as 'left' | 'right')}
                 />
               ))}
           </>
@@ -268,20 +221,7 @@ const CustomImage = TiptapImage.extend({
         }),
         parseHTML: element => element.getAttribute('data-float'),
       },
-      rotate: {
-        default: 0,
-        renderHTML: attributes => {
-            if (!attributes.rotate) return {};
-            return {
-                style: `transform: rotate(${attributes.rotate}deg);`,
-            }
-        },
-        parseHTML: element => {
-          const transform = element.style.transform;
-          const match = transform?.match(/rotate\(([\d.-]+)deg\)/);
-          return match ? parseFloat(match[1]) : 0;
-        },
-      },
+      // ROTATION REMOVED
     };
   },
   addNodeView() {
@@ -301,9 +241,14 @@ const CustomYoutube = Youtube.extend({
                 default: '100%',
                 renderHTML: attributes => {
                     if (!attributes.width) return {};
-                    return { style: `width: ${attributes.width};` };
+                    // Apply aspect ratio for videos to maintain shape
+                    return { style: `width: ${attributes.width}; height: auto; aspect-ratio: ${attributes.width}/${attributes.height}` };
                 },
                 parseHTML: element => element.style.width || null,
+            },
+             height: { // We need to capture height to calculate aspect ratio
+                default: '480',
+                parseHTML: element => element.getAttribute('height'),
             },
             'data-float': {
                 default: 'center',
@@ -312,20 +257,7 @@ const CustomYoutube = Youtube.extend({
                 }),
                 parseHTML: element => element.getAttribute('data-float'),
             },
-            rotate: {
-              default: 0,
-              renderHTML: attributes => {
-                  if (!attributes.rotate) return {};
-                  return {
-                      style: `transform: rotate(${attributes.rotate}deg);`,
-                  }
-              },
-              parseHTML: element => {
-                const transform = element.style.transform;
-                const match = transform?.match(/rotate\(([\d.-]+)deg\)/);
-                return match ? parseFloat(match[1]) : 0;
-              },
-            },
+            // ROTATION REMOVED
         }
     },
     addNodeView() {
@@ -504,6 +436,10 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
         inline: false, 
         controls: false,
         nocookie: true,
+        // Override height to be auto, forcing aspect-ratio to be the driver
+        HTMLAttributes: {
+          height: 'auto'
+        }
       }),
       TextAlign.configure({ types: ['paragraph', 'image', 'youtube'] }),
       Color,

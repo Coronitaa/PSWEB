@@ -2,7 +2,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useEditor, EditorContent, BubbleMenu, type Editor, NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from '@tiptap/react';
 import { Extension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
@@ -151,6 +151,15 @@ const MediaResizeComponent = (props: NodeViewProps) => {
       default: return 'auto';
     }
   };
+  
+  const handleStyles = useMemo(() => {
+    return handles.map(handle => {
+        const initialAngle = initialHandleAngles[handle.direction];
+        const finalAngle = initialAngle + rotation;
+        const cursorStyle = getCursorForAngle(finalAngle);
+        return { cursor: cursorStyle };
+    })
+  }, [rotation]);
 
 
   const createResizeHandler = (direction: string) => (e: React.MouseEvent) => {
@@ -290,23 +299,17 @@ const MediaResizeComponent = (props: NodeViewProps) => {
       
         {selected && (
           <>
-            {handles.map((handle, index) => {
-                const initialAngle = initialHandleAngles[handle.direction];
-                const finalAngle = initialAngle + rotation;
-                const cursorStyle = getCursorForAngle(finalAngle);
-
-                return (
+            {handles.map((handle, index) => (
                     <div
                       key={index}
                       className={cn(
                         "absolute w-2.5 h-2.5 bg-primary rounded-full border-2 border-card pointer-events-auto z-20",
                         handle.pos
                       )}
-                      style={{ cursor: cursorStyle }}
+                      style={handleStyles[index]}
                       onMouseDown={createResizeHandler(handle.direction)}
                     />
-                );
-            })}
+            ))}
               <div
                 className="absolute bottom-0 right-0 translate-x-[150%] translate-y-[150%] p-1 bg-card rounded-full border-2 border-primary pointer-events-auto z-20 cursor-alias"
                 onMouseDown={createRotationHandler}
@@ -686,5 +689,6 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
 };
 
     
+
 
 

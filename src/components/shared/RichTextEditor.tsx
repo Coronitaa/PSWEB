@@ -149,18 +149,19 @@ const MediaResizeComponent = (props: NodeViewProps) => {
   const rotation = node.attrs.rotate || 0;
   
   const getRotatedCursor = (handleIndex: number, rotation: number): string => {
-    // N, NE, E, SE, S, SW, W, NW
-    const cursors = ['ns-resize', 'nesw-resize', 'ew-resize', 'nwse-resize', 'ns-resize', 'nesw-resize', 'ew-resize', 'nwse-resize'];
-    // Angle of the cursor direction from 0 (East) counter-clockwise
-    const cursorAngles = [90, 45, 0, 315, 270, 225, 180, 135];
-    const handleAngle = cursorAngles[handleIndex];
-    // Calculate the final angle of the cursor by adding the rotation of the object
-    const finalAngle = (handleAngle - rotation + 360) % 360;
+    // Cursors for 0-7: E, NE, N, NW, W, SW, S, SE
+    const cursors = ['ew-resize', 'nesw-resize', 'ns-resize', 'nwse-resize', 'ew-resize', 'nesw-resize', 'ns-resize', 'nwse-resize'];
+    // Angles for the handle positions (0=right-center, 1=top-right, etc.)
+    const handleAngles = [135, 90, 45, 0, 315, 270, 225, 180];
+    
+    const handleInitialAngle = handleAngles[handleIndex];
+    // Calculate the visual angle of the handle after rotation
+    const finalAngle = (handleInitialAngle - rotation + 360) % 360;
 
-    // Find the closest cursor direction for the final angle
-    const slice = 360 / 8;
+    // Map the final angle to the closest 45-degree increment (0-7)
+    const slice = 45;
     const halfSlice = slice / 2;
-    const closestIndex = Math.round(((finalAngle + halfSlice) % 360) / slice) % 8;
+    const closestIndex = Math.floor((finalAngle + halfSlice) / slice) % 8;
     
     return cursors[closestIndex];
   };

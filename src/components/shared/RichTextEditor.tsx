@@ -97,24 +97,93 @@ const MediaResizeComponent = (props: NodeViewProps) => {
   const isVideo = node.type.name === 'youtube';
 
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  const setAlignment = (align: 'left' | 'center' | 'right' | null) => {
+    updateAttributes({ 'data-float': align });
+  };
+  
+  const float = node.attrs['data-float'];
+  const width = node.attrs.width;
+  const height = node.attrs.height;
 
-  const createResizeHandler = (direction: 'left' | 'right') => (e: React.MouseEvent) => {
-    if (!containerRef.current) return;
-    
+  const handles = [
+    { pos: 'top-0 left-0 -translate-x-1/2 -translate-y-1/2', cursor: 'nwse-resize', direction: 'top-left' },
+    { pos: 'top-0 left-1/2 -translate-x-1/2 -translate-y-1/2', cursor: 'ns-resize', direction: 'top' },
+    { pos: 'top-0 right-0 translate-x-1/2 -translate-y-1/2', cursor: 'nesw-resize', direction: 'top-right' },
+    { pos: 'top-1/2 left-0 -translate-x-1/2 -translate-y-1/2', cursor: 'ew-resize', direction: 'left' },
+    { pos: 'top-1/2 right-0 translate-x-1/2 -translate-y-1/2', cursor: 'ew-resize', direction: 'right' },
+    { pos: 'bottom-0 left-0 -translate-x-1/2 translate-y-1/2', cursor: 'nesw-resize', direction: 'bottom-left' },
+    { pos: 'bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2', cursor: 'ns-resize', direction: 'bottom' },
+    { pos: 'bottom-0 right-0 translate-x-1/2 translate-y-1/2', cursor: 'nwse-resize', direction: 'bottom-right' },
+  ];
+
+  const createResizeHandler = (direction: string) => (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
+    const container = containerRef.current;
+    if (!container) return;
+    
     const startX = e.clientX;
-    const startWidth = containerRef.current!.offsetWidth;
+    const startY = e.clientY;
+    const startWidth = container.offsetWidth;
+    const startHeight = container.offsetHeight;
+    const aspectRatio = startWidth / startHeight;
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
       const dx = moveEvent.clientX - startX;
-      
-      const newWidth = direction === 'left'
-        ? startWidth - (dx * 2)
-        : startWidth + (dx * 2);
+      const dy = moveEvent.clientY - startY;
 
-      updateAttributes({ width: `${Math.max(50, newWidth)}px` });
+      let newWidth = startWidth;
+      let newHeight = startHeight;
+      
+      const shouldDeform = moveEvent.shiftKey;
+
+      if (shouldDeform) {
+        // Deformation logic will be added here in a future step
+        // For now, it will just do a standard resize
+      }
+
+      // Standard aspect-ratio preserving resize
+      switch (direction) {
+          case 'top-left':
+              newWidth = startWidth - dx;
+              newHeight = newWidth / aspectRatio;
+              break;
+          case 'top-right':
+              newWidth = startWidth + dx;
+              newHeight = newWidth / aspectRatio;
+              break;
+          case 'bottom-left':
+              newWidth = startWidth - dx;
+              newHeight = newWidth / aspectRatio;
+              break;
+          case 'bottom-right':
+              newWidth = startWidth + dx;
+              newHeight = newWidth / aspectRatio;
+              break;
+          case 'left':
+              newWidth = startWidth - dx;
+              newHeight = newWidth / aspectRatio;
+              break;
+          case 'right':
+              newWidth = startWidth + dx;
+              newHeight = newWidth / aspectRatio;
+              break;
+          case 'top':
+              newHeight = startHeight - dy;
+              newWidth = newHeight * aspectRatio;
+              break;
+          case 'bottom':
+              newHeight = startHeight + dy;
+              newWidth = newHeight * aspectRatio;
+              break;
+      }
+      
+      newWidth = Math.max(50, newWidth);
+      newHeight = Math.max(50 / aspectRatio, newHeight);
+
+      updateAttributes({ width: `${newWidth}px`, height: `${newHeight}px` });
     };
 
     const handleMouseUp = () => {
@@ -125,39 +194,27 @@ const MediaResizeComponent = (props: NodeViewProps) => {
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
   };
-
-  const setAlignment = (align: 'left' | 'center' | 'right' | null) => {
-    updateAttributes({ 'data-float': align });
-  };
-  
-  const float = node.attrs['data-float'];
-  const width = node.attrs.width;
-
-  const handles = [
-    { pos: 'top-1/2 -translate-y-1/2 left-[-6px]', direction: 'left', cursor: 'ew-resize' },
-    { pos: 'top-1/2 -translate-y-1/2 right-[-6px]', direction: 'right', cursor: 'ew-resize' },
-  ];
   
   return (
     <NodeViewWrapper
       as="div"
       className="rich-text-media-node group clear-both relative"
-      style={{ width }}
+      style={{ width, height: height || 'auto' }}
       data-float={float}
       draggable="true" data-drag-handle
     >
       <div 
         ref={containerRef}
         className={cn(
-          "relative",
+          "relative w-full h-full", // Ensure container fills the node view
           selected && 'outline-2 outline-primary outline-dashed'
         )}
       >
         {isImage && (
-          <img src={node.attrs.src} alt={node.attrs.alt} className="w-full h-auto block" />
+          <img src={node.attrs.src} alt={node.attrs.alt} className="w-full h-full block object-cover" />
         )}
         {isVideo && (
-          <div className="aspect-video w-full h-full relative">
+          <div className="w-full h-full relative">
               <iframe
                 className="absolute inset-0 w-full h-full"
                 src={node.attrs.src}
@@ -175,7 +232,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
       
         {selected && (
           <>
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[calc(100%+12px)] z-[1] flex gap-1 bg-card p-1 rounded-md shadow-lg border border-border pointer-events-auto">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[calc(100%+12px)] z-20 flex gap-1 bg-card p-1 rounded-md shadow-lg border border-border pointer-events-auto">
               <Button type="button" size="icon" variant={float === 'left' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('left')} title="Align left"><AlignLeft className="w-4 h-4" /></Button>
               <Button type="button" size="icon" variant={!float || float === 'center' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('center')} title="Align center"><AlignCenter className="w-4 h-4" /></Button>
               <Button type="button" size="icon" variant={float === 'right' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('right')} title="Align right"><AlignRight className="w-4 h-4" /></Button>
@@ -185,11 +242,11 @@ const MediaResizeComponent = (props: NodeViewProps) => {
                 <div
                   key={index}
                   className={cn(
-                    "absolute w-3 h-3 bg-primary rounded-full border-2 border-card pointer-events-auto",
+                    "absolute w-2.5 h-2.5 bg-primary rounded-full border-2 border-card pointer-events-auto z-20",
                     handle.pos
                   )}
                   style={{ cursor: handle.cursor }}
-                  onMouseDown={createResizeHandler(handle.direction as 'left' | 'right')}
+                  onMouseDown={createResizeHandler(handle.direction)}
                 />
               ))}
           </>
@@ -209,11 +266,17 @@ const CustomImage = TiptapImage.extend({
       },
       width: {
         default: '100%',
-        renderHTML: attributes => {
-            if (!attributes.width) return {};
-            return { style: `width: ${attributes.width};` };
-        },
+        renderHTML: attributes => ({
+          style: `width: ${attributes.width}; height: ${attributes.height || 'auto'};`,
+        }),
         parseHTML: element => element.style.width || null,
+      },
+      height: {
+        default: null,
+        renderHTML: attributes => ({
+            style: `height: ${attributes.height};`,
+        }),
+        parseHTML: element => element.style.height || null,
       },
       'data-float': {
         default: 'center',
@@ -238,16 +301,12 @@ const CustomYoutube = Youtube.extend({
               default: 'rich-text-media-node',
             },
             width: {
-                default: '100%',
-                renderHTML: attributes => {
-                    if (!attributes.width) return {};
-                    return { style: `width: ${attributes.width}; height: auto; aspect-ratio: ${attributes.width}/${attributes.height}` };
-                },
-                parseHTML: element => element.style.width || null,
+                ...this.parent?.().width,
+                default: 640,
             },
-             height: {
-                default: '480',
-                parseHTML: element => element.getAttribute('height'),
+            height: {
+                ...this.parent?.().height,
+                default: 480,
             },
             'data-float': {
                 default: 'center',
@@ -434,9 +493,6 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
         inline: false, 
         controls: false,
         nocookie: true,
-        HTMLAttributes: {
-          height: 'auto'
-        }
       }),
       TextAlign.configure({ types: ['paragraph', 'image', 'youtube'] }),
       Color,

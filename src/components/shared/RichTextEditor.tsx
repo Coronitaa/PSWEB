@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -130,21 +131,32 @@ const MediaResizeComponent = (props: NodeViewProps) => {
   };
   
   const getCursorForAngle = (angle: number): string => {
+    // Normalize the angle to be between 0 and 360
     const normalizedAngle = (angle % 360 + 360) % 360;
 
-    if ((normalizedAngle >= 337.5 && normalizedAngle < 360) || (normalizedAngle >= 0 && normalizedAngle < 22.5) || (normalizedAngle >= 157.5 && normalizedAngle < 202.5)) {
-      return 'ew-resize';
+    // Each slice is 45 degrees wide.
+    const slice = Math.round(normalizedAngle / 45) % 8;
+
+    switch (slice) {
+      case 0: // ~0 degrees
+        return 'ew-resize';
+      case 1: // ~45 degrees
+        return 'nesw-resize';
+      case 2: // ~90 degrees
+        return 'ns-resize';
+      case 3: // ~135 degrees
+        return 'nwse-resize';
+      case 4: // ~180 degrees
+        return 'ew-resize';
+      case 5: // ~225 degrees
+        return 'nesw-resize';
+      case 6: // ~270 degrees
+        return 'ns-resize';
+      case 7: // ~315 degrees
+        return 'nwse-resize';
+      default:
+        return 'auto';
     }
-    if ((normalizedAngle >= 22.5 && normalizedAngle < 67.5) || (normalizedAngle >= 202.5 && normalizedAngle < 247.5)) {
-      return 'nesw-resize';
-    }
-    if ((normalizedAngle >= 67.5 && normalizedAngle < 112.5) || (normalizedAngle >= 247.5 && normalizedAngle < 292.5)) {
-      return 'ns-resize';
-    }
-    if ((normalizedAngle >= 112.5 && normalizedAngle < 157.5) || (normalizedAngle >= 292.5 && normalizedAngle < 337.5)) {
-      return 'nwse-resize';
-    }
-    return 'auto'; // Fallback
   };
 
 
@@ -183,20 +195,20 @@ const MediaResizeComponent = (props: NodeViewProps) => {
       if (direction.includes('top')) newHeight = startHeight - dyRot;
       
       if (!shouldDeform) {
-        const isCorner = direction.includes('left') || direction.includes('right');
+        const isCorner = direction.includes('-');
         if (isCorner) {
-          if (direction.includes('top') || direction.includes('bottom')) {
-            // Corner handles: preserve aspect ratio based on larger delta
-            if (Math.abs(dxRot) > Math.abs(dyRot)) {
-                newHeight = newWidth / aspectRatio;
-            } else {
-                newWidth = newHeight * aspectRatio;
-            }
-          } else { // Side handles
+          // For corners, maintain aspect ratio based on the larger delta
+          if (Math.abs(dxRot) > Math.abs(dyRot)) {
             newHeight = newWidth / aspectRatio;
+          } else {
+            newWidth = newHeight * aspectRatio;
           }
-        } else { // Top/bottom handles
-          newWidth = newHeight * aspectRatio;
+        } else { // Side handle
+          if (direction.includes('left') || direction.includes('right')) {
+            newHeight = newWidth / aspectRatio;
+          } else { // top or bottom
+            newWidth = newHeight * aspectRatio;
+          }
         }
       }
       
@@ -679,3 +691,4 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
 };
 
     
+

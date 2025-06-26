@@ -1,15 +1,25 @@
-/* react-best-gradient-color-picker styles */
-.rcp{
+/* react-best-gradient-color-picker styles - Themed for PinkStar */
+.rcp {
+    width: 270px;
+    padding: 12px;
     background: hsl(var(--popover));
     -webkit-user-select: none;
+    -moz-user-select: none;
     user-select: none;
     border-radius: 6px;
     border: 1px solid hsl(var(--border));
     box-shadow: 0 0 16px rgba(0,0,0,.3);
     color: hsl(var(--popover-foreground));
+    font-family: sans-serif;
 }
-
-.rcp-transparent-bg{
+.rcp-limbo {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    border: 1px solid hsl(var(--border));
+    cursor: pointer;
+}
+.rcp-transparent-bg {
     background-image:
         linear-gradient(45deg, hsl(var(--muted-foreground) / 0.3) 25%, transparent 25%),
         linear-gradient(135deg, hsl(var(--muted-foreground) / 0.3) 25%, transparent 25%),
@@ -18,31 +28,212 @@
     background-size: 10px 10px;
     background-position:0 0, 5px 0, 5px -5px, 0px 5px;
 }
-
-.rcp-field{
+.rcp-hsv {
+    position: relative;
+    width: 100%;
+    height: 150px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+.rcp-hsv-b {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 6px;
+    background: linear-gradient(to top,rgb(0,0,0),rgba(0,0,0,0));
+}
+.rcp-hsv-w {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 6px;
+    background: linear-gradient(to right,rgb(255,255,255),rgba(255,255,255,0));
+}
+.rcp-hsv-handle {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    transform: translate(-6px,-6px);
+}
+.rcp-body {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin-top: 12px;
+}
+.rcp-body-left {
+    width: 200px;
+}
+.rcp-body-right {
+    width: 24px;
+}
+.rcp-hue, .rcp-opacity {
+    position: relative;
+    width: 100%;
+    height: 12px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    cursor: pointer;
+}
+.rcp-hue-handle, .rcp-opacity-handle {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    transform: translate(-6px,0);
+}
+.rcp-hue-bg {
+    width: 100%;
+    height: 100%;
+    border-radius: 6px;
+    background: linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
+}
+.rcp-tabs {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    border-radius: 4px;
+    background: hsl(var(--input));
+    padding: 3px;
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+.rcp-tab {
+    width: 50%;
+    padding: 3px;
+    text-align: center;
+    border-radius: 4px;
+    cursor: pointer;
+    color: hsl(var(--muted-foreground));
+}
+.rcp-tab.rcp-tab-active {
+    color: hsl(var(--foreground));
+    background: hsl(var(--popover));
+}
+.rcp-fields {
+    width: 100%;
+}
+.rcp-field {
     display: flex;
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
     font-family: sans-serif;
     margin-bottom: 8px;
-    font-size: 12px;
+    font-size: 14px;
 }
-.rcp-field input{
-    background-color: hsl(var(--input));
-    border: 1px solid hsl(var(--border));
-    border-radius: 4px;
-    color: hsl(var(--foreground));
+.rcp-field label {
+    color: hsl(var(--muted-foreground));
+}
+.rcp-field input {
+    width: 50px;
     padding: 4px;
+    border-radius: 4px;
+    border: 1px solid hsl(var(--border));
+    background: hsl(var(--input));
+    color: hsl(var(--foreground));
     text-align: center;
     font-family: sans-serif;
     outline: none;
-    width: 32px;
-    font-size: 12px;
+    font-size: 14px;
 }
-
-.rcp-field label{
+.rcp-gradient-bar {
+    position: relative;
+    width: 100%;
+    height: 24px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+.rcp-gradient-handle {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    transform: translate(-8px,4px);
+    z-index: 10;
+}
+.rcp-gradient-handle.rcp-gradient-handle-active {
+    border: 2px solid hsl(var(--primary));
+}
+.rcp-gradient-handle-delete {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1px solid #777;
+    background: #eee;
+    color: #444;
+    font-size: 10px;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    cursor: pointer;
+}
+.rcp-gradient-options {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    margin-top: 12px;
+}
+.rcp-degrees-input {
+    width: 32px;
+    text-align: center;
+    border: none;
+    outline: none;
+    background: none;
+    font-size: 14px;
+    color: hsl(var(--foreground));
+    margin: 0 4px;
+}
+.rcp-degree-icon, .rcp-gradient-type-icon {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    background: hsl(var(--input));
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.rcp-degree-icon {
     color: hsl(var(--muted-foreground));
+}
+.rcp-gradient-type-icon {
+    color: hsl(var(--muted-foreground));
+}
+.rcp-gradient-type-icon.rcp-gradient-type-icon-active {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+}
+.rcp-color-input-collection {
+    width: 80px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+.rcp-presets {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-top: 12px;
+    gap: 8px;
+}
+.rcp-preset {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    border: 1px solid hsl(var(--border));
+    cursor: pointer;
 }
 /* End of react-best-gradient-color-picker styles */
 

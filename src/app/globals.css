@@ -186,6 +186,7 @@
 
    /* Prose styles for markdown content */
     .prose {
+      @apply overflow-x-hidden;
       h1, h2, h3, h4, h5, h6 { @apply text-primary; } /* Primary headings */
       a { @apply text-accent hover:text-accent/80; } /* Accent links */
       strong { @apply text-foreground/90; }

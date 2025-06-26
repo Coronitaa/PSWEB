@@ -140,48 +140,30 @@ const MediaResizeComponent = (props: NodeViewProps) => {
       const shouldDeform = moveEvent.shiftKey;
 
       if (shouldDeform) {
-        // Deformation logic will be added here in a future step
-        // For now, it will just do a standard resize
-      }
-
-      // Standard aspect-ratio preserving resize
-      switch (direction) {
-          case 'top-left':
-              newWidth = startWidth - dx;
-              newHeight = newWidth / aspectRatio;
-              break;
-          case 'top-right':
-              newWidth = startWidth + dx;
-              newHeight = newWidth / aspectRatio;
-              break;
-          case 'bottom-left':
-              newWidth = startWidth - dx;
-              newHeight = newWidth / aspectRatio;
-              break;
-          case 'bottom-right':
-              newWidth = startWidth + dx;
-              newHeight = newWidth / aspectRatio;
-              break;
-          case 'left':
-              newWidth = startWidth - dx;
-              newHeight = newWidth / aspectRatio;
-              break;
-          case 'right':
-              newWidth = startWidth + dx;
-              newHeight = newWidth / aspectRatio;
-              break;
-          case 'top':
-              newHeight = startHeight - dy;
-              newWidth = newHeight * aspectRatio;
-              break;
-          case 'bottom':
-              newHeight = startHeight + dy;
-              newWidth = newHeight * aspectRatio;
-              break;
+        if (direction.includes('left')) newWidth = startWidth - dx;
+        if (direction.includes('right')) newWidth = startWidth + dx;
+        if (direction.includes('top')) newHeight = startHeight - dy;
+        if (direction.includes('bottom')) newHeight = startHeight + dy;
+      } else {
+        if (direction.includes('left') || direction.includes('right') && direction.includes('top') || direction.includes('bottom')) {
+            if (Math.abs(dx) > Math.abs(dy)) {
+                newWidth = direction.includes('left') ? startWidth - dx : startWidth + dx;
+                newHeight = newWidth / aspectRatio;
+            } else {
+                newHeight = direction.includes('top') ? startHeight - dy : startHeight + dy;
+                newWidth = newHeight * aspectRatio;
+            }
+        } else if (direction.includes('left') || direction.includes('right')) {
+            newWidth = direction.includes('left') ? startWidth - dx : startWidth + dx;
+            newHeight = newWidth / aspectRatio;
+        } else if (direction.includes('top') || direction.includes('bottom')) {
+            newHeight = direction.includes('top') ? startHeight - dy : startHeight + dy;
+            newWidth = newHeight * aspectRatio;
+        }
       }
       
       newWidth = Math.max(50, newWidth);
-      newHeight = Math.max(50 / aspectRatio, newHeight);
+      newHeight = Math.max(20, newHeight);
 
       updateAttributes({ width: `${newWidth}px`, height: `${newHeight}px` });
     };
@@ -223,7 +205,10 @@ const MediaResizeComponent = (props: NodeViewProps) => {
               />
               {editor.isEditable && (
                   <div 
-                      className={cn("absolute inset-0 z-10", selected && "cursor-move")} 
+                      className={cn(
+                          "absolute inset-0 z-10",
+                          selected && "cursor-move"
+                      )} 
                       aria-hidden="true" 
                   />
               )}
@@ -303,6 +288,10 @@ const CustomYoutube = Youtube.extend({
             width: {
                 ...this.parent?.().width,
                 default: 640,
+                renderHTML: attributes => ({
+                    ...this.parent?.().width?.renderHTML(attributes),
+                    style: `width: ${attributes.width}px; height: ${attributes.height}px;`
+                }),
             },
             height: {
                 ...this.parent?.().height,
@@ -568,7 +557,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
         <Toolbar editor={editor} />
       </div>
 
-      <div className="min-h-[250px] overflow-y-auto px-3 py-2">
+      <div className="min-h-[250px] overflow-y-auto overflow-x-hidden px-3 py-2">
         <EditorContent editor={editor} />
       </div>
     </div>

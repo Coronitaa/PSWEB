@@ -1,5 +1,6 @@
 
 
+@import 'react-best-gradient-color-picker/dist/index.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

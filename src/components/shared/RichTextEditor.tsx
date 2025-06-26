@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -93,13 +92,12 @@ export const FontSize = Extension.create<FontSizeOptions>({
 });
 
 const MediaResizeComponent = (props: NodeViewProps) => {
-  const { node, updateAttributes, selected } = props;
+  const { node, updateAttributes, selected, editor } = props;
   const isImage = node.type.name === 'image';
   const isVideo = node.type.name === 'youtube';
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Simplified resize handler without rotation
   const createResizeHandler = (direction: 'left' | 'right') => (e: React.MouseEvent) => {
     if (!containerRef.current) return;
     
@@ -113,7 +111,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
       const dx = moveEvent.clientX - startX;
       
       const newWidth = direction === 'left'
-        ? startWidth - (dx * 2) // Grow from both sides
+        ? startWidth - (dx * 2)
         : startWidth + (dx * 2);
 
       updateAttributes({ width: `${Math.max(50, newWidth)}px` });
@@ -138,7 +136,6 @@ const MediaResizeComponent = (props: NodeViewProps) => {
   const handles = [
     { pos: 'top-1/2 -translate-y-1/2 left-[-6px]', direction: 'left', cursor: 'ew-resize' },
     { pos: 'top-1/2 -translate-y-1/2 right-[-6px]', direction: 'right', cursor: 'ew-resize' },
-    // You can add top/bottom handles here if needed, but keeping it simple for now.
   ];
   
   return (
@@ -167,9 +164,9 @@ const MediaResizeComponent = (props: NodeViewProps) => {
                 frameBorder="0"
                 allowFullScreen
               />
-              {selected && (
+              {editor.isEditable && (
                   <div 
-                      className="absolute inset-0 z-10 cursor-move" 
+                      className={cn("absolute inset-0 z-10", selected && "cursor-move")} 
                       aria-hidden="true" 
                   />
               )}
@@ -225,7 +222,6 @@ const CustomImage = TiptapImage.extend({
         }),
         parseHTML: element => element.getAttribute('data-float'),
       },
-      // ROTATION REMOVED
     };
   },
   addNodeView() {
@@ -245,12 +241,11 @@ const CustomYoutube = Youtube.extend({
                 default: '100%',
                 renderHTML: attributes => {
                     if (!attributes.width) return {};
-                    // Apply aspect ratio for videos to maintain shape
                     return { style: `width: ${attributes.width}; height: auto; aspect-ratio: ${attributes.width}/${attributes.height}` };
                 },
                 parseHTML: element => element.style.width || null,
             },
-             height: { // We need to capture height to calculate aspect ratio
+             height: {
                 default: '480',
                 parseHTML: element => element.getAttribute('height'),
             },
@@ -261,7 +256,6 @@ const CustomYoutube = Youtube.extend({
                 }),
                 parseHTML: element => element.getAttribute('data-float'),
             },
-            // ROTATION REMOVED
         }
     },
     addNodeView() {
@@ -440,7 +434,6 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
         inline: false, 
         controls: false,
         nocookie: true,
-        // Override height to be auto, forcing aspect-ratio to be the driver
         HTMLAttributes: {
           height: 'auto'
         }
@@ -525,7 +518,5 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
     </div>
   );
 };
-
-
 
     

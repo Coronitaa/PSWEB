@@ -1,109 +1,84 @@
-
-
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useEditor, EditorContent, BubbleMenu, type Editor, NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from '@tiptap/react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useEditor, EditorContent, type Editor, NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from '@tiptap/react';
 import { Extension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
+import Bold from '@tiptap/extension-bold';
 import Placeholder from '@tiptap/extension-placeholder';
 import TiptapLink from '@tiptap/extension-link';
 import TiptapImage from '@tiptap/extension-image';
 import Youtube from '@tiptap/extension-youtube';
 import TextAlign from '@tiptap/extension-text-align';
-import { Color } from '@tiptap/extension-color';
 import TextStyle from '@tiptap/extension-text-style';
+import { Color } from '@tiptap/extension-color';
 import Underline from '@tiptap/extension-underline';
-import { 
-  Bold, Italic, Link as LinkIcon, List, ListOrdered, Strikethrough, Underline as UnderlineIcon,
-  AlignLeft, AlignCenter, AlignRight, Image as ImageIcon, Video, Palette, RotateCw, Text
+import {
+  Bold as BoldIcon, Italic, Link as LinkIcon, List, ListOrdered, Strikethrough, Underline as UnderlineIcon,
+  AlignLeft, AlignCenter, AlignRight, Image as ImageIcon, Video, Palette, RotateCw, Trash2
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TAG_PALETTES } from '@/lib/tag-palettes';
 import { cn } from '@/lib/utils';
-import { createPortal } from 'react-dom';
 
+// --- TIPTAP CUSTOM EXTENSIONS ---
 
-export interface FontSizeOptions {
-  types: string[],
-}
-
-declare module '@tiptap/core' {
-  interface Commands<ReturnType> {
-    fontSize: {
-      setFontSize: (size: string) => ReturnType,
-      unsetFontSize: () => ReturnType,
-    }
-  }
-}
-
-export const FontSize = Extension.create<FontSizeOptions>({
-  name: 'fontSize',
-
-  addOptions() {
+// 1. Gradient Text Extension
+const GradientText = Extension.create({
+  name: 'gradientText',
+  addAttributes() {
     return {
-      types: ['textStyle'],
-    }
-  },
-
-  addGlobalAttributes() {
-    return [
-      {
-        types: this.options.types,
-        attributes: {
-          fontSize: {
-            default: null,
-            parseHTML: element => element.style.fontSize.replace(/['"]+/g, ''),
-            renderHTML: attributes => {
-              if (!attributes.fontSize) {
-                return {}
-              }
-
-              return {
-                style: `font-size: ${attributes.fontSize}`,
-              }
-            },
-          },
+      gradient: {
+        default: null,
+        parseHTML: element => element.style.backgroundImage,
+        renderHTML: attributes => {
+          if (!attributes.gradient) return {};
+          return {
+            style: `background-image: ${attributes.gradient}; -webkit-background-clip: text; background-clip: text; color: transparent;`,
+          };
         },
       },
-    ]
+    };
   },
-
   addCommands() {
     return {
-      setFontSize: fontSize => ({ chain }) => {
-        return chain()
-          .setMark('textStyle', { fontSize })
-          .run()
+      setGradient: (gradient: string) => ({ chain }) => {
+        return chain().setMark('textStyle', { gradient }).run();
       },
-      unsetFontSize: () => ({ chain }) => {
-        return chain()
-          .setMark('textStyle', { fontSize: null })
-          // @ts-ignore
-          .removeEmptyTextStyle()
-          .run()
+      unsetGradient: () => ({ chain }) => {
+        // Correctly chain commands to remove the gradient attribute and clean up empty style tags.
+        return chain().setMark('textStyle', { gradient: null }).removeEmptyTextStyle().run();
       },
-    }
+    };
   },
 });
 
+// 2. Custom Bold extension to prevent prose color conflicts
+const CustomBold = Bold.extend({
+  renderHTML({ HTMLAttributes }) {
+    // Render with a <b> tag to avoid Tailwind's `prose` styling override on <strong> tags.
+    return ['b', HTMLAttributes, 0];
+  },
+});
+
+// 3. Resizable Media Node View (for Images and Videos)
 const MediaResizeComponent = (props: NodeViewProps) => {
   const { node, updateAttributes, selected, editor } = props;
   const isImage = node.type.name === 'image';
   const isVideo = node.type.name === 'youtube';
-  const href = node.attrs.href;
 
   const containerRef = useRef<HTMLDivElement>(null);
-  
+
   const setAlignment = (align: 'left' | 'center' | 'right' | null) => {
     updateAttributes({ 'data-float': align });
   };
-  
+
   const float = node.attrs['data-float'];
   const width = node.attrs.width;
   const height = node.attrs.height;
@@ -114,599 +89,232 @@ const MediaResizeComponent = (props: NodeViewProps) => {
     updateAttributes({ rotate: currentRotation + degrees });
   };
 
-  const handles = [
-    { pos: 'top-0 left-0 -translate-x-1/2 -translate-y-1/2', direction: 'top-left' },
-    { pos: 'top-0 left-1/2 -translate-x-1/2 -translate-y-1/2', direction: 'top' },
-    { pos: 'top-0 right-0 translate-x-1/2 -translate-y-1/2', direction: 'top-right' },
-    { pos: 'top-1/2 left-0 -translate-x-1/2 -translate-y-1/2', direction: 'left' },
-    { pos: 'top-1/2 right-0 translate-x-1/2 -translate-y-1/2', direction: 'right' },
-    { pos: 'bottom-0 left-0 -translate-x-1/2 translate-y-1/2', direction: 'bottom-left' },
-    { pos: 'bottom-0 left-1/2 -translate-x-1/2 -translate-y-1/2', direction: 'bottom' },
-    { pos: 'bottom-0 right-0 translate-x-1/2 translate-y-1/2', direction: 'bottom-right' },
-  ];
-  
-  const initialHandleAngles: { [key: string]: number } = {
-    'top-left': 135,
-    'top': 90,
-    'top-right': 45,
-    'left': 180,
-    'right': 0,
-    'bottom-left': 225,
-    'bottom': 270,
-    'bottom-right': 315,
-  };
-  
-  const getCursorForAngle = (angle: number): string => {
-    const normalizedAngle = (angle % 360 + 360) % 360;
-    const slice = Math.round(normalizedAngle / 45) % 8;
-
-    switch (slice) {
-      case 0: return 'ew-resize';
-      case 1: return 'nesw-resize';
-      case 2: return 'ns-resize';
-      case 3: return 'nwse-resize';
-      case 4: return 'ew-resize';
-      case 5: return 'nesw-resize';
-      case 6: return 'ns-resize';
-      case 7: return 'nwse-resize';
-      default: return 'auto';
-    }
-  };
-  
-  const handleStyles = useMemo(() => {
-    return handles.map(handle => {
-        const initialAngle = initialHandleAngles[handle.direction];
-        const finalAngle = initialAngle + rotation;
-        const cursorStyle = getCursorForAngle(finalAngle);
-        return { cursor: cursorStyle };
-    })
-  }, [rotation, handles, initialHandleAngles]);
-
-
-  const createResizeHandler = (direction: string) => (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const container = containerRef.current;
-    if (!container) return;
-    
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const startWidth = container.offsetWidth;
-    const startHeight = container.offsetHeight;
-    const aspectRatio = startWidth / startHeight;
-    const angleRad = rotation * (Math.PI / 180);
-
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      const dx = moveEvent.clientX - startX;
-      const dy = moveEvent.clientY - startY;
-
-      const cos = Math.cos(angleRad);
-      const sin = Math.sin(angleRad);
-      const dxRot = dx * cos + dy * sin;
-      const dyRot = -dx * sin + dy * cos;
-
-      let newWidth = startWidth;
-      let newHeight = startHeight;
-      
-      const shouldDeform = moveEvent.shiftKey;
-
-      if (direction.includes('right')) newWidth = startWidth + dxRot;
-      if (direction.includes('left')) newWidth = startWidth - dxRot;
-      if (direction.includes('bottom')) newHeight = startHeight + dyRot;
-      if (direction.includes('top')) newHeight = startHeight - dyRot;
-      
-      if (!shouldDeform) {
-        const isCorner = direction.includes('-');
-        if (isCorner) {
-          if (Math.abs(dxRot) > Math.abs(dyRot)) {
-            newHeight = newWidth / aspectRatio;
-          } else {
-            newWidth = newHeight * aspectRatio;
-          }
-        } else {
-          if (direction.includes('left') || direction.includes('right')) {
-            newHeight = newWidth / aspectRatio;
-          } else {
-            newWidth = newHeight * aspectRatio;
-          }
-        }
-      }
-      
-      newWidth = Math.max(50, newWidth);
-      newHeight = Math.max(20, newHeight);
-
-      updateAttributes({ width: `${newWidth}px`, height: `${newHeight}px` });
-    };
-
-    const handleMouseUp = () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-  };
-  
-  const createRotationHandler = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const container = containerRef.current;
-    if (!container) return;
-
-    const rect = container.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    const startAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
-    const initialRotation = rotation;
-
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-        const currentAngle = Math.atan2(moveEvent.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
-        const newRotation = initialRotation + (currentAngle - startAngle);
-        updateAttributes({ rotate: newRotation });
-    };
-
-    const handleMouseUp = () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-  };
-
-  const imageContent = <img src={node.attrs.src} alt={node.attrs.alt} className="w-full h-full block object-fill" />;
-
-  const handleLinkClick = (e: React.MouseEvent) => {
-    if (editor.isEditable) {
-      e.preventDefault();
-    }
-  };
-
   return (
-    <NodeViewWrapper
-      as="div"
-      className="rich-text-media-node group clear-both relative"
-      style={{ width }}
-      data-float={float}
-      draggable="true" data-drag-handle
-    >
-      <div 
-        ref={containerRef}
-        className={cn(
-          "relative w-full",
-          selected && 'border-2 border-primary border-dashed'
-        )}
-        style={{
-            height: height || 'auto',
-            transform: `rotate(${rotation}deg)`
-        }}
-      >
-        {isImage && (
-            href ? (
-              <a href={href} target="_blank" rel="noopener noreferrer nofollow" className="w-full h-full block cursor-pointer" onClick={handleLinkClick}>
-                {imageContent}
-              </a>
-            ) : imageContent
-        )}
+    <NodeViewWrapper as="div" className="rich-text-media-node group clear-both relative" style={{ width }} data-float={float} draggable="true" data-drag-handle>
+       <div ref={containerRef} className={cn("relative w-full", selected && 'border-2 border-primary border-dashed')} style={{ height: height || 'auto', transform: `rotate(${rotation}deg)`}}>
+        {isImage && <img src={node.attrs.src} alt={node.attrs.alt} className="w-full h-full block object-fill" />}
         {isVideo && (
           <div className="w-full h-full relative">
-              <iframe
-                className="absolute inset-0 w-full h-full"
-                src={node.attrs.src}
-                frameBorder="0"
-                allowFullScreen
-              />
-              {editor.isEditable && (
-                  <div 
-                      className={cn(
-                          "absolute inset-0 z-10",
-                          selected && "cursor-move"
-                      )} 
-                      aria-hidden="true" 
-                  />
-              )}
+              <iframe className="absolute inset-0 w-full h-full" src={node.attrs.src} frameBorder="0" allowFullScreen />
+              {editor.isEditable && <div className={cn("absolute inset-0 z-10", selected && "cursor-move")} aria-hidden="true" />}
           </div>
         )}
-      
-        {selected && (
-          <>
-            {handles.map((handle, index) => (
-                    <div
-                      key={index}
-                      className={cn(
-                        "absolute w-2.5 h-2.5 bg-primary rounded-full border border-card pointer-events-auto z-20",
-                        handle.pos
-                      )}
-                      style={handleStyles[index]}
-                      onMouseDown={createResizeHandler(handle.direction)}
-                    />
-            ))}
-              <div
-                className="absolute bottom-0 right-0 translate-x-[150%] translate-y-[150%] p-1 bg-card rounded-full border border-primary pointer-events-auto z-20 cursor-alias"
-                onMouseDown={createRotationHandler}
-                title="Rotate"
-              >
-                  <RotateCw className="w-3 h-3 text-primary"/>
-              </div>
-          </>
-        )}
       </div>
-       {selected && (
+      {selected && (
           <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[calc(100%+12px)] z-20 flex gap-1 bg-card p-1 rounded-md shadow-lg border border-border pointer-events-auto">
               <Button type="button" size="icon" variant={float === 'left' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('left')} title="Align left"><AlignLeft className="w-4 h-4" /></Button>
               <Button type="button" size="icon" variant={!float || float === 'center' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('center')} title="Align center"><AlignCenter className="w-4 h-4" /></Button>
               <Button type="button" size="icon" variant={float === 'right' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('right')} title="Align right"><AlignRight className="w-4 h-4" /></Button>
               <div className="w-px h-5 bg-border mx-1 self-center" />
-              <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => rotateByAxis(90)} title="Rotate 90°">
-                  <RotateCw className="w-4 h-4" />
-              </Button>
-            </div>
+              <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => rotateByAxis(90)} title="Rotate 90°"><RotateCw className="w-4 h-4" /></Button>
+          </div>
       )}
     </NodeViewWrapper>
   );
 };
 
-const CustomImage = TiptapImage.extend({
-  draggable: true,
-  addAttributes() {
-    return {
-      ...this.parent?.(),
-      class: {
-        default: 'rich-text-media-node',
-      },
-      width: {
-        default: '100%',
-        renderHTML: attributes => ({
-          style: `width: ${attributes.width};`,
-        }),
-        parseHTML: element => element.style.width || null,
-      },
-      height: {
-        default: null,
-        renderHTML: attributes => ({
-            style: `height: ${attributes.height};`,
-        }),
-        parseHTML: element => element.style.height || null,
-      },
-      'data-float': {
-        default: 'center',
-        renderHTML: attributes => ({
-          'data-float': attributes['data-float'],
-        }),
-        parseHTML: element => element.getAttribute('data-float'),
-      },
-      rotate: {
-          default: 0,
-          renderHTML: attributes => ({
-              style: `transform: rotate(${attributes.rotate}deg)`
-          }),
-          parseHTML: element => {
-              const transform = element.style.transform;
-              if (transform && transform.includes('rotate')) {
-                  const match = transform.match(/rotate\(([^deg)]+)deg\)/);
-                  return match ? parseFloat(match[1]) : 0;
-              }
-              return 0;
-          }
-      },
-      href: {
-        default: null,
-      },
-      target: {
-        default: null,
-      },
+// 4. Custom Image & Youtube extensions that use the resizable view
+const CustomImage = TiptapImage.extend({ draggable: true, addNodeView() { return ReactNodeViewRenderer(MediaResizeComponent); } });
+const CustomYoutube = Youtube.extend({ draggable: true, addNodeView() { return ReactNodeViewRenderer(MediaResizeComponent); } });
+
+
+// --- COLOR & GRADIENT PICKER COMPONENT ---
+const ColorGradientPicker = ({ editor }: { editor: Editor }) => {
+    const [recentColors, setRecentColors] = useState<string[]>([]);
+    const currentColor = editor.getAttributes('textStyle').color || '#000000';
+
+    useEffect(() => {
+        const storedColors = localStorage.getItem('tiptapRecentColors');
+        if (storedColors) setRecentColors(JSON.parse(storedColors));
+    }, []);
+
+    const addRecentColor = (color: string) => {
+        const newRecentColors = [color, ...recentColors.filter(c => c !== color)].slice(0, 14);
+        setRecentColors(newRecentColors);
+        localStorage.setItem('tiptapRecentColors', JSON.stringify(newRecentColors));
     };
-  },
 
-  parseHTML() {
-    return [
-      {
-        tag: 'a[href]:not([href^="javascript:"]) > img[src]:not([src^="data:"])',
-        getAttrs: dom => {
-            const link = dom.parentElement as HTMLAnchorElement;
-            const img = dom as HTMLImageElement;
-            return {
-                src: img.getAttribute('src'),
-                alt: img.getAttribute('alt'),
-                title: img.getAttribute('title'),
-                href: link.getAttribute('href'),
-                target: link.getAttribute('target'),
-            };
-        },
-      },
-      {
-        tag: 'img[src]:not([src^="data:"])',
-        getAttrs: dom => {
-            const img = dom as HTMLImageElement;
-            if (img.closest('a')) {
-                return false; 
-            }
-            return {
-                src: img.getAttribute('src'),
-                alt: img.getAttribute('alt'),
-                title: img.getAttribute('title'),
-                href: null,
-                target: null,
-            };
-        },
-      },
+    const applyColor = (color: string) => {
+        editor.chain().focus().unsetGradient().setColor(color).run();
+        addRecentColor(color);
+    };
+    
+    const applyGradient = (gradient: string) => {
+        editor.chain().focus().unsetColor().setGradient(gradient).run();
+    };
+    
+    const removeStyle = () => {
+        editor.chain().focus().unsetColor().unsetGradient().run();
+    }
+
+    const paletteColors = [...new Set(TAG_PALETTES.flatMap(p => [p.base.background, p.base.text, p.hover.background, p.hover.text]).filter(Boolean))] as string[];
+    const gradients = [
+        'linear-gradient(to right, #E64A8B, #F252A2)', 'linear-gradient(to right, #e67e22, #e74c3c)',
+        'linear-gradient(to right, #27ae60, #2ecc71)', 'linear-gradient(to right, #8e44ad, #9b59b6)',
+        'linear-gradient(to right, #2980b9, #3498db)', 'linear-gradient(to right, #f1c40f, #f39c12)',
     ];
-  },
 
-  renderHTML({ HTMLAttributes }) {
-    const { href, target, ...imgAttributes } = HTMLAttributes;
-    const imgTag: (string | Record<string, any>)[] = ['img', imgAttributes];
+    return (
+        <Popover>
+            <PopoverTrigger asChild>
+                <Button type="button" variant="ghost" size="icon" className="h-8 w-8">
+                    <Palette className="h-4 w-4" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64 p-0" align="start">
+                <Tabs defaultValue="solid" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="solid">Solid</TabsTrigger>
+                        <TabsTrigger value="gradient">Gradient</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="solid" className="p-2 space-y-3">
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="color"
+                                value={currentColor}
+                                onInput={(e) => applyColor((e.target as HTMLInputElement).value)}
+                                className="p-0 w-8 h-8 rounded-md border-none cursor-pointer bg-transparent"
+                            />
+                            <Input
+                                value={currentColor}
+                                onChange={(e) => applyColor(e.target.value)}
+                                placeholder="#000000"
+                                className="h-8 flex-1"
+                            />
+                        </div>
+                        <Separator />
+                        <div>
+                           <p className="text-xs font-semibold text-muted-foreground mb-1.5">Project Colors</p>
+                           <div className="grid grid-cols-7 gap-1">
+                                {paletteColors.map((color, i) => (
+                                    <Button key={`palette-${i}`} variant="ghost" size="icon" className="h-6 w-6 rounded-full p-0" onClick={() => applyColor(color)}>
+                                        <div className="h-4 w-4 rounded-full border" style={{ backgroundColor: color }} />
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
+                         {recentColors.length > 0 && <div>
+                            <p className="text-xs font-semibold text-muted-foreground mb-1.5">Recent</p>
+                            <div className="grid grid-cols-7 gap-1">
+                                {recentColors.map((color, i) => (
+                                    <Button key={`recent-${i}`} variant="ghost" size="icon" className="h-6 w-6 rounded-full p-0" onClick={() => applyColor(color)}>
+                                        <div className="h-4 w-4 rounded-full border" style={{ backgroundColor: color }} />
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>}
+                         <Button variant="outline" size="sm" className="w-full h-8 mt-2" onClick={removeStyle}>
+                            <Trash2 className="w-4 h-4 mr-2"/>
+                            Remove Color
+                        </Button>
+                    </TabsContent>
+                    <TabsContent value="gradient" className="p-2 space-y-2">
+                        <div className="grid grid-cols-3 gap-2">
+                            {gradients.map((gradient, i) => (
+                                <Button key={`grad-${i}`} variant="ghost" className="h-8 w-full p-0 rounded-md" onClick={() => applyGradient(gradient)}>
+                                    <div className="w-full h-full rounded-md" style={{ backgroundImage: gradient }} />
+                                </Button>
+                            ))}
+                        </div>
+                        <Button variant="outline" size="sm" className="w-full h-8 mt-2" onClick={removeStyle}>
+                            <Trash2 className="w-4 h-4 mr-2"/>
+                            Remove Gradient
+                        </Button>
+                    </TabsContent>
+                </Tabs>
+            </PopoverContent>
+        </Popover>
+    );
+};
 
-    if (href) {
-      return ['a', { href, target, rel: 'noopener noreferrer nofollow' }, imgTag];
-    }
-    return imgTag;
-  },
 
-  addNodeView() {
-    return ReactNodeViewRenderer(MediaResizeComponent);
-  },
-});
-
-const CustomYoutube = Youtube.extend({
-    draggable: true,
-    addAttributes() {
-        return {
-            ...this.parent?.(),
-            class: {
-              default: 'rich-text-media-node',
-            },
-            width: {
-                default: '640px',
-                renderHTML: attributes => ({
-                    style: `width: ${attributes.width};`
-                }),
-                parseHTML: element => element.style.width || '640px',
-            },
-            height: {
-                default: '480px',
-                renderHTML: attributes => ({
-                  style: `height: ${attributes.height};`,
-                }),
-                parseHTML: element => element.style.height || '480px',
-            },
-            'data-float': {
-                default: 'center',
-                renderHTML: attributes => ({
-                    'data-float': attributes['data-float']
-                }),
-                parseHTML: element => element.getAttribute('data-float'),
-            },
-            rotate: {
-                default: 0,
-                renderHTML: attributes => ({
-                    style: `transform: rotate(${attributes.rotate}deg)`
-                }),
-                parseHTML: element => {
-                    const transform = element.style.transform;
-                    if (transform && transform.includes('rotate')) {
-                        const match = transform.match(/rotate\(([^deg)]+)deg\)/);
-                        return match ? parseFloat(match[1]) : 0;
-                    }
-                    return 0;
-                }
-            }
-        }
-    },
-    addNodeView() {
-        return ReactNodeViewRenderer(MediaResizeComponent)
-    }
-});
-
-
+// --- TOOLBAR COMPONENT ---
 const Toolbar = ({ editor }: { editor: Editor | null }) => {
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [url, setUrl] = useState('');
 
-  if (!editor) {
-    return null;
-  }
-
-  const isLinkActive = editor.isActive('link') || (editor.isActive('image') && !!editor.getAttributes('image').href);
+  if (!editor) return null;
 
   const openLinkModal = () => {
-    const isImageActive = editor.isActive('image');
-    const previousUrl = isImageActive
-      ? editor.getAttributes('image').href
-      : editor.getAttributes('link').href;
-    setUrl(previousUrl || '');
+    setUrl(editor.getAttributes('link').href || '');
     setIsLinkModalOpen(true);
   };
   
-  const handleClearLink = () => {
-    const isImageActive = editor.isActive('image');
-    if (isImageActive) {
-      editor.chain().focus().updateAttributes('image', { href: null, target: null }).run();
-    } else {
-      editor.chain().focus().extendMarkRange('link').unsetLink().run();
-    }
-    setIsLinkModalOpen(false);
-    setUrl('');
-  };
-
   const setLink = () => {
-    if (url === null) return;
-    
-    if (url === '') {
-      handleClearLink();
-      return;
-    }
-
-    const isImageActive = editor.isActive('image');
-
-    if (isImageActive) {
-      editor.chain().focus().updateAttributes('image', { href: url, target: '_blank' }).run();
-    } else {
+    if (url) {
       editor.chain().focus().extendMarkRange('link').setLink({ href: url, target: '_blank' }).run();
+    } else {
+      editor.chain().focus().unsetLink().run();
     }
     setIsLinkModalOpen(false);
     setUrl('');
   };
 
-  const addImage = () => {
-    if (url) {
-      editor.chain().focus().setImage({ src: url }).run();
-    }
-    setIsImageModalOpen(false);
-    setUrl('');
-  };
-
-  const addYoutubeVideo = () => {
-    if (url) {
-      editor.chain().focus().setYoutubeVideo({ src: url }).run();
-    }
-    setIsVideoModalOpen(false);
-    setUrl('');
-  };
-
-  const fontSizes = [
-    { label: "Just a little peek", value: "12px" },
-    { label: "Perfectly average", value: "14px" },
-    { label: "Comfortably numb", value: "_default_size_" },
-    { label: "Making a statement", value: "18px" },
-    { label: "Hard to miss", value: "24px" },
-    { label: "Absolutely massive", value: "30px" },
-  ];
-
+  const addImage = () => { if (url) editor.chain().focus().setImage({ src: url }).run(); setIsImageModalOpen(false); setUrl(''); };
+  const addYoutubeVideo = () => { if (url) editor.chain().focus().setYoutubeVideo({ src: url }).run(); setIsVideoModalOpen(false); setUrl(''); };
+  
   return (
     <>
-      <div className="flex flex-wrap items-center gap-1 p-1 border-b">
-        <Select
-            value={editor.getAttributes('textStyle').fontSize || '_default_size_'}
-            onValueChange={(value) => {
-                if (value === '_default_size_') {
-                    editor.chain().focus().unsetFontSize().run();
-                } else {
-                    editor.chain().focus().setFontSize(value).run();
-                }
-            }}
-        >
-          <SelectTrigger className="w-40 h-8 text-xs">
-              <SelectValue placeholder="Text size" />
-          </SelectTrigger>
-          <SelectContent>
-              {fontSizes.map(size => (
-                  <SelectItem key={size.label} value={size.value} className="text-xs" style={{ fontSize: size.value === '_default_size_' ? '16px' : size.value }}>{size.label}</SelectItem>
-              ))}
-          </SelectContent>
-        </Select>
-        <Separator orientation="vertical" className="h-6" />
-        <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleBold().run()} className={cn("h-8 w-8", editor.isActive('bold') && "bg-muted text-primary")}><Bold className="h-4 w-4" /></Button>
-        <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleItalic().run()} className={cn("h-8 w-8", editor.isActive('italic') && "bg-muted text-primary")}><Italic className="h-4 w-4" /></Button>
-        <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleUnderline().run()} className={cn("h-8 w-8", editor.isActive('underline') && "bg-muted text-primary")}><UnderlineIcon className="h-4 w-4" /></Button>
-        <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleStrike().run()} className={cn("h-8 w-8", editor.isActive('strike') && "bg-muted text-primary")}><Strikethrough className="h-4 w-4" /></Button>
-        <Separator orientation="vertical" className="h-6" />
-        <Button variant="ghost" size="icon" className="h-8 w-8 p-1.5 relative">
-              <Palette className="h-4 w-4"/>
-              <input
-                type="color"
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                onInput={(event) => editor.chain().focus().setColor((event.target as HTMLInputElement).value).run()}
-                value={editor.getAttributes('textStyle').color || '#ffffff'}
-                data-testid="setColor"
-              />
-          </Button>
-        <Separator orientation="vertical" className="h-6" />
-        <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().setTextAlign('left').run()} className={cn("h-8 w-8", editor.isActive({ textAlign: 'left' }) && "bg-muted text-primary")}><AlignLeft className="h-4 w-4" /></Button>
-        <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().setTextAlign('center').run()} className={cn("h-8 w-8", editor.isActive({ textAlign: 'center' }) && "bg-muted text-primary")}><AlignCenter className="h-4 w-4" /></Button>
-        <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().setTextAlign('right').run()} className={cn("h-8 w-8", editor.isActive({ textAlign: 'right' }) && "bg-muted text-primary")}><AlignRight className="h-4 w-4" /></Button>
-        <Separator orientation="vertical" className="h-6" />
-        <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleBulletList().run()} className={cn("h-8 w-8", editor.isActive('bulletList') && "bg-muted text-primary")}><List className="h-4 w-4" /></Button>
-        <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleOrderedList().run()} className={cn("h-8 w-8", editor.isActive('orderedList') && "bg-muted text-primary")}><ListOrdered className="h-4 w-4" /></Button>
-        <Separator orientation="vertical" className="h-6" />
-        <Button type="button" variant="ghost" size="icon" onClick={openLinkModal} className={cn("h-8 w-8", isLinkActive && "bg-muted text-primary")}><LinkIcon className="h-4 w-4" /></Button>
-        <Button type="button" variant="ghost" size="icon" onClick={() => { setUrl(''); setIsImageModalOpen(true); }} className="h-8 w-8"><ImageIcon className="h-4 w-4" /></Button>
-        <Button type="button" variant="ghost" size="icon" onClick={() => { setUrl(''); setIsVideoModalOpen(true); }} className="h-8 w-8"><Video className="h-4 w-4" /></Button>
+        <div className="flex flex-wrap items-center gap-1 p-1 border-b">
+            <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleBold().run()} className={cn("h-8 w-8", editor.isActive('bold') && "bg-muted text-primary")}><BoldIcon className="h-4 w-4" /></Button>
+            <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleItalic().run()} className={cn("h-8 w-8", editor.isActive('italic') && "bg-muted text-primary")}><Italic className="h-4 w-4" /></Button>
+            <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleUnderline().run()} className={cn("h-8 w-8", editor.isActive('underline') && "bg-muted text-primary")}><UnderlineIcon className="h-4 w-4" /></Button>
+            <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleStrike().run()} className={cn("h-8 w-8", editor.isActive('strike') && "bg-muted text-primary")}><Strikethrough className="h-4 w-4" /></Button>
+            <Separator orientation="vertical" className="h-6" />
+            
+            <ColorGradientPicker editor={editor} />
+            
+            <Separator orientation="vertical" className="h-6" />
+            <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().setTextAlign('left').run()} className={cn("h-8 w-8", editor.isActive({ textAlign: 'left' }) && "bg-muted text-primary")}><AlignLeft className="h-4 w-4" /></Button>
+            <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().setTextAlign('center').run()} className={cn("h-8 w-8", editor.isActive({ textAlign: 'center' }) && "bg-muted text-primary")}><AlignCenter className="h-4 w-4" /></Button>
+            <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().setTextAlign('right').run()} className={cn("h-8 w-8", editor.isActive({ textAlign: 'right' }) && "bg-muted text-primary")}><AlignRight className="h-4 w-4" /></Button>
+            <Separator orientation="vertical" className="h-6" />
+            <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleBulletList().run()} className={cn("h-8 w-8", editor.isActive('bulletList') && "bg-muted text-primary")}><List className="h-4 w-4" /></Button>
+            <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleOrderedList().run()} className={cn("h-8 w-8", editor.isActive('orderedList') && "bg-muted text-primary")}><ListOrdered className="h-4 w-4" /></Button>
+            <Separator orientation="vertical" className="h-6" />
+            <Button type="button" variant="ghost" size="icon" onClick={openLinkModal} className={cn("h-8 w-8", editor.isActive('link') && "bg-muted text-primary")}><LinkIcon className="h-4 w-4" /></Button>
+            <Button type="button" variant="ghost" size="icon" onClick={() => setIsImageModalOpen(true)} className="h-8 w-8"><ImageIcon className="h-4 w-4" /></Button>
+            <Button type="button" variant="ghost" size="icon" onClick={() => setIsVideoModalOpen(true)} className="h-8 w-8"><Video className="h-4 w-4" /></Button>
       </div>
 
       <Dialog open={isLinkModalOpen} onOpenChange={setIsLinkModalOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Set Link URL</DialogTitle></DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="linkUrl">URL</Label>
-            <Input id="linkUrl" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://example.com" />
-          </div>
-          <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-between sm:space-x-2">
-            <div>
-              {isLinkActive && (
-                <Button type="button" variant="ghost" className="w-full sm:w-auto justify-start text-destructive hover:text-destructive hover:bg-destructive/10" onClick={handleClearLink}>
-                  Clear Link
-                </Button>
-              )}
-            </div>
-            <div className="flex justify-end gap-2">
-                <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-                <Button type="button" onClick={setLink}>{url ? 'Update Link' : 'Set Link'}</Button>
-            </div>
-          </DialogFooter>
-        </DialogContent>
+        <DialogContent><DialogHeader><DialogTitle>Edit Link URL</DialogTitle></DialogHeader><Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://example.com" /><DialogFooter><Button type="button" variant="outline" onClick={() => setIsLinkModalOpen(false)}>Cancel</Button><Button type="button" onClick={setLink}>Save</Button></DialogFooter></DialogContent>
       </Dialog>
       <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Embed Image</DialogTitle></DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="imageUrl">Image URL</Label>
-            <Input id="imageUrl" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://example.com/image.png" />
-          </div>
-          <DialogFooter>
-            <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-            <Button type="button" onClick={addImage}>Add Image</Button>
-          </DialogFooter>
-        </DialogContent>
+        <DialogContent><DialogHeader><DialogTitle>Embed Image from URL</DialogTitle></DialogHeader><Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." /><DialogFooter><Button type="button" variant="outline" onClick={() => setIsImageModalOpen(false)}>Cancel</Button><Button type="button" onClick={addImage}>Add Image</Button></DialogFooter></DialogContent>
       </Dialog>
       <Dialog open={isVideoModalOpen} onOpenChange={setIsVideoModalOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Embed YouTube Video</DialogTitle></DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="videoUrl">YouTube URL</Label>
-            <Input id="videoUrl" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://youtube.com/watch?v=..." />
-          </div>
-          <DialogFooter>
-            <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-            <Button type="button" onClick={addYoutubeVideo}>Add Video</Button>
-          </DialogFooter>
-        </DialogContent>
+        <DialogContent><DialogHeader><DialogTitle>Embed YouTube Video</DialogTitle></DialogHeader><Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://youtube.com/watch?v=..." /><DialogFooter><Button type="button" variant="outline" onClick={() => setIsVideoModalOpen(false)}>Cancel</Button><Button type="button" onClick={addYoutubeVideo}>Add Video</Button></DialogFooter></DialogContent>
       </Dialog>
     </>
   );
 };
 
+
+// --- MAIN RICH TEXT EDITOR COMPONENT ---
 interface RichTextEditorProps {
   initialContent?: string;
   onChange: (html: string) => void;
 }
 
 export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps) => {
-  const toolbarRef = useRef<HTMLDivElement>(null);
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ heading: false }),
-      TextStyle,
-      FontSize.configure({
-        types: ['textStyle'],
+      StarterKit.configure({
+        bold: false, // Deactivate the default bold extension
       }),
+      CustomBold, // Use our custom bold extension
+      Placeholder.configure({ placeholder: "Share the details of your resource..." }),
       TiptapLink.configure({ openOnClick: false, autolink: true, HTMLAttributes: { class: 'text-primary hover:text-accent transition-colors cursor-pointer underline' } }),
-      CustomImage.configure({
-        inline: false, 
-        allowBase64: true,
-      }),
-      CustomYoutube.configure({
-        inline: false, 
-        controls: false,
-        nocookie: true,
-      }),
-      TextAlign.configure({ types: ['paragraph', 'image', 'youtube'] }),
+      CustomImage.configure({ inline: false, allowBase64: true }),
+      CustomYoutube.configure({ inline: false, controls: false, nocookie: true }),
+      TextAlign.configure({ types: ['heading', 'paragraph', 'image', 'youtube'] }),
+      TextStyle,
       Color,
       Underline,
+      GradientText,
     ],
     content: initialContent,
     onUpdate: ({ editor }) => { onChange(editor.getHTML()); },
@@ -714,7 +322,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
       attributes: {
         class: cn(
           'prose dark:prose-invert max-w-none prose-sm sm:prose-base',
-          'focus:outline-none'
+          'min-h-[250px] p-3 focus:outline-none'
         ),
       },
     },
@@ -722,76 +330,10 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
 
   return (
     <div className="w-full rounded-md border border-input bg-card ring-offset-background focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
-      {editor && (
-         <BubbleMenu 
-          editor={editor}
-          tippyOptions={{ duration: 100 }}
-          className="bg-card p-1 rounded-lg shadow-lg border border-border flex items-center gap-0.5"
-          shouldShow={({ editor, view, from, to }) => {
-            if (!editor.isFocused) {
-              return false;
-            }
-            
-            const { from: selectionFrom, to: selectionTo } = editor.state.selection;
-            let isMediaSelection = false;
-            editor.state.doc.nodesBetween(selectionFrom, selectionTo, (node) => {
-              if (node.type.name === 'image' || node.type.name === 'youtube') {
-                isMediaSelection = true;
-              }
-            });
-            if (isMediaSelection) {
-              return false;
-            }
-      
-            if (toolbarRef.current) {
-              const toolbarRect = toolbarRef.current.getBoundingClientRect();
-              const selectionCoords = view.coordsAtPos(from);
-              
-              const bubbleMenuHeight = 50; 
-              
-              if (selectionCoords.top < toolbarRect.bottom + bubbleMenuHeight) {
-                return false;
-              }
-            }
-            
-            return from !== to;
-          }}
-         >
-            <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleBold().run()} className={cn("h-8 w-8", editor.isActive('bold') && "bg-muted text-primary")}><Bold className="h-4 w-4" /></Button>
-            <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleItalic().run()} className={cn("h-8 w-8", editor.isActive('italic') && "bg-muted text-primary")}><Italic className="h-4 w-4" /></Button>
-            <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleUnderline().run()} className={cn("h-8 w-8", editor.isActive('underline') && "bg-muted text-primary")}><UnderlineIcon className="h-4 w-4" /></Button>
-            <Separator orientation="vertical" className="h-6" />
-             <Button variant="ghost" size="icon" className="h-8 w-8 p-1.5 relative">
-                <Palette className="h-4 w-4"/>
-                <input
-                  type="color"
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  onInput={(event) => editor.chain().focus().setColor((event.target as HTMLInputElement).value).run()}
-                  value={editor.getAttributes('textStyle').color || '#ffffff'}
-                  data-testid="setColorBubble"
-                />
-            </Button>
-        </BubbleMenu>
-      )}
-      
-      <div ref={toolbarRef} className="sticky top-0 bg-card/95 backdrop-blur-sm z-10">
-        <Toolbar editor={editor} />
-      </div>
-
-      <div className="min-h-[250px] overflow-y-auto overflow-x-hidden px-3 py-2">
+      <Toolbar editor={editor} />
+      <div className="overflow-y-auto overflow-x-hidden">
         <EditorContent editor={editor} />
       </div>
     </div>
   );
 };
-
-    
-
-
-
-
-
-
-
-
-

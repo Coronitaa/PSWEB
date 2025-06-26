@@ -160,7 +160,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
     // Find the closest cursor direction for the final angle
     const slice = 360 / 8;
     const halfSlice = slice / 2;
-    const closestIndex = Math.round((finalAngle - halfSlice + 360) % 360 / slice) % 8;
+    const closestIndex = Math.round(((finalAngle + halfSlice) % 360) / slice) % 8;
     
     return cursors[closestIndex];
   };
@@ -176,27 +176,21 @@ const MediaResizeComponent = (props: NodeViewProps) => {
     { pos: 'top-1/2 -translate-y-1/2 left-[-6px]', direction: 'left' },
   ];
   
-  const wrapperStyle: React.CSSProperties = { 
-      width,
-  };
-
   return (
     <NodeViewWrapper
       as="div"
-      className={cn(
-        'rich-text-media-node group clear-both relative',
-        float === 'center' ? 'mx-auto block' : '',
-        float === 'left' ? 'mr-4 float-left' : '',
-        float === 'right' ? 'ml-4 float-right' : '',
-        selected && 'outline-2 outline-primary outline-dashed'
-      )}
-      style={wrapperStyle}
+      className="rich-text-media-node group clear-both relative"
+      style={{ width }}
+      data-float={float}
       draggable="true" data-drag-handle
     >
       <div 
-        className="relative" 
-        style={{ transform: `rotate(${rotation}deg)` }}
         ref={containerRef}
+        className={cn(
+          "relative",
+          selected && 'outline-2 outline-primary outline-dashed'
+        )}
+        style={{ transform: `rotate(${rotation}deg)` }}
       >
         {isImage && (
           <img src={node.attrs.src} alt={node.attrs.alt} className="w-full h-auto block" />
@@ -213,16 +207,20 @@ const MediaResizeComponent = (props: NodeViewProps) => {
           </div>
         )}
       
-        {selected && createPortal(
+        {selected && (
           <>
             <div 
-              className="absolute top-[-44px] left-1/2 -translate-x-1/2 z-[1] flex gap-1 bg-card p-1 rounded-md shadow-lg border border-border"
+              className="absolute inset-0 pointer-events-none"
               style={{ transform: `rotate(-${rotation}deg)` }}
             >
-              <Button type="button" size="icon" variant={float === 'left' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('left')} title="Align left"><AlignLeft className="w-4 h-4" /></Button>
-              <Button type="button" size="icon" variant={!float || float === 'center' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('center')} title="Align center"><AlignCenter className="w-4 h-4" /></Button>
-              <Button type="button" size="icon" variant={float === 'right' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('right')} title="Align right"><AlignRight className="w-4 h-4" /></Button>
-              <Button type="button" size="icon" variant='ghost' className="h-7 w-7" onClick={() => updateAttributes({ rotate: (rotation + 90) % 360 })} title="Rotate"><RotateCcw className="w-4 h-4" /></Button>
+              <div 
+                className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[calc(100%+12px)] z-[1] flex gap-1 bg-card p-1 rounded-md shadow-lg border border-border pointer-events-auto"
+              >
+                <Button type="button" size="icon" variant={float === 'left' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('left')} title="Align left"><AlignLeft className="w-4 h-4" /></Button>
+                <Button type="button" size="icon" variant={!float || float === 'center' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('center')} title="Align center"><AlignCenter className="w-4 h-4" /></Button>
+                <Button type="button" size="icon" variant={float === 'right' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('right')} title="Align right"><AlignRight className="w-4 h-4" /></Button>
+                <Button type="button" size="icon" variant='ghost' className="h-7 w-7" onClick={() => updateAttributes({ rotate: (rotation + 90) % 360 })} title="Rotate"><RotateCcw className="w-4 h-4" /></Button>
+              </div>
             </div>
 
             {handles.map((handle, index) => (
@@ -239,8 +237,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
                   onMouseDown={createResizeHandler(handle.direction as 'left' | 'right' | 'none')}
                 />
               ))}
-          </>,
-          containerRef.current!
+          </>
         )}
       </div>
     </NodeViewWrapper>

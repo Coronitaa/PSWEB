@@ -12,6 +12,7 @@ import TiptapImage from '@tiptap/extension-image';
 import Youtube from '@tiptap/extension-youtube';
 import TextAlign from '@tiptap/extension-text-align';
 import { Color } from '@tiptap/extension-color';
+import TextStyle from '@tiptap/extension-text-style';
 import Underline from '@tiptap/extension-underline';
 import { 
   Bold, Italic, Link as LinkIcon, List, ListOrdered, Strikethrough, Underline as UnderlineIcon,
@@ -402,29 +403,44 @@ const CustomImage = TiptapImage.extend({
   parseHTML() {
     return [
       {
+        tag: 'a[href]:not([href^="javascript:"]) > img[src]:not([src^="data:"])',
+        getAttrs: dom => {
+            const link = dom.parentElement as HTMLAnchorElement;
+            const img = dom as HTMLImageElement;
+            return {
+                src: img.getAttribute('src'),
+                alt: img.getAttribute('alt'),
+                title: img.getAttribute('title'),
+                href: link.getAttribute('href'),
+                target: link.getAttribute('target'),
+            };
+        },
+      },
+      {
         tag: 'img[src]:not([src^="data:"])',
         getAttrs: dom => {
-          const img = dom as HTMLImageElement;
-          const link = img.closest('a[href]:not([href^="javascript:"])');
-          
-          return {
-            src: img.getAttribute('src'),
-            alt: img.getAttribute('alt'),
-            title: img.getAttribute('title'),
-            href: link ? link.getAttribute('href') : null,
-            target: link ? link.getAttribute('target') : null,
-          };
+            const img = dom as HTMLImageElement;
+            if (img.closest('a')) {
+                return false; 
+            }
+            return {
+                src: img.getAttribute('src'),
+                alt: img.getAttribute('alt'),
+                title: img.getAttribute('title'),
+                href: null,
+                target: null,
+            };
         },
       },
     ];
   },
 
   renderHTML({ HTMLAttributes }) {
-    const { href, ...imgAttributes } = HTMLAttributes;
+    const { href, target, ...imgAttributes } = HTMLAttributes;
     const imgTag: (string | Record<string, any>)[] = ['img', imgAttributes];
 
     if (href) {
-      return ['a', { href, target: '_blank', rel: 'noopener noreferrer nofollow' }, imgTag];
+      return ['a', { href, target, rel: 'noopener noreferrer nofollow' }, imgTag];
     }
     return imgTag;
   },
@@ -674,6 +690,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ heading: false }),
+      TextStyle,
       FontSize.configure({
         types: ['textStyle'],
       }),
@@ -769,6 +786,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
 };
 
     
+
 
 
 

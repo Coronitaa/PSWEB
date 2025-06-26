@@ -160,7 +160,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
         const cursorStyle = getCursorForAngle(finalAngle);
         return { cursor: cursorStyle };
     })
-  }, [rotation]);
+  }, [rotation, handles, initialHandleAngles]);
 
 
   const createResizeHandler = (direction: string) => (e: React.MouseEvent) => {
@@ -399,6 +399,27 @@ const CustomImage = TiptapImage.extend({
       },
     };
   },
+
+  parseHTML() {
+    return [
+      {
+        tag: 'img[src]:not([src^="data:"])',
+        getAttrs: dom => {
+          const img = dom as HTMLImageElement;
+          const link = img.closest('a[href]:not([href^="javascript:"])');
+          
+          return {
+            src: img.getAttribute('src'),
+            alt: img.getAttribute('alt'),
+            title: img.getAttribute('title'),
+            href: link ? link.getAttribute('href') : null,
+            target: link ? link.getAttribute('target') : null,
+          };
+        },
+      },
+    ];
+  },
+
   renderHTML({ HTMLAttributes }) {
     const { href, ...imgAttributes } = HTMLAttributes;
     const imgTag: (string | Record<string, any>)[] = ['img', imgAttributes];
@@ -408,6 +429,7 @@ const CustomImage = TiptapImage.extend({
     }
     return imgTag;
   },
+
   addNodeView() {
     return ReactNodeViewRenderer(MediaResizeComponent);
   },
@@ -473,6 +495,8 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
   if (!editor) {
     return null;
   }
+
+  const isLinkActive = editor.isActive('link') || (editor.isActive('image') && !!editor.getAttributes('image').href);
 
   const openLinkModal = () => {
     const isImageActive = editor.isActive('image');
@@ -584,7 +608,7 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
         <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleBulletList().run()} className={cn("h-8 w-8", editor.isActive('bulletList') && "bg-muted text-primary")}><List className="h-4 w-4" /></Button>
         <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleOrderedList().run()} className={cn("h-8 w-8", editor.isActive('orderedList') && "bg-muted text-primary")}><ListOrdered className="h-4 w-4" /></Button>
         <Separator orientation="vertical" className="h-6" />
-        <Button type="button" variant="ghost" size="icon" onClick={openLinkModal} className={cn("h-8 w-8", (editor.isActive('link') || editor.isActive('image')) && "bg-muted text-primary")}><LinkIcon className="h-4 w-4" /></Button>
+        <Button type="button" variant="ghost" size="icon" onClick={openLinkModal} className={cn("h-8 w-8", isLinkActive && "bg-muted text-primary")}><LinkIcon className="h-4 w-4" /></Button>
         <Button type="button" variant="ghost" size="icon" onClick={() => { setUrl(''); setIsImageModalOpen(true); }} className="h-8 w-8"><ImageIcon className="h-4 w-4" /></Button>
         <Button type="button" variant="ghost" size="icon" onClick={() => { setUrl(''); setIsVideoModalOpen(true); }} className="h-8 w-8"><Video className="h-4 w-4" /></Button>
       </div>
@@ -598,7 +622,7 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
           </div>
           <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-between sm:space-x-2">
             <div>
-              {url && (
+              {isLinkActive && (
                 <Button type="button" variant="ghost" className="w-full sm:w-auto justify-start text-destructive hover:text-destructive hover:bg-destructive/10" onClick={handleClearLink}>
                   Clear Link
                 </Button>
@@ -748,6 +772,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
 };
 
     
+
 
 
 

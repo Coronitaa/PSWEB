@@ -22,14 +22,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  webpack: (config, { isServer }) => {
-    if (!isServer) {
-      // Excluir 'sqlite3' y 'sqlite' del bundle del cliente.
-      // Estos paquetes son para uso del lado del servidor.
-      config.externals = [...(config.externals || []), 'sqlite3', 'sqlite'];
-    }
-    return config;
-  },
 };
 
 export default nextConfig;

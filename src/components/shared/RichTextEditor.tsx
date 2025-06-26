@@ -11,7 +11,6 @@ import TiptapLink from '@tiptap/extension-link';
 import TiptapImage from '@tiptap/extension-image';
 import Youtube from '@tiptap/extension-youtube';
 import TextAlign from '@tiptap/extension-text-align';
-import TextStyle from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import Underline from '@tiptap/extension-underline';
 import { 
@@ -675,11 +674,9 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ heading: false }),
-      TextStyle,
       FontSize.configure({
         types: ['textStyle'],
       }),
-      Placeholder.configure({ placeholder: "Share the details of your resource..." }),
       TiptapLink.configure({ openOnClick: false, autolink: true, HTMLAttributes: { class: 'text-primary hover:text-accent transition-colors cursor-pointer underline' } }),
       CustomImage.configure({
         inline: false, 
@@ -772,6 +769,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
 };
 
     
+
 
 
 

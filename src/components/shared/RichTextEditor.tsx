@@ -289,7 +289,6 @@ const CustomYoutube = Youtube.extend({
                 ...this.parent?.().width,
                 default: 640,
                 renderHTML: attributes => ({
-                    ...this.parent?.().width?.renderHTML(attributes),
                     style: `width: ${attributes.width}px; height: ${attributes.height}px;`
                 }),
             },

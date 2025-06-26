@@ -96,6 +96,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
   const { node, updateAttributes, selected, editor } = props;
   const isImage = node.type.name === 'image';
   const isVideo = node.type.name === 'youtube';
+  const href = node.attrs.href;
 
   const containerRef = useRef<HTMLDivElement>(null);
   
@@ -255,6 +256,8 @@ const MediaResizeComponent = (props: NodeViewProps) => {
     window.addEventListener('mouseup', handleMouseUp);
   };
 
+  const imageContent = <img src={node.attrs.src} alt={node.attrs.alt} className="w-full h-full block object-fill" />;
+
   return (
     <NodeViewWrapper
       as="div"
@@ -275,7 +278,11 @@ const MediaResizeComponent = (props: NodeViewProps) => {
         }}
       >
         {isImage && (
-          <img src={node.attrs.src} alt={node.attrs.alt} className="w-full h-full block object-fill" />
+            href ? (
+              <a href={href} target="_blank" rel="noopener noreferrer nofollow" onClick={e => e.preventDefault()} className="w-full h-full block cursor-pointer">
+                {imageContent}
+              </a>
+            ) : imageContent
         )}
         {isVideo && (
           <div className="w-full h-full relative">
@@ -377,7 +384,13 @@ const CustomImage = TiptapImage.extend({
               }
               return 0;
           }
-      }
+      },
+      href: {
+        default: null,
+      },
+      target: {
+        default: null,
+      },
     };
   },
   addNodeView() {
@@ -447,15 +460,33 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
   }
 
   const openLinkModal = () => {
-    const previousUrl = editor.getAttributes('link').href;
+    const isImageActive = editor.isActive('image');
+    const previousUrl = isImageActive
+      ? editor.getAttributes('image').href
+      : editor.getAttributes('link').href;
     setUrl(previousUrl || '');
     setIsLinkModalOpen(true);
   };
   
   const setLink = () => {
     if (url === null) return;
+    const isImageActive = editor.isActive('image');
+
+    // Unset link
     if (url === '') {
-      editor.chain().focus().extendMarkRange('link').unsetLink().run();
+      if (isImageActive) {
+        editor.chain().focus().updateAttributes('image', { href: null, target: null }).run();
+      } else {
+        editor.chain().focus().extendMarkRange('link').unsetLink().run();
+      }
+      setIsLinkModalOpen(false);
+      setUrl('');
+      return;
+    }
+
+    // Set link
+    if (isImageActive) {
+      editor.chain().focus().updateAttributes('image', { href: url, target: '_blank' }).run();
     } else {
       editor.chain().focus().extendMarkRange('link').setLink({ href: url, target: '_blank' }).run();
     }
@@ -534,7 +565,7 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
         <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleBulletList().run()} className={cn("h-8 w-8", editor.isActive('bulletList') && "bg-muted text-primary")}><List className="h-4 w-4" /></Button>
         <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleOrderedList().run()} className={cn("h-8 w-8", editor.isActive('orderedList') && "bg-muted text-primary")}><ListOrdered className="h-4 w-4" /></Button>
         <Separator orientation="vertical" className="h-6" />
-        <Button type="button" variant="ghost" size="icon" onClick={openLinkModal} className={cn("h-8 w-8", editor.isActive('link') && "bg-muted text-primary")}><LinkIcon className="h-4 w-4" /></Button>
+        <Button type="button" variant="ghost" size="icon" onClick={openLinkModal} className={cn("h-8 w-8", (editor.isActive('link') || editor.isActive('image')) && "bg-muted text-primary")}><LinkIcon className="h-4 w-4" /></Button>
         <Button type="button" variant="ghost" size="icon" onClick={() => { setUrl(''); setIsImageModalOpen(true); }} className="h-8 w-8"><ImageIcon className="h-4 w-4" /></Button>
         <Button type="button" variant="ghost" size="icon" onClick={() => { setUrl(''); setIsVideoModalOpen(true); }} className="h-8 w-8"><Video className="h-4 w-4" /></Button>
       </div>
@@ -689,6 +720,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
 };
 
     
+
 
 
 

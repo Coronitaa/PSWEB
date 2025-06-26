@@ -193,7 +193,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
         )}
       >
         {isImage && (
-          <img src={node.attrs.src} alt={node.attrs.alt} className="w-full h-full block object-cover" />
+          <img src={node.attrs.src} alt={node.attrs.alt} className="w-full h-full block object-fill" />
         )}
         {isVideo && (
           <div className="w-full h-full relative">
@@ -289,7 +289,7 @@ const CustomYoutube = Youtube.extend({
                 ...this.parent?.().width,
                 default: 640,
                 renderHTML: attributes => ({
-                    style: `width: ${attributes.width}px; height: ${attributes.height}px;`
+                    style: `width: ${attributes.width}; height: ${attributes.height};`
                 }),
             },
             height: {

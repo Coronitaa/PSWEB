@@ -16,7 +16,7 @@ import TextStyle from '@tiptap/extension-text-style';
 import Underline from '@tiptap/extension-underline';
 import { 
   Bold, Italic, Link as LinkIcon, List, ListOrdered, Strikethrough, Underline as UnderlineIcon,
-  AlignLeft, AlignCenter, AlignRight, Image as ImageIcon, Video, Palette, RotateCw, Text
+  AlignLeft, AlignCenter, AlignRight, Image as ImageIcon, Video, Palette, RotateCw
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -437,12 +437,12 @@ const CustomImage = TiptapImage.extend({
 
   renderHTML({ HTMLAttributes }) {
     const { href, target, ...imgAttributes } = HTMLAttributes;
-    const imgTag: (string | Record<string, any>)[] = ['img', imgAttributes];
+    const imgTag: any = ['img', imgAttributes]; // DOMOutputSpec for img
 
     if (href) {
-      return ['a', { href, target, rel: 'noopener noreferrer nofollow' }, imgTag];
+      return ['a', { href, target, rel: 'noopener noreferrer nofollow' }, imgTag]; // DOMOutputSpec for a tag containing img
     }
-    return imgTag;
+    return imgTag; // DOMOutputSpec for img
   },
 
   addNodeView() {

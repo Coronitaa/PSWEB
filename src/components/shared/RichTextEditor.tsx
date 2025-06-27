@@ -18,7 +18,7 @@ import {
   Bold, Italic, Link as LinkIcon, List, ListOrdered, Strikethrough, Underline as UnderlineIcon,
   AlignLeft, AlignCenter, AlignRight, Image as ImageIcon, Video, Palette, RotateCw
 } from 'lucide-react';
-
+import { GradientPicker } from './GradientPicker';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -90,6 +90,34 @@ export const FontSize = Extension.create<FontSizeOptions>({
       },
     }
   },
+});
+
+export const TextGradient = Extension.create<any>({
+    name: 'textGradient',
+    addOptions() { return { types: ['textStyle'] } },
+    addGlobalAttributes() {
+        return [{
+            types: this.options.types,
+            attributes: {
+                textGradient: {
+                    default: null,
+                    parseHTML: element => element.style.backgroundImage,
+                    renderHTML: attributes => {
+                        if (!attributes.textGradient) return {};
+                        return { 
+                            style: `background-image: ${attributes.textGradient}; color: transparent; -webkit-background-clip: text; background-clip: text;`,
+                        };
+                    },
+                },
+            },
+        }];
+    },
+    addCommands() {
+        return {
+            setTextGradient: (gradient) => ({ chain }) => chain().setMark('textStyle', { textGradient: gradient }).run(),
+            unsetTextGradient: () => ({ chain }) => chain().setMark('textStyle', { textGradient: null }).removeEmptyTextStyle().run(),
+        };
+    },
 });
 
 const MediaResizeComponent = (props: NodeViewProps) => {
@@ -605,16 +633,17 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
         <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleUnderline().run()} className={cn("h-8 w-8", editor.isActive('underline') && "bg-muted text-primary")}><UnderlineIcon className="h-4 w-4" /></Button>
         <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleStrike().run()} className={cn("h-8 w-8", editor.isActive('strike') && "bg-muted text-primary")}><Strikethrough className="h-4 w-4" /></Button>
         <Separator orientation="vertical" className="h-6" />
-        <Button variant="ghost" size="icon" className="h-8 w-8 p-1.5 relative">
-              <Palette className="h-4 w-4"/>
-              <input
-                type="color"
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                onInput={(event) => editor.chain().focus().setColor((event.target as HTMLInputElement).value).run()}
-                value={editor.getAttributes('textStyle').color || '#ffffff'}
-                data-testid="setColor"
-              />
-          </Button>
+        <GradientPicker
+          value={editor.getAttributes('textStyle').color || editor.getAttributes('textStyle').textGradient || '#ffffff'}
+          onChange={(value) => {
+            const isGradient = value.includes('gradient');
+            if (isGradient) {
+              editor.chain().focus().unsetColor().setTextGradient(value).run();
+            } else {
+              editor.chain().focus().unsetTextGradient().setColor(value).run();
+            }
+          }}
+        />
         <Separator orientation="vertical" className="h-6" />
         <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().setTextAlign('left').run()} className={cn("h-8 w-8", editor.isActive({ textAlign: 'left' }) && "bg-muted text-primary")}><AlignLeft className="h-4 w-4" /></Button>
         <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().setTextAlign('center').run()} className={cn("h-8 w-8", editor.isActive({ textAlign: 'center' }) && "bg-muted text-primary")}><AlignCenter className="h-4 w-4" /></Button>
@@ -694,6 +723,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
       FontSize.configure({
         types: ['textStyle'],
       }),
+      TextGradient,
       TiptapLink.configure({ openOnClick: false, autolink: true, HTMLAttributes: { class: 'text-primary hover:text-accent transition-colors cursor-pointer underline' } }),
       CustomImage.configure({
         inline: false, 
@@ -761,16 +791,17 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
             <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleItalic().run()} className={cn("h-8 w-8", editor.isActive('italic') && "bg-muted text-primary")}><Italic className="h-4 w-4" /></Button>
             <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleUnderline().run()} className={cn("h-8 w-8", editor.isActive('underline') && "bg-muted text-primary")}><UnderlineIcon className="h-4 w-4" /></Button>
             <Separator orientation="vertical" className="h-6" />
-             <Button variant="ghost" size="icon" className="h-8 w-8 p-1.5 relative">
-                <Palette className="h-4 w-4"/>
-                <input
-                  type="color"
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  onInput={(event) => editor.chain().focus().setColor((event.target as HTMLInputElement).value).run()}
-                  value={editor.getAttributes('textStyle').color || '#ffffff'}
-                  data-testid="setColorBubble"
-                />
-            </Button>
+            <GradientPicker
+                value={editor.getAttributes('textStyle').color || editor.getAttributes('textStyle').textGradient || '#ffffff'}
+                onChange={(value) => {
+                    const isGradient = value.includes('gradient');
+                    if (isGradient) {
+                    editor.chain().focus().unsetColor().setTextGradient(value).run();
+                    } else {
+                    editor.chain().focus().unsetTextGradient().setColor(value).run();
+                    }
+                }}
+            />
         </BubbleMenu>
       )}
       
@@ -786,6 +817,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
 };
 
     
+
 
 
 

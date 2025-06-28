@@ -668,6 +668,10 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
     { label: "Sans-Serif", value: "var(--font-geist-sans), sans-serif" },
     { label: "Serif", value: "serif" },
     { label: "Monospace", value: "var(--font-geist-mono), monospace" },
+    { label: "Georgia", value: "Georgia, serif" },
+    { label: "Impact", value: "Impact, sans-serif" },
+    { label: "Trebuchet MS", value: "'Trebuchet MS', sans-serif" },
+    { label: "Cursive", value: "cursive" },
   ];
 
 
@@ -903,6 +907,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
 };
 
     
+
 
 
 

@@ -140,8 +140,8 @@ export function ResourcePageContent({ resource, relatedResources }: ResourcePage
                 </TabsList>
                 <TabsContent value="overview">
                   <div
-                    className="prose prose-sm sm:prose lg:prose-lg dark:prose-invert max-w-none prose-headings:text-primary prose-a:text-accent hover:prose-a:text-accent/80 whitespace-pre-line leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: resource.detailedDescription ? resource.detailedDescription.replace(/\n/g, '<br />') : '' }}
+                    className="prose prose-sm sm:prose lg:prose-lg dark:prose-invert max-w-none prose-headings:text-primary prose-a:text-accent hover:prose-a:text-accent/80 leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: resource.detailedDescription || '' }}
                   />
                 </TabsContent>
                 <TabsContent value="files">

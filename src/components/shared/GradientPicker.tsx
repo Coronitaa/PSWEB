@@ -175,11 +175,26 @@ export function GradientPicker({
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="solid" className="flex flex-col gap-3 mt-0 p-1">
-                <CustomColorPicker color={solidColorValue} setColor={onChange} />
+            <TabsContent value="solid" className="flex flex-wrap gap-1 mt-0">
+              {solids.map((s) => (
+                <div
+                  key={s}
+                  style={{ background: s }}
+                  className="rounded-md h-6 w-6 cursor-pointer active:scale-105"
+                  onClick={() => onChange(s)}
+                />
+              ))}
+              <Popover>
+                <PopoverTrigger asChild>
+                   <Button variant="ghost" size="icon" className="h-6 w-6"><Settings2 className="w-4 h-4" /></Button>
+                </PopoverTrigger>
+                <PopoverContent>
+                    <CustomColorPicker color={solidColorValue} setColor={onChange} />
+                </PopoverContent>
+              </Popover>
             </TabsContent>
 
-            <TabsContent value="gradient" className="mt-0 p-1 space-y-2">
+            <TabsContent value="gradient" className="mt-0 space-y-2">
               <div className="flex flex-wrap gap-1">
                 {gradients.map((s) => (
                   <div

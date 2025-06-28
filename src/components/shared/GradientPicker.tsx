@@ -1,3 +1,4 @@
+
 'use client'
 
 import { Button } from '@/components/ui/button'
@@ -14,6 +15,7 @@ import { useMemo, useState, useEffect } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog'
+import { HexColorPicker } from "react-colorful";
 
 
 const GRADIENT_DIRECTIONS = [
@@ -37,30 +39,13 @@ const CustomColorPicker = ({
   color: string
   setColor: (color: string) => void
 }) => {
-  const swatchColors = [
-    '#FFFFFF', '#E2E2E2', '#A2A2A2', '#696969', '#383838', '#000000',
-    '#F44336', '#E91E63', '#9C27B0', '#673AB7', '#3F51B5', '#2196F3',
-    '#03A9F4', '#00BCD4', '#009688', '#4CAF50', '#8BC34A', '#CDDC39',
-    '#FFEB3B', '#FFC107', '#FF9800', '#FF5722', '#795548', '#9E9E9E',
-  ]
-
   return (
-    <div className="space-y-2 p-2 w-full">
-      <div className="grid grid-cols-6 gap-1">
-        {swatchColors.map((c) => (
-          <button
-            key={c}
-            style={{ background: c }}
-            className="h-6 w-6 cursor-pointer rounded-md border active:scale-105"
-            onClick={() => setColor(c)}
-            title={c}
-          />
-        ))}
-      </div>
+    <div className="space-y-2 p-2 w-full flex flex-col items-center">
+      <HexColorPicker color={color} onChange={setColor} />
       <Input
         id="custom-color-input"
         value={color}
-        className="h-8"
+        className="h-8 mt-2"
         onChange={(e) => setColor(e.currentTarget.value)}
         placeholder="#RRGGBB"
       />
@@ -179,7 +164,7 @@ export function GradientPicker({
               ></div>
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-64 p-2">
+        <PopoverContent className="w-auto p-2">
           <Tabs defaultValue={defaultTab} className="w-full">
             <TabsList className="w-full mb-2">
               <TabsTrigger className="flex-1" value="solid">
@@ -191,41 +176,7 @@ export function GradientPicker({
             </TabsList>
 
             <TabsContent value="solid" className="flex flex-col gap-3 mt-0 p-1">
-              <div className="flex flex-wrap gap-1">
-                {solids.map((s) => (
-                  <div
-                    key={s}
-                    style={{ background: s }}
-                    className="rounded-md h-6 w-6 cursor-pointer active:scale-105 border"
-                    onClick={() => onChange(s)}
-                  />
-                ))}
-              </div>
-              <div className='flex items-center gap-2'>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant={'ghost'}
-                      className="h-8 w-12 p-1 border"
-                    >
-                      <div
-                        className="w-full h-full rounded-sm"
-                        style={{ background: solidColorValue }}
-                      ></div>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="p-0 w-auto">
-                    <CustomColorPicker color={solidColorValue} setColor={onChange} />
-                  </PopoverContent>
-                </Popover>
-                <Input
-                    id="custom-solid-text"
-                    value={solidColorValue}
-                    className="h-8"
-                    onChange={(e) => onChange(e.currentTarget.value)}
-                    placeholder="#RRGGBB"
-                />
-              </div>
+                <CustomColorPicker color={solidColorValue} setColor={onChange} />
             </TabsContent>
 
             <TabsContent value="gradient" className="mt-0 p-1 space-y-2">

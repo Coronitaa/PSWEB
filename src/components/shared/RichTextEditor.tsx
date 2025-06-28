@@ -664,7 +664,7 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
   ];
 
   const fontFamilies = [
-    { label: "Default", value: "" },
+    { label: "Default", value: "_default_font_" },
     { label: "Sans-Serif", value: "var(--font-geist-sans), sans-serif" },
     { label: "Serif", value: "serif" },
     { label: "Monospace", value: "var(--font-geist-mono), monospace" },
@@ -675,12 +675,12 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
     <>
       <div className="flex flex-wrap items-center gap-1 p-1 border-b">
         <Select
-            value={editor.getAttributes('textStyle').fontFamily || ''}
+            value={editor.getAttributes('textStyle').fontFamily || '_default_font_'}
             onValueChange={(value) => {
-                if (value) {
-                    editor.chain().focus().setFontFamily(value).run();
-                } else {
+                if (value === '_default_font_') {
                     editor.chain().focus().unsetFontFamily().run();
+                } else {
+                    editor.chain().focus().setFontFamily(value).run();
                 }
             }}
         >
@@ -689,7 +689,7 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
             </SelectTrigger>
             <SelectContent>
                 {fontFamilies.map(font => (
-                    <SelectItem key={font.label} value={font.value} className="text-xs" style={{ fontFamily: font.value }}>{font.label}</SelectItem>
+                    <SelectItem key={font.label} value={font.value} className="text-xs" style={{ fontFamily: font.value === '_default_font_' ? 'inherit' : font.value }}>{font.label}</SelectItem>
                 ))}
             </SelectContent>
         </Select>
@@ -903,6 +903,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
 };
 
     
+
 
 
 

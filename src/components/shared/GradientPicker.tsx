@@ -10,12 +10,13 @@ import {
 } from '@/components/ui/popover'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
-import { Palette, Settings2 } from 'lucide-react'
+import { Palette, Settings2, History } from 'lucide-react'
 import { useMemo, useState, useEffect } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog'
 import { HexColorPicker } from "react-colorful";
+import { Separator } from '@/components/ui/separator'
 
 
 const GRADIENT_DIRECTIONS = [
@@ -47,7 +48,7 @@ const CustomColorPicker = ({
   }, [color]);
 
   return (
-    <div className="space-y-3 p-2 w-full flex flex-col items-center">
+    <div className="space-y-3 p-4 w-full flex flex-col items-center">
       <HexColorPicker color={stagedColor} onChange={setStagedColor} />
       <Input
         id="custom-color-input"
@@ -128,6 +129,40 @@ export function GradientPicker({
   const [gradientDirection, setGradientDirection] = useState<GradientDirection>('to top left');
   const [gradientColor1, setGradientColor1] = useState('#ffffff');
   const [gradientColor2, setGradientColor2] = useState('#000000');
+  
+  const [recentSolids, setRecentSolids] = useState<string[]>([]);
+  const [recentGradients, setRecentGradients] = useState<string[]>([]);
+  
+  useEffect(() => {
+    const storedSolids = localStorage.getItem('pinkstar-recent-solid-colors');
+    if (storedSolids) {
+        try {
+            setRecentSolids(JSON.parse(storedSolids));
+        } catch (e) {
+            console.error("Failed to parse recent solid colors", e);
+        }
+    }
+    const storedGradients = localStorage.getItem('pinkstar-recent-gradient-colors');
+    if (storedGradients) {
+         try {
+            setRecentGradients(JSON.parse(storedGradients));
+        } catch (e) {
+            console.error("Failed to parse recent gradient colors", e);
+        }
+    }
+  }, []);
+
+  const addRecent = (color: string, type: 'solid' | 'gradient') => {
+    if (type === 'solid') {
+        const updatedRecents = [color, ...recentSolids.filter(c => c !== color)].slice(0, 10);
+        setRecentSolids(updatedRecents);
+        localStorage.setItem('pinkstar-recent-solid-colors', JSON.stringify(updatedRecents));
+    } else {
+        const updatedRecents = [color, ...recentGradients.filter(g => g !== color)].slice(0, 10);
+        setRecentGradients(updatedRecents);
+        localStorage.setItem('pinkstar-recent-gradient-colors', JSON.stringify(updatedRecents));
+    }
+  };
 
   useEffect(() => {
     if (isGradientModalOpen) {
@@ -149,6 +184,7 @@ export function GradientPicker({
   const handleApplyCustomGradient = () => {
     const newGradient = `linear-gradient(${gradientDirection},${gradientColor1},${gradientColor2})`;
     onChange(newGradient);
+    addRecent(newGradient, 'gradient');
     setIsGradientModalOpen(false);
   }
 
@@ -187,8 +223,24 @@ export function GradientPicker({
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="solid" className="mt-0">
-               <div className="grid grid-cols-10 gap-1 w-[268px]">
+            <TabsContent value="solid" className="mt-0 space-y-2">
+                {recentSolids.length > 0 && (
+                    <>
+                        <div className="flex items-center text-xs text-muted-foreground"><History className="w-3 h-3 mr-1.5" /> Recent Colors</div>
+                        <div className="grid grid-cols-10 gap-1">
+                            {recentSolids.map((s) => (
+                                <div
+                                key={s}
+                                style={{ background: s }}
+                                className="rounded-md h-6 w-6 cursor-pointer active:scale-105 border border-border/20"
+                                onClick={() => onChange(s)}
+                                />
+                            ))}
+                        </div>
+                        <Separator />
+                    </>
+                )}
+               <div className="grid grid-cols-10 gap-1">
                   <Popover open={solidPickerOpen} onOpenChange={setSolidPickerOpen}>
                     <PopoverTrigger asChild>
                       <button
@@ -198,11 +250,12 @@ export function GradientPicker({
                         <Palette className="w-4 h-4 text-muted-foreground" />
                       </button>
                     </PopoverTrigger>
-                    <PopoverContent>
+                    <PopoverContent className="p-0">
                       <CustomColorPicker
                         color={solidColorValue}
                         onColorChange={(newColor) => {
                           onChange(newColor);
+                          addRecent(newColor, 'solid');
                           setSolidPickerOpen(false);
                         }}
                         onCancel={() => setSolidPickerOpen(false)}
@@ -215,14 +268,33 @@ export function GradientPicker({
                       key={s}
                       style={{ background: s }}
                       className="rounded-md h-6 w-6 cursor-pointer active:scale-105 border border-border/20"
-                      onClick={() => onChange(s)}
+                      onClick={() => {
+                        onChange(s);
+                        addRecent(s, 'solid');
+                      }}
                     />
                   ))}
               </div>
             </TabsContent>
 
-            <TabsContent value="gradient" className="mt-0">
-              <div className="grid grid-cols-10 gap-1 w-[268px]">
+            <TabsContent value="gradient" className="mt-0 space-y-2">
+              {recentGradients.length > 0 && (
+                  <>
+                      <div className="flex items-center text-xs text-muted-foreground"><History className="w-3 h-3 mr-1.5" /> Recent Gradients</div>
+                      <div className="grid grid-cols-10 gap-1">
+                          {recentGradients.map((g) => (
+                              <div
+                                key={g}
+                                style={{ background: g }}
+                                className="rounded-md h-6 w-6 cursor-pointer active:scale-105"
+                                onClick={() => onChange(g)}
+                              />
+                          ))}
+                      </div>
+                      <Separator />
+                  </>
+              )}
+              <div className="grid grid-cols-10 gap-1">
                 <button
                   className="w-6 h-6 flex items-center justify-center rounded-md border border-dashed hover:border-primary"
                   title="Custom Gradient"
@@ -235,7 +307,10 @@ export function GradientPicker({
                     key={s}
                     style={{ background: s }}
                     className="rounded-md h-6 w-6 cursor-pointer active:scale-105"
-                    onClick={() => onChange(s)}
+                    onClick={() => {
+                        onChange(s);
+                        addRecent(s, 'gradient');
+                    }}
                   />
                 ))}
               </div>
@@ -281,7 +356,6 @@ export function GradientPicker({
                                     color={gradientColor1}
                                     onColorChange={(newColor) => {
                                       setGradientColor1(newColor);
-                                      setGradientPicker1Open(false);
                                     }}
                                     onCancel={() => setGradientPicker1Open(false)}
                                   />
@@ -304,7 +378,6 @@ export function GradientPicker({
                                     color={gradientColor2}
                                     onColorChange={(newColor) => {
                                       setGradientColor2(newColor);
-                                      setGradientPicker2Open(false);
                                     }}
                                     onCancel={() => setGradientPicker2Open(false)}
                                   />
@@ -331,3 +404,5 @@ export function GradientPicker({
     </>
   )
 }
+
+    

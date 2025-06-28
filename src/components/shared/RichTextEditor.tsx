@@ -16,13 +16,14 @@ import TextStyle from '@tiptap/extension-text-style';
 import Underline from '@tiptap/extension-underline';
 import { 
   Bold, Italic, Link as LinkIcon, List, ListOrdered, Strikethrough, Underline as UnderlineIcon,
-  AlignLeft, AlignCenter, AlignRight, Image as ImageIcon, Video, Palette, RotateCw
+  AlignLeft, AlignCenter, AlignRight, AlignJustify, Image as ImageIcon, Video, Palette, RotateCw, ImagePlus
 } from 'lucide-react';
 import { GradientPicker } from './GradientPicker';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
@@ -674,6 +675,11 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
     { label: "Cursive", value: "cursive" },
   ];
 
+  const handleMediaModalOpen = (type: 'image' | 'video') => {
+    setUrl('');
+    if (type === 'image') setIsImageModalOpen(true);
+    if (type === 'video') setIsVideoModalOpen(true);
+  };
 
   return (
     <>
@@ -688,8 +694,8 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
                 }
             }}
         >
-            <SelectTrigger className="w-36 h-8 text-xs">
-                <SelectValue placeholder="Font Family" />
+            <SelectTrigger className="w-32 h-8 text-xs">
+                <SelectValue placeholder="Font" />
             </SelectTrigger>
             <SelectContent>
                 {fontFamilies.map(font => (
@@ -707,8 +713,8 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
                 }
             }}
         >
-          <SelectTrigger className="w-40 h-8 text-xs">
-              <SelectValue placeholder="Text size" />
+          <SelectTrigger className="w-24 h-8 text-xs">
+              <SelectValue placeholder="Size" />
           </SelectTrigger>
           <SelectContent>
               {fontSizes.map(size => (
@@ -721,7 +727,6 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
         <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleItalic().run()} className={cn("h-8 w-8", editor.isActive('italic') && "bg-muted text-primary")}><Italic className="h-4 w-4" /></Button>
         <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleUnderline().run()} className={cn("h-8 w-8", editor.isActive('underline') && "bg-muted text-primary")}><UnderlineIcon className="h-4 w-4" /></Button>
         <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleStrike().run()} className={cn("h-8 w-8", editor.isActive('strike') && "bg-muted text-primary")}><Strikethrough className="h-4 w-4" /></Button>
-        <Separator orientation="vertical" className="h-6" />
         <GradientPicker
           value={editor.getAttributes('textStyle').color || editor.getAttributes('textStyle').textGradient || '#ffffff'}
           onChange={(value) => {
@@ -733,17 +738,60 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
             }
           }}
         />
-        <Separator orientation="vertical" className="h-6" />
-        <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().setTextAlign('left').run()} className={cn("h-8 w-8", editor.isActive({ textAlign: 'left' }) && "bg-muted text-primary")}><AlignLeft className="h-4 w-4" /></Button>
-        <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().setTextAlign('center').run()} className={cn("h-8 w-8", editor.isActive({ textAlign: 'center' }) && "bg-muted text-primary")}><AlignCenter className="h-4 w-4" /></Button>
-        <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().setTextAlign('right').run()} className={cn("h-8 w-8", editor.isActive({ textAlign: 'right' }) && "bg-muted text-primary")}><AlignRight className="h-4 w-4" /></Button>
-        <Separator orientation="vertical" className="h-6" />
-        <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleBulletList().run()} className={cn("h-8 w-8", editor.isActive('bulletList') && "bg-muted text-primary")}><List className="h-4 w-4" /></Button>
-        <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleOrderedList().run()} className={cn("h-8 w-8", editor.isActive('orderedList') && "bg-muted text-primary")}><ListOrdered className="h-4 w-4" /></Button>
-        <Separator orientation="vertical" className="h-6" />
         <Button type="button" variant="ghost" size="icon" onClick={openLinkModal} className={cn("h-8 w-8", isLinkActive && "bg-muted text-primary")}><LinkIcon className="h-4 w-4" /></Button>
-        <Button type="button" variant="ghost" size="icon" onClick={() => { setUrl(''); setIsImageModalOpen(true); }} className="h-8 w-8"><ImageIcon className="h-4 w-4" /></Button>
-        <Button type="button" variant="ghost" size="icon" onClick={() => { setUrl(''); setIsVideoModalOpen(true); }} className="h-8 w-8"><Video className="h-4 w-4" /></Button>
+        <Separator orientation="vertical" className="h-6" />
+        
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8" title="Text Align">
+                    <AlignJustify className="h-4 w-4" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => editor.chain().focus().setTextAlign('left').run()} className={cn(editor.isActive({ textAlign: 'left' }) && "bg-muted")}>
+                    <AlignLeft className="h-4 w-4 mr-2" /> Left
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => editor.chain().focus().setTextAlign('center').run()} className={cn(editor.isActive({ textAlign: 'center' }) && "bg-muted")}>
+                    <AlignCenter className="h-4 w-4 mr-2" /> Center
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => editor.chain().focus().setTextAlign('right').run()} className={cn(editor.isActive({ textAlign: 'right' }) && "bg-muted")}>
+                    <AlignRight className="h-4 w-4 mr-2" /> Right
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8" title="Lists">
+                    <List className="h-4 w-4" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => editor.chain().focus().toggleBulletList().run()} className={cn(editor.isActive('bulletList') && "bg-muted")}>
+                    <List className="h-4 w-4 mr-2" /> Bullet List
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => editor.chain().focus().toggleOrderedList().run()} className={cn(editor.isActive('orderedList') && "bg-muted")}>
+                    <ListOrdered className="h-4 w-4 mr-2" /> Numbered List
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+        
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8" title="Embed Media">
+                    <ImagePlus className="h-4 w-4" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => handleMediaModalOpen('image')}>
+                    <ImageIcon className="h-4 w-4 mr-2" /> Embed Image
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleMediaModalOpen('video')}>
+                    <Video className="h-4 w-4 mr-2" /> Embed YouTube Video
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+
       </div>
 
       <Dialog open={isLinkModalOpen} onOpenChange={setIsLinkModalOpen}>
@@ -907,6 +955,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
 };
 
     
+
 
 
 

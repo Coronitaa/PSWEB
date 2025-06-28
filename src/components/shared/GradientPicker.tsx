@@ -253,7 +253,7 @@ export function GradientPicker({
           >
             <Palette className="h-4 w-4"/>
              <div
-                className="absolute bottom-1 right-1 h-2.5 w-2.5 rounded-full border border-card !bg-center !bg-cover transition-all"
+                className="absolute bottom-1 right-1 h-2.5 w-2.5 rounded-full border border-card transition-all"
                 style={{ background: value }}
               ></div>
           </Button>

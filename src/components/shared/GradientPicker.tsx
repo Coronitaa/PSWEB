@@ -94,30 +94,55 @@ export function GradientPicker({
   className?: string
 }) {
   const solids = [
-    '#FFFFFF',
-    '#000000',
-    '#E2E2E2',
-    '#ff75c3',
-    '#ffa647',
-    '#ffe83f',
-    '#9fff5b',
-    '#70e2ff',
-    '#cd93ff',
+    // Grays & White/Black
+    '#FFFFFF', '#E5E7EB', '#D1D5DB', '#9CA3AF', '#6B7280', '#4B5563', '#374151', '#1F2937', '#111827', '#000000',
+    // Pinks
+    '#FCE7F3', '#FBCFE8', '#F9A8D4', '#F472B6', '#EC4899', '#DB2777',
+    // Reds
+    '#FEE2E2', '#FECACA', '#F87171', '#EF4444', '#DC2626', '#B91C1C',
+    // Oranges
+    '#FFF7ED', '#FFEDD5', '#FDBA74', '#FB923C', '#F97316', '#EA580C',
+    // Yellows/Ambers
+    '#FEFCE8', '#FEF08A', '#FDE047', '#FACC15', '#EAB308', '#CA8A04',
+    // Greens
+    '#F0FDF4', '#BBF7D0', '#86EFAC', '#4ADE80', '#22C55E', '#16A34A',
+    // Blues
+    '#EFF6FF', '#BFDBFE', '#93C5FD', '#60A5FA', '#3B82F6', '#2563EB',
+    // Purples
+    '#F5F3FF', '#DDD6FE', '#C4B5FD', '#A78BFA', '#8B5CF6', '#7C3AED',
   ]
 
   const gradients = [
-    'linear-gradient(to top left,#accbee,#e7f0fd)',
-    'linear-gradient(to top left,#d5d4d0,#d5d4d0,#eeeeec)',
-    'linear-gradient(to top left,#000000,#434343)',
-    'linear-gradient(to top left,#09203f,#537895)',
-    'linear-gradient(to top left,#AC32E4,#7918F2,#4801FF)',
-    'linear-gradient(to top left,#f953c6,#b91d73)',
-    'linear-gradient(to top left,#ee0979,#ff6a00)',
-    'linear-gradient(to top left,#F00000,#DC281E)',
-    'linear-gradient(to top left,#00c6ff,#0072ff)',
-    'linear-gradient(to top left,#4facfe,#00f2fe)',
-    'linear-gradient(to top left,#0ba360,#3cba92)',
-    'linear-gradient(to top left,#FDFC47,#24FE41)',
+    // == Light & Soft ==
+    'linear-gradient(to top left, #accbee, #e7f0fd)', // Light Blue
+    'linear-gradient(to top left, #d5d4d0, #eeeeec)', // Silver
+    'linear-gradient(to right, #ffdde1, #ee9ca7)', // Piggy Pink
+    'linear-gradient(to right, #ffecd2, #fcb69f)', // Peach
+    'linear-gradient(to right, #a1c4fd, #c2e9fb)', // Winter Neva
+    'linear-gradient(to right, #d4fc79, #96e6a1)', // Fresh Lime
+    'linear-gradient(to right, #e0c3fc, #8ec5fc)', // Gentle Calm
+    'linear-gradient(to top left, #fbc2eb, #a6c1ee)', // Soft Lavender
+    
+    // == Vibrant & Colorful ==
+    'linear-gradient(to right, #fa709a, #fee140)', // Sunny Morning
+    'linear-gradient(to right, #43e97b, #38f9d7)', // Mint
+    'linear-gradient(to top left, #f953c6, #b91d73)', // Punchy Pink
+    'linear-gradient(to top left, #ee0979, #ff6a00)', // Orange-Red
+    'linear-gradient(to top left, #F00000, #DC281E)', // Fiery Red
+    'linear-gradient(to top left, #00c6ff, #0072ff)', // Bright Blue
+    'linear-gradient(to top left, #4facfe, #00f2fe)', // Aqua
+    'linear-gradient(to top left, #0ba360, #3cba92)', // Fresh Green
+    'linear-gradient(to top left, #FDFC47, #24FE41)', // Lime-Yellow
+    
+    // == Dark & Moody ==
+    'linear-gradient(to top left, #000000, #434343)', // Black
+    'linear-gradient(to right, #0f2027, #2c5364)', // Midnight City
+    'linear-gradient(to right, #2c3e50, #4ca1af)', // Slate
+    'linear-gradient(to right, #614385, #516395)', // Kashmir
+    'linear-gradient(to right, #485563, #29323c)', // Steel
+    'linear-gradient(to right, #232526, #414345)', // Grey-Grey
+    'linear-gradient(to right, #3C3B3F, #605C3C)', // Olive
+    'linear-gradient(to right, #20002c, #cbb4d4)', // Deep Purple
   ]
 
   const defaultTab = useMemo(() => {
@@ -240,7 +265,7 @@ export function GradientPicker({
                         <Separator />
                     </>
                 )}
-               <div className="grid grid-cols-10 gap-1">
+               <div className="flex flex-wrap gap-1 max-w-[250px]">
                   <Popover open={solidPickerOpen} onOpenChange={setSolidPickerOpen}>
                     <PopoverTrigger asChild>
                       <button
@@ -294,7 +319,7 @@ export function GradientPicker({
                       <Separator />
                   </>
               )}
-              <div className="grid grid-cols-10 gap-1">
+              <div className="flex flex-wrap gap-1 max-w-[250px]">
                 <button
                   className="w-6 h-6 flex items-center justify-center rounded-md border border-dashed hover:border-primary"
                   title="Custom Gradient"
@@ -404,5 +429,3 @@ export function GradientPicker({
     </>
   )
 }
-
-    

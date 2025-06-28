@@ -47,7 +47,7 @@ const CustomColorPicker = ({
   }, [color]);
 
   return (
-    <div className="space-y-2 p-2 w-full flex flex-col items-center">
+    <div className="space-y-3 p-2 w-full flex flex-col items-center">
       <HexColorPicker color={stagedColor} onChange={setStagedColor} />
       <Input
         id="custom-color-input"
@@ -221,8 +221,15 @@ export function GradientPicker({
               </div>
             </TabsContent>
 
-            <TabsContent value="gradient" className="mt-0 space-y-2">
+            <TabsContent value="gradient" className="mt-0">
               <div className="grid grid-cols-10 gap-1 w-[268px]">
+                <button
+                  className="w-6 h-6 flex items-center justify-center rounded-md border border-dashed hover:border-primary"
+                  title="Custom Gradient"
+                  onClick={() => setIsGradientModalOpen(true)}
+                >
+                  <Settings2 className="w-4 h-4 text-muted-foreground" />
+                </button>
                 {gradients.map((s) => (
                   <div
                     key={s}
@@ -232,9 +239,6 @@ export function GradientPicker({
                   />
                 ))}
               </div>
-               <Button variant="outline" size="sm" className="w-full" onClick={() => setIsGradientModalOpen(true)}>
-                  <Settings2 className="w-4 h-4 mr-2" /> Custom Gradient
-              </Button>
             </TabsContent>
           </Tabs>
         </PopoverContent>

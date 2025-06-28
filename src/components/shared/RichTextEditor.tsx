@@ -29,18 +29,76 @@ import { cn } from '@/lib/utils';
 import { createPortal } from 'react-dom';
 
 
+export interface FontFamilyOptions {
+  types: string[],
+}
+
 export interface FontSizeOptions {
   types: string[],
 }
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
+    fontFamily: {
+      setFontFamily: (font: string) => ReturnType,
+      unsetFontFamily: () => ReturnType,
+    }
     fontSize: {
       setFontSize: (size: string) => ReturnType,
       unsetFontSize: () => ReturnType,
     }
   }
 }
+
+export const FontFamily = Extension.create<FontFamilyOptions>({
+  name: 'fontFamily',
+
+  addOptions() {
+    return {
+      types: ['textStyle'],
+    }
+  },
+
+  addGlobalAttributes() {
+    return [
+      {
+        types: this.options.types,
+        attributes: {
+          fontFamily: {
+            default: null,
+            parseHTML: element => element.style.fontFamily?.replace(/['"]+/g, ''),
+            renderHTML: attributes => {
+              if (!attributes.fontFamily) {
+                return {}
+              }
+
+              return {
+                style: `font-family: ${attributes.fontFamily}`,
+              }
+            },
+          },
+        },
+      },
+    ]
+  },
+
+  addCommands() {
+    return {
+      setFontFamily: fontFamily => ({ chain }) => {
+        return chain()
+          .setMark('textStyle', { fontFamily })
+          .run()
+      },
+      unsetFontFamily: () => ({ chain }) => {
+        return chain()
+          .setMark('textStyle', { fontFamily: null })
+          // @ts-ignore
+          .removeEmptyTextStyle()
+          .run()
+      },
+    }
+  },
+});
 
 export const FontSize = Extension.create<FontSizeOptions>({
   name: 'fontSize',
@@ -605,9 +663,36 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
     { label: "Absolutely massive", value: "30px" },
   ];
 
+  const fontFamilies = [
+    { label: "Default", value: "" },
+    { label: "Sans-Serif", value: "var(--font-geist-sans), sans-serif" },
+    { label: "Serif", value: "serif" },
+    { label: "Monospace", value: "var(--font-geist-mono), monospace" },
+  ];
+
+
   return (
     <>
       <div className="flex flex-wrap items-center gap-1 p-1 border-b">
+        <Select
+            value={editor.getAttributes('textStyle').fontFamily || ''}
+            onValueChange={(value) => {
+                if (value) {
+                    editor.chain().focus().setFontFamily(value).run();
+                } else {
+                    editor.chain().focus().unsetFontFamily().run();
+                }
+            }}
+        >
+            <SelectTrigger className="w-36 h-8 text-xs">
+                <SelectValue placeholder="Font Family" />
+            </SelectTrigger>
+            <SelectContent>
+                {fontFamilies.map(font => (
+                    <SelectItem key={font.label} value={font.value} className="text-xs" style={{ fontFamily: font.value }}>{font.label}</SelectItem>
+                ))}
+            </SelectContent>
+        </Select>
         <Select
             value={editor.getAttributes('textStyle').fontSize || '_default_size_'}
             onValueChange={(value) => {
@@ -720,6 +805,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
     extensions: [
       StarterKit.configure({ heading: false }),
       TextStyle,
+      FontFamily,
       FontSize.configure({
         types: ['textStyle'],
       }),
@@ -817,6 +903,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
 };
 
     
+
 
 
 

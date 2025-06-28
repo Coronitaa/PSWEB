@@ -9,10 +9,12 @@ import {
 } from '@/components/ui/popover'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
-import { Palette, Pipette } from 'lucide-react'
+import { Palette, Pipette, Settings2 } from 'lucide-react'
 import { useMemo, useState, useEffect } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog'
+
 
 const GRADIENT_DIRECTIONS = [
   { value: 'to top left', label: 'To Top Left' },
@@ -86,133 +88,163 @@ export function GradientPicker({
     if (value && value.includes('gradient')) return 'gradient'
     return 'solid'
   }, [value])
-
+  
+  // State for the custom gradient modal
+  const [isGradientModalOpen, setIsGradientModalOpen] = useState(false);
   const [gradientDirection, setGradientDirection] = useState<GradientDirection>('to top left');
   const [gradientColor1, setGradientColor1] = useState('#ffffff');
   const [gradientColor2, setGradientColor2] = useState('#000000');
 
+  // When the modal opens, initialize its state from the current editor value
   useEffect(() => {
-    if (value && value.includes('gradient')) {
-      const parsed = parseGradient(value);
-      if (parsed) {
-        setGradientDirection(parsed.direction);
-        setGradientColor1(parsed.color1);
-        setGradientColor2(parsed.color2);
+    if (isGradientModalOpen) {
+      if (value && value.includes('gradient')) {
+        const parsed = parseGradient(value);
+        if (parsed) {
+          setGradientDirection(parsed.direction);
+          setGradientColor1(parsed.color1);
+          setGradientColor2(parsed.color2);
+        }
+      } else {
+        // Default values if current value is not a gradient
+        setGradientDirection('to top left');
+        setGradientColor1('#ffffff');
+        setGradientColor2('#000000');
       }
     }
-  }, [value]);
-
-  const handleCustomGradientChange = (dir: GradientDirection, c1: string, c2: string) => {
-    const newGradient = `linear-gradient(${dir},${c1},${c2})`;
+  }, [isGradientModalOpen, value]);
+  
+  const handleApplyCustomGradient = () => {
+    const newGradient = `linear-gradient(${gradientDirection},${gradientColor1},${gradientColor2})`;
     onChange(newGradient);
+    setIsGradientModalOpen(false);
   }
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          variant={'ghost'}
-          size="icon"
-          className={cn('h-8 w-8 p-1.5 relative', className)}
-        >
-          <Palette className="h-4 w-4"/>
-           <div
-              className="absolute bottom-1 right-1 h-2.5 w-2.5 rounded-full border border-card !bg-center !bg-cover transition-all"
-              style={{ background: value }}
-            ></div>
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-72">
-        <Tabs defaultValue={defaultTab} className="w-full">
-          <TabsList className="w-full mb-4">
-            <TabsTrigger className="flex-1" value="solid">
-              Solid
-            </TabsTrigger>
-            <TabsTrigger className="flex-1" value="gradient">
-              Gradient
-            </TabsTrigger>
-          </TabsList>
+    <>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant={'ghost'}
+            size="icon"
+            className={cn('h-8 w-8 p-1.5 relative', className)}
+          >
+            <Palette className="h-4 w-4"/>
+             <div
+                className="absolute bottom-1 right-1 h-2.5 w-2.5 rounded-full border border-card !bg-center !bg-cover transition-all"
+                style={{ background: value }}
+              ></div>
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-64 p-2">
+          <Tabs defaultValue={defaultTab} className="w-full">
+            <TabsList className="w-full mb-2">
+              <TabsTrigger className="flex-1" value="solid">
+                Solid
+              </TabsTrigger>
+              <TabsTrigger className="flex-1" value="gradient">
+                Gradient
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="solid" className="flex flex-col gap-3 mt-0">
-            <div className="flex flex-wrap gap-1">
-              {solids.map((s) => (
-                <div
-                  key={s}
-                  style={{ background: s }}
-                  className="rounded-md h-6 w-6 cursor-pointer active:scale-105 border"
-                  onClick={() => onChange(s)}
-                />
-              ))}
-            </div>
-            <div className='flex items-center gap-2'>
-              <div className="relative">
-                <Pipette className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <TabsContent value="solid" className="flex flex-col gap-3 mt-0 p-1">
+              <div className="flex flex-wrap gap-1">
+                {solids.map((s) => (
+                  <div
+                    key={s}
+                    style={{ background: s }}
+                    className="rounded-md h-6 w-6 cursor-pointer active:scale-105 border"
+                    onClick={() => onChange(s)}
+                  />
+                ))}
+              </div>
+              <div className='flex items-center gap-2'>
+                <div className="relative">
+                  <Pipette className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    id="custom-solid"
+                    type="color"
+                    className="w-12 h-8 p-1 cursor-pointer"
+                    value={value && !value.includes('gradient') ? value : '#000000'}
+                    onChange={(e) => onChange(e.currentTarget.value)}
+                  />
+                </div>
                 <Input
-                  id="custom-solid"
-                  type="color"
-                  className="w-12 h-8 p-1 cursor-pointer"
-                  value={value && !value.includes('gradient') ? value : '#000000'}
-                  onChange={(e) => onChange(e.currentTarget.value)}
+                    id="custom-solid-text"
+                    value={value && !value.includes('gradient') ? value : ''}
+                    className="col-span-2 h-8"
+                    onChange={(e) => onChange(e.currentTarget.value)}
+                    placeholder="#RRGGBB"
                 />
               </div>
-              <Input
-                  id="custom-solid-text"
-                  value={value && !value.includes('gradient') ? value : ''}
-                  className="col-span-2 h-8"
-                  onChange={(e) => onChange(e.currentTarget.value)}
-                  placeholder="#RRGGBB"
-              />
-            </div>
-          </TabsContent>
+            </TabsContent>
 
-          <TabsContent value="gradient" className="mt-0">
-            <div className="flex flex-wrap gap-1 mb-3">
-              {gradients.map((s) => (
-                <div
-                  key={s}
-                  style={{ background: s }}
-                  className="rounded-md h-6 w-6 cursor-pointer active:scale-105"
-                  onClick={() => onChange(s)}
-                />
-              ))}
-            </div>
-            <div className="space-y-3 p-1">
+            <TabsContent value="gradient" className="mt-0 p-1 space-y-2">
+              <div className="flex flex-wrap gap-1">
+                {gradients.map((s) => (
+                  <div
+                    key={s}
+                    style={{ background: s }}
+                    className="rounded-md h-6 w-6 cursor-pointer active:scale-105"
+                    onClick={() => onChange(s)}
+                  />
+                ))}
+              </div>
+               <Button variant="outline" size="sm" className="w-full" onClick={() => setIsGradientModalOpen(true)}>
+                  <Settings2 className="w-4 h-4 mr-2" /> Custom Gradient
+              </Button>
+            </TabsContent>
+          </Tabs>
+        </PopoverContent>
+      </Popover>
+      
+      {/* Custom Gradient Modal */}
+      <Dialog open={isGradientModalOpen} onOpenChange={setIsGradientModalOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Create Custom Gradient</DialogTitle>
+                <DialogDescription>
+                    Choose two colors and a direction to create your custom gradient.
+                </DialogDescription>
+            </DialogHeader>
+             <div className="space-y-4 py-4">
               <div>
-                <Label htmlFor="gradient-direction" className="text-xs">Direction</Label>
-                <Select value={gradientDirection} onValueChange={(dir: GradientDirection) => {
-                    setGradientDirection(dir);
-                    handleCustomGradientChange(dir, gradientColor1, gradientColor2);
-                }}>
-                  <SelectTrigger id="gradient-direction" className="h-8 text-xs mt-1">
+                <Label htmlFor="gradient-direction">Direction</Label>
+                <Select value={gradientDirection} onValueChange={(dir: GradientDirection) => setGradientDirection(dir)}>
+                  <SelectTrigger id="gradient-direction" className="mt-1">
                     <SelectValue placeholder="Direction" />
                   </SelectTrigger>
                   <SelectContent>
                     {GRADIENT_DIRECTIONS.map(dir => (
-                        <SelectItem key={dir.value} value={dir.value} className="text-xs">{dir.label}</SelectItem>
+                        <SelectItem key={dir.value} value={dir.value}>{dir.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-4">
                   <div>
-                      <Label htmlFor="gradient-color-1" className="text-xs">Color 1</Label>
-                      <Input id="gradient-color-1" type="color" className="h-8 p-1 w-full mt-1" value={gradientColor1} onChange={(e) => {
-                          setGradientColor1(e.target.value);
-                          handleCustomGradientChange(gradientDirection, e.target.value, gradientColor2);
-                      }} />
+                      <Label htmlFor="gradient-color-1">Color 1</Label>
+                      <Input id="gradient-color-1" type="color" className="h-10 p-1 w-full mt-1" value={gradientColor1} onChange={(e) => setGradientColor1(e.target.value)} />
                   </div>
                    <div>
-                      <Label htmlFor="gradient-color-2" className="text-xs">Color 2</Label>
-                      <Input id="gradient-color-2" type="color" className="h-8 p-1 w-full mt-1" value={gradientColor2} onChange={(e) => {
-                          setGradientColor2(e.target.value);
-                          handleCustomGradientChange(gradientDirection, gradientColor1, e.target.value);
-                      }}/>
+                      <Label htmlFor="gradient-color-2">Color 2</Label>
+                      <Input id="gradient-color-2" type="color" className="h-10 p-1 w-full mt-1" value={gradientColor2} onChange={(e) => setGradientColor2(e.target.value)}/>
                   </div>
               </div>
+               <div>
+                  <Label>Preview</Label>
+                   <div 
+                      className="w-full h-16 rounded-md mt-1 border" 
+                      style={{ background: `linear-gradient(${gradientDirection}, ${gradientColor1}, ${gradientColor2})` }}
+                   />
+               </div>
             </div>
-          </TabsContent>
-        </Tabs>
-      </PopoverContent>
-    </Popover>
+            <DialogFooter>
+                <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+                <Button type="button" onClick={handleApplyCustomGradient}>Apply Gradient</Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

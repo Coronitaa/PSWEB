@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/popover'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
-import { Palette, Pipette, Settings2 } from 'lucide-react'
+import { Palette, Settings2 } from 'lucide-react'
 import { useMemo, useState, useEffect } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
@@ -28,6 +28,45 @@ const GRADIENT_DIRECTIONS = [
 ] as const;
 
 type GradientDirection = typeof GRADIENT_DIRECTIONS[number]['value'];
+
+// New CustomColorPicker component
+const CustomColorPicker = ({
+  color,
+  setColor,
+}: {
+  color: string
+  setColor: (color: string) => void
+}) => {
+  const swatchColors = [
+    '#FFFFFF', '#E2E2E2', '#A2A2A2', '#696969', '#383838', '#000000',
+    '#F44336', '#E91E63', '#9C27B0', '#673AB7', '#3F51B5', '#2196F3',
+    '#03A9F4', '#00BCD4', '#009688', '#4CAF50', '#8BC34A', '#CDDC39',
+    '#FFEB3B', '#FFC107', '#FF9800', '#FF5722', '#795548', '#9E9E9E',
+  ]
+
+  return (
+    <div className="space-y-2 p-2 w-full">
+      <div className="grid grid-cols-6 gap-1">
+        {swatchColors.map((c) => (
+          <button
+            key={c}
+            style={{ background: c }}
+            className="h-6 w-6 cursor-pointer rounded-md border active:scale-105"
+            onClick={() => setColor(c)}
+            title={c}
+          />
+        ))}
+      </div>
+      <Input
+        id="custom-color-input"
+        value={color}
+        className="h-8"
+        onChange={(e) => setColor(e.currentTarget.value)}
+        placeholder="#RRGGBB"
+      />
+    </div>
+  )
+}
 
 function parseGradient(gradient: string): { direction: GradientDirection, color1: string, color2: string } | null {
   if (!gradient.startsWith('linear-gradient')) return null;
@@ -120,6 +159,10 @@ export function GradientPicker({
     setIsGradientModalOpen(false);
   }
 
+  const solidColorValue = useMemo(() => {
+    return value && !value.includes('gradient') ? value : '#FFFFFF';
+  }, [value]);
+
   return (
     <>
       <Popover>
@@ -159,20 +202,26 @@ export function GradientPicker({
                 ))}
               </div>
               <div className='flex items-center gap-2'>
-                <div className="relative">
-                  <Pipette className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                  <Input
-                    id="custom-solid"
-                    type="color"
-                    className="w-12 h-8 p-1 cursor-pointer"
-                    value={value && !value.includes('gradient') ? value : '#000000'}
-                    onChange={(e) => onChange(e.currentTarget.value)}
-                  />
-                </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={'ghost'}
+                      className="h-8 w-12 p-1 border"
+                    >
+                      <div
+                        className="w-full h-full rounded-sm"
+                        style={{ background: solidColorValue }}
+                      ></div>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-0 w-auto">
+                    <CustomColorPicker color={solidColorValue} setColor={onChange} />
+                  </PopoverContent>
+                </Popover>
                 <Input
                     id="custom-solid-text"
-                    value={value && !value.includes('gradient') ? value : ''}
-                    className="col-span-2 h-8"
+                    value={solidColorValue}
+                    className="h-8"
                     onChange={(e) => onChange(e.currentTarget.value)}
                     placeholder="#RRGGBB"
                 />
@@ -224,11 +273,35 @@ export function GradientPicker({
               <div className="grid grid-cols-2 gap-4">
                   <div>
                       <Label htmlFor="gradient-color-1">Color 1</Label>
-                      <Input id="gradient-color-1" type="color" className="h-10 p-1 w-full mt-1" value={gradientColor1} onChange={(e) => setGradientColor1(e.target.value)} />
+                      <div className="flex items-center gap-2 mt-1">
+                          <Popover>
+                              <PopoverTrigger asChild>
+                                  <Button variant="ghost" className="h-10 w-12 p-1 border">
+                                      <div className="w-full h-full rounded-sm" style={{ background: gradientColor1 }} />
+                                  </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="p-0 w-auto">
+                                  <CustomColorPicker color={gradientColor1} setColor={setGradientColor1} />
+                              </PopoverContent>
+                          </Popover>
+                          <Input id="gradient-color-1-text" className="h-10" value={gradientColor1} onChange={(e) => setGradientColor1(e.target.value)} />
+                      </div>
                   </div>
                    <div>
                       <Label htmlFor="gradient-color-2">Color 2</Label>
-                      <Input id="gradient-color-2" type="color" className="h-10 p-1 w-full mt-1" value={gradientColor2} onChange={(e) => setGradientColor2(e.target.value)}/>
+                      <div className="flex items-center gap-2 mt-1">
+                          <Popover>
+                              <PopoverTrigger asChild>
+                                  <Button variant="ghost" className="h-10 w-12 p-1 border">
+                                      <div className="w-full h-full rounded-sm" style={{ background: gradientColor2 }} />
+                                  </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="p-0 w-auto">
+                                  <CustomColorPicker color={gradientColor2} setColor={setGradientColor2} />
+                              </PopoverContent>
+                          </Popover>
+                          <Input id="gradient-color-2-text" className="h-10" value={gradientColor2} onChange={(e) => setGradientColor2(e.target.value)} />
+                      </div>
                   </div>
               </div>
                <div>

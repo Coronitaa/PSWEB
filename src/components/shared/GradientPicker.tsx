@@ -265,7 +265,7 @@ export function GradientPicker({
                         <Separator />
                     </>
                 )}
-               <div className="flex flex-wrap gap-1 max-w-[250px]">
+               <div className="grid grid-cols-10 gap-1">
                   <Popover open={solidPickerOpen} onOpenChange={setSolidPickerOpen}>
                     <PopoverTrigger asChild>
                       <button
@@ -319,7 +319,7 @@ export function GradientPicker({
                       <Separator />
                   </>
               )}
-              <div className="flex flex-wrap gap-1 max-w-[250px]">
+              <div className="grid grid-cols-10 gap-1">
                 <button
                   className="w-6 h-6 flex items-center justify-center rounded-md border border-dashed hover:border-primary"
                   title="Custom Gradient"

@@ -728,7 +728,7 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
         <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleUnderline().run()} className={cn("h-8 w-8", editor.isActive('underline') && "bg-muted text-primary")}><UnderlineIcon className="h-4 w-4" /></Button>
         <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleStrike().run()} className={cn("h-8 w-8", editor.isActive('strike') && "bg-muted text-primary")}><Strikethrough className="h-4 w-4" /></Button>
         <GradientPicker
-          value={editor.getAttributes('textStyle').color || editor.getAttributes('textStyle').textGradient || '#ffffff'}
+          value={editor.getAttributes('textStyle').textGradient || editor.getAttributes('textStyle').color || '#ffffff'}
           onChange={(value) => {
             const isGradient = value.includes('gradient');
             if (isGradient) {
@@ -930,7 +930,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
             <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleUnderline().run()} className={cn("h-8 w-8", editor.isActive('underline') && "bg-muted text-primary")}><UnderlineIcon className="h-4 w-4" /></Button>
             <Separator orientation="vertical" className="h-6" />
             <GradientPicker
-                value={editor.getAttributes('textStyle').color || editor.getAttributes('textStyle').textGradient || '#ffffff'}
+                value={editor.getAttributes('textStyle').textGradient || editor.getAttributes('textStyle').color || '#ffffff'}
                 onChange={(value) => {
                     const isGradient = value.includes('gradient');
                     if (isGradient) {
@@ -955,6 +955,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
 };
 
     
+
 
 
 

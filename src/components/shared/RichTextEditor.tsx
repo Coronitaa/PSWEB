@@ -165,6 +165,7 @@ export const TextGradient = Extension.create<any>({
                         if (!attributes.textGradient) return {};
                         return { 
                             style: `background-image: ${attributes.textGradient}; -webkit-background-clip: text; background-clip: text; color: transparent;`,
+                            'data-text-gradient': attributes.textGradient,
                         };
                     },
                 },
@@ -345,6 +346,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
 
   const imageContent = <img src={node.attrs.src} alt={node.attrs.alt} className="w-full h-full block object-cover" />;
 
+
   const handleLinkClick = (e: React.MouseEvent) => {
     if (editor.isEditable) {
       e.preventDefault();
@@ -367,20 +369,17 @@ const MediaResizeComponent = (props: NodeViewProps) => {
         className="relative w-full h-full"
         style={{
           transform: `rotate(${rotation}deg)`,
-          transformOrigin: 'center center'
+          transformOrigin: 'center center',
         }}
       >
-        <div
-            className="absolute inset-0"
-        >
-            {isImage && (
-                href ? (
-                <a href={href} target="_blank" rel="noopener noreferrer nofollow" className="w-full h-full block cursor-pointer" onClick={handleLinkClick}>
-                    {imageContent}
-                </a>
-                ) : imageContent
-            )}
-            {isVideo && (
+          {isImage && (
+              href ? (
+              <a href={href} target="_blank" rel="noopener noreferrer nofollow" className="w-full h-full block cursor-pointer" onClick={handleLinkClick}>
+                  {imageContent}
+              </a>
+              ) : imageContent
+          )}
+          {isVideo && (
             <div className="w-full h-full relative">
                 <iframe
                     className="absolute inset-0 w-full h-full"
@@ -398,27 +397,25 @@ const MediaResizeComponent = (props: NodeViewProps) => {
                     />
                 )}
             </div>
-            )}
-            {selected && (
-                <div className="absolute inset-0 pointer-events-none">
-                    <div className="w-full h-full border-2 border-primary border-dashed" />
-                    {handles.map((handle, index) => (
-                        <div
-                            key={index}
-                            className={cn(
-                                "absolute w-2.5 h-2.5 bg-primary rounded-full border border-card pointer-events-auto z-20",
-                                handle.pos
-                            )}
-                            style={{
-                                transform: 'rotate(0deg)', // Handles no longer need to counter-rotate
-                                ...handleStyles[index]
-                            }}
-                            onMouseDown={createResizeHandler(handle.direction)}
-                        />
-                    ))}
-                </div>
-            )}
-        </div>
+          )}
+        {selected && (
+            <div className="absolute inset-0 pointer-events-none">
+                <div className="w-full h-full border-2 border-primary border-dashed" />
+                {handles.map((handle, index) => (
+                    <div
+                        key={index}
+                        className={cn(
+                            "absolute w-2.5 h-2.5 bg-primary rounded-full border border-card pointer-events-auto z-20",
+                            handle.pos
+                        )}
+                        style={{
+                            ...handleStyles[index]
+                        }}
+                        onMouseDown={createResizeHandler(handle.direction)}
+                    />
+                ))}
+            </div>
+        )}
       </div>
        {selected && (
           <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[calc(100%+12px)] z-20 flex gap-1 bg-card p-1 rounded-md shadow-lg border border-border pointer-events-auto">
@@ -431,15 +428,6 @@ const MediaResizeComponent = (props: NodeViewProps) => {
               </Button>
             </div>
       )}
-       {selected && (
-            <div
-                className="absolute bottom-0 right-0 translate-x-[150%] translate-y-[150%] p-1 bg-card rounded-full border border-primary pointer-events-auto z-20 cursor-alias"
-                onMouseDown={createRotationHandler}
-                title="Rotate"
-            >
-                <RotateCw className="w-3 h-3 text-primary"/>
-            </div>
-       )}
     </NodeViewWrapper>
   );
 };
@@ -969,6 +957,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
 };
 
     
+
 
 
 

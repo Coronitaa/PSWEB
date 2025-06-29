@@ -164,7 +164,7 @@ export const TextGradient = Extension.create<any>({
                     renderHTML: attributes => {
                         if (!attributes.textGradient) return {};
                         return { 
-                            style: `background: ${attributes.textGradient}; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: hsl(var(--foreground));`,
+                            style: `background: ${attributes.textGradient}; -webkit-background-clip: text; background-clip: text; color: transparent;`,
                         };
                     },
                 },
@@ -329,7 +329,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
     const initialRotation = rotation;
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
-        const currentAngle = Math.atan2(moveEvent.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
+        const currentAngle = Math.atan2(moveEvent.clientY - centerY, moveEvent.clientX - centerX) * (180 / Math.PI);
         const newRotation = initialRotation + (currentAngle - startAngle);
         updateAttributes({ rotate: newRotation });
     };
@@ -355,20 +355,20 @@ const MediaResizeComponent = (props: NodeViewProps) => {
     <NodeViewWrapper
       as="div"
       className="rich-text-media-node group clear-both relative"
-      style={{ width }}
+      style={{
+        width,
+        height: height || 'auto',
+        transform: `rotate(${rotation}deg)`
+      }}
       data-float={float}
       draggable="true" data-drag-handle
     >
       <div 
         ref={containerRef}
         className={cn(
-          "relative w-full",
+          "relative w-full h-full",
           selected && 'border-2 border-primary border-dashed'
         )}
-        style={{
-            height: height || 'auto',
-            transform: `rotate(${rotation}deg)`
-        }}
       >
         {isImage && (
             href ? (
@@ -933,7 +933,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
             <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleUnderline().run()} className={cn("h-8 w-8", editor.isActive('underline') && "bg-muted text-primary")}><UnderlineIcon className="h-4 w-4" /></Button>
             <Separator orientation="vertical" className="h-6" />
             <GradientPicker
-                value={editor.getAttributes('textStyle').textGradient || editor.getAttributes('textStyle').color || '#ffffff'}
+                value={editor.getAttributes('textStyle').textGradient || editor.getAttributes('textStyle').color || 'transparent'}
                 onChange={(value) => {
                     const isGradient = value.includes('gradient');
                     if (isGradient) {
@@ -958,6 +958,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
 };
 
     
+
 
 
 

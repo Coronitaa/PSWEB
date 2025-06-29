@@ -164,7 +164,7 @@ export const TextGradient = Extension.create<any>({
                     renderHTML: attributes => {
                         if (!attributes.textGradient) return {};
                         return { 
-                            style: `background-image: ${attributes.textGradient}; color: transparent; -webkit-background-clip: text; background-clip: text;`,
+                            style: `background: ${attributes.textGradient}; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: hsl(var(--foreground));`,
                         };
                     },
                 },
@@ -680,6 +680,9 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
     if (type === 'image') setIsImageModalOpen(true);
     if (type === 'video') setIsVideoModalOpen(true);
   };
+  
+  const currentGradient = editor.getAttributes('textStyle').textGradient;
+  const currentColor = editor.getAttributes('textStyle').color;
 
   return (
     <>
@@ -728,7 +731,7 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
         <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleUnderline().run()} className={cn("h-8 w-8", editor.isActive('underline') && "bg-muted text-primary")}><UnderlineIcon className="h-4 w-4" /></Button>
         <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleStrike().run()} className={cn("h-8 w-8", editor.isActive('strike') && "bg-muted text-primary")}><Strikethrough className="h-4 w-4" /></Button>
         <GradientPicker
-          value={editor.getAttributes('textStyle').textGradient || editor.getAttributes('textStyle').color || '#ffffff'}
+          value={currentGradient || currentColor || 'transparent'}
           onChange={(value) => {
             const isGradient = value.includes('gradient');
             if (isGradient) {
@@ -955,6 +958,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
 };
 
     
+
 
 
 

@@ -411,7 +411,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
                     />
                 ))}
                 <div
-                    className="absolute -top-3 -right-3 w-6 h-6 bg-primary rounded-full border-2 border-card flex items-center justify-center cursor-[grab] active:cursor-grabbing pointer-events-auto z-30"
+                    className="absolute -top-4 -right-4 w-6 h-6 bg-primary rounded-full border-2 border-card flex items-center justify-center cursor-[grab] active:cursor-grabbing pointer-events-auto z-30"
                     onMouseDown={createRotationHandler}
                     title="Rotate (hold Shift to snap)"
                 >
@@ -451,7 +451,7 @@ const CustomImage = TiptapImage.extend({
         parseHTML: element => element.style.width || null,
       },
       height: {
-        default: null,
+        default: 'auto',
         renderHTML: attributes => ({
             style: `height: ${attributes.height || 'auto'};`,
         }),
@@ -960,6 +960,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
 };
 
     
+
 
 
 

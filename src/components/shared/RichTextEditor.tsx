@@ -164,8 +164,8 @@ export const TextGradient = Extension.create<any>({
                     renderHTML: attributes => {
                         if (!attributes.textGradient) return {};
                         return { 
-                            style: `background-image: ${attributes.textGradient}; -webkit-background-clip: text; background-clip: text; color: transparent;`,
-                            'data-text-gradient': attributes.textGradient,
+                          style: `background-image: ${attributes.textGradient}; -webkit-background-clip: text; background-clip: text; color: transparent !important;`,
+                          'data-text-gradient': attributes.textGradient,
                         };
                     },
                 },
@@ -179,6 +179,34 @@ export const TextGradient = Extension.create<any>({
         };
     },
 });
+
+const HANDLES = [
+  { pos: 'top-0 left-0 -translate-x-1/2 -translate-y-1/2', direction: 'top-left' },
+  { pos: 'top-0 left-1/2 -translate-x-1/2 -translate-y-1/2', direction: 'top' },
+  { pos: 'top-0 right-0 translate-x-1/2 -translate-y-1/2', direction: 'top-right' },
+  { pos: 'top-1/2 left-0 -translate-x-1/2 -translate-y-1/2', direction: 'left' },
+  { pos: 'top-1/2 right-0 translate-x-1/2 -translate-y-1/2', direction: 'right' },
+  { pos: 'bottom-0 left-0 -translate-x-1/2 translate-y-1/2', direction: 'bottom-left' },
+  { pos: 'bottom-0 left-1/2 -translate-x-1/2 -translate-y-1/2', direction: 'bottom' },
+  { pos: 'bottom-0 right-0 translate-x-1/2 translate-y-1/2', direction: 'bottom-right' },
+];
+
+const INITIAL_HANDLE_ANGLES: { [key: string]: number } = {
+  'top-left': 135, 'top': 90, 'top-right': 45, 'left': 180, 'right': 0, 'bottom-left': 225, 'bottom': 270, 'bottom-right': 315,
+};
+
+const getCursorForAngle = (angle: number): string => {
+  const normalizedAngle = (angle % 360 + 360) % 360;
+  if (normalizedAngle > 337.5 || normalizedAngle <= 22.5) return 'ew-resize';
+  if (normalizedAngle > 22.5 && normalizedAngle <= 67.5) return 'nesw-resize';
+  if (normalizedAngle > 67.5 && normalizedAngle <= 112.5) return 'ns-resize';
+  if (normalizedAngle > 112.5 && normalizedAngle <= 157.5) return 'nwse-resize';
+  if (normalizedAngle > 157.5 && normalizedAngle <= 202.5) return 'ew-resize';
+  if (normalizedAngle > 202.5 && normalizedAngle <= 247.5) return 'nesw-resize';
+  if (normalizedAngle > 247.5 && normalizedAngle <= 292.5) return 'ns-resize';
+  if (normalizedAngle > 292.5 && normalizedAngle <= 337.5) return 'nwse-resize';
+  return 'auto';
+};
 
 const MediaResizeComponent = (props: NodeViewProps) => {
   const { node, updateAttributes, selected, editor } = props;
@@ -202,53 +230,14 @@ const MediaResizeComponent = (props: NodeViewProps) => {
     updateAttributes({ rotate: currentRotation + degrees });
   };
 
-  const handles = [
-    { pos: 'top-0 left-0 -translate-x-1/2 -translate-y-1/2', direction: 'top-left' },
-    { pos: 'top-0 left-1/2 -translate-x-1/2 -translate-y-1/2', direction: 'top' },
-    { pos: 'top-0 right-0 translate-x-1/2 -translate-y-1/2', direction: 'top-right' },
-    { pos: 'top-1/2 left-0 -translate-x-1/2 -translate-y-1/2', direction: 'left' },
-    { pos: 'top-1/2 right-0 translate-x-1/2 -translate-y-1/2', direction: 'right' },
-    { pos: 'bottom-0 left-0 -translate-x-1/2 translate-y-1/2', direction: 'bottom-left' },
-    { pos: 'bottom-0 left-1/2 -translate-x-1/2 -translate-y-1/2', direction: 'bottom' },
-    { pos: 'bottom-0 right-0 translate-x-1/2 translate-y-1/2', direction: 'bottom-right' },
-  ];
-  
-  const initialHandleAngles: { [key: string]: number } = {
-    'top-left': 135,
-    'top': 90,
-    'top-right': 45,
-    'left': 180,
-    'right': 0,
-    'bottom-left': 225,
-    'bottom': 270,
-    'bottom-right': 315,
-  };
-  
-  const getCursorForAngle = (angle: number): string => {
-    const normalizedAngle = (angle % 360 + 360) % 360;
-    const slice = Math.round(normalizedAngle / 45) % 8;
-
-    switch (slice) {
-      case 0: return 'ew-resize';
-      case 1: return 'nesw-resize';
-      case 2: return 'ns-resize';
-      case 3: return 'nwse-resize';
-      case 4: return 'ew-resize';
-      case 5: return 'nesw-resize';
-      case 6: return 'ns-resize';
-      case 7: return 'nwse-resize';
-      default: return 'auto';
-    }
-  };
-  
   const handleStyles = useMemo(() => {
-    return handles.map(handle => {
-        const initialAngle = initialHandleAngles[handle.direction];
-        const finalAngle = initialAngle; // The handles are inside the rotating div, so they don't need their own rotation
-        const cursorStyle = getCursorForAngle(finalAngle + rotation);
-        return { cursor: cursorStyle };
-    })
-  }, [rotation, handles, initialHandleAngles]);
+    return HANDLES.map(handle => {
+      const initialAngle = INITIAL_HANDLE_ANGLES[handle.direction];
+      const finalAngle = initialAngle + rotation;
+      const cursorStyle = getCursorForAngle(finalAngle);
+      return { cursor: cursorStyle };
+    });
+  }, [rotation]);
 
 
   const createResizeHandler = (direction: string) => (e: React.MouseEvent) => {
@@ -326,12 +315,19 @@ const MediaResizeComponent = (props: NodeViewProps) => {
     const rect = container.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
-    const startAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
+    const startAngleRad = Math.atan2(e.clientY - centerY, e.clientX - centerX);
     const initialRotation = rotation;
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
-        const currentAngle = Math.atan2(moveEvent.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
-        const newRotation = initialRotation + (currentAngle - startAngle);
+        const currentAngleRad = Math.atan2(moveEvent.clientY - centerY, moveEvent.clientX - centerX);
+        const angleDeltaRad = currentAngleRad - startAngleRad;
+        const angleDeltaDeg = angleDeltaRad * (180 / Math.PI);
+        let newRotation = initialRotation + angleDeltaDeg;
+        
+        if (moveEvent.shiftKey) {
+            newRotation = Math.round(newRotation / 90) * 90;
+        }
+
         updateAttributes({ rotate: newRotation });
     };
 
@@ -359,7 +355,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
       className="rich-text-media-node group clear-both relative"
       style={{
         width,
-        height: height || 'auto',
+        height, // Always set height explicitly
       }}
       data-float={float}
       draggable="true" data-drag-handle
@@ -374,7 +370,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
       >
           {isImage && (
               href ? (
-              <a href={href} target="_blank" rel="noopener noreferrer nofollow" className="w-full h-full block cursor-pointer" onClick={handleLinkClick}>
+              <a href={href} target="_blank" rel="noopener noreferrer nofollow" className="w-full h-full block cursor-pointer">
                   {imageContent}
               </a>
               ) : imageContent
@@ -401,7 +397,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
         {selected && (
             <div className="absolute inset-0 pointer-events-none">
                 <div className="w-full h-full border-2 border-primary border-dashed" />
-                {handles.map((handle, index) => (
+                {HANDLES.map((handle, index) => (
                     <div
                         key={index}
                         className={cn(
@@ -419,6 +415,13 @@ const MediaResizeComponent = (props: NodeViewProps) => {
       </div>
        {selected && (
           <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[calc(100%+12px)] z-20 flex gap-1 bg-card p-1 rounded-md shadow-lg border border-border pointer-events-auto">
+              <div
+                  className="absolute -top-3 -right-3 w-6 h-6 bg-primary rounded-full border-2 border-card flex items-center justify-center cursor-[grab] active:cursor-grabbing pointer-events-auto z-30"
+                  onMouseDown={createRotationHandler}
+                  title="Rotate (hold Shift to snap)"
+                >
+                  <RotateCw className="w-3.5 h-3.5 text-primary-foreground" />
+              </div>
               <Button type="button" size="icon" variant={float === 'left' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('left')} title="Align left"><AlignLeft className="w-4 h-4" /></Button>
               <Button type="button" size="icon" variant={!float || float === 'center' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('center')} title="Align center"><AlignCenter className="w-4 h-4" /></Button>
               <Button type="button" size="icon" variant={float === 'right' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('right')} title="Align right"><AlignRight className="w-4 h-4" /></Button>
@@ -450,7 +453,7 @@ const CustomImage = TiptapImage.extend({
       height: {
         default: null,
         renderHTML: attributes => ({
-            style: `height: ${attributes.height};`,
+            style: `height: ${attributes.height || 'auto'};`,
         }),
         parseHTML: element => element.style.height || null,
       },
@@ -957,6 +960,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
 };
 
     
+
 
 
 

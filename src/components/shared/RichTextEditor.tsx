@@ -243,8 +243,8 @@ const MediaResizeComponent = (props: NodeViewProps) => {
   const handleStyles = useMemo(() => {
     return handles.map(handle => {
         const initialAngle = initialHandleAngles[handle.direction];
-        const finalAngle = initialAngle + rotation;
-        const cursorStyle = getCursorForAngle(finalAngle);
+        const finalAngle = initialAngle; // The handles are inside the rotating div, so they don't need their own rotation
+        const cursorStyle = getCursorForAngle(finalAngle + rotation);
         return { cursor: cursorStyle };
     })
   }, [rotation, handles, initialHandleAngles]);
@@ -329,7 +329,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
     const initialRotation = rotation;
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
-        const currentAngle = Math.atan2(moveEvent.clientY - centerY, moveEvent.clientX - centerX) * (180 / Math.PI);
+        const currentAngle = Math.atan2(moveEvent.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
         const newRotation = initialRotation + (currentAngle - startAngle);
         updateAttributes({ rotate: newRotation });
     };
@@ -358,67 +358,64 @@ const MediaResizeComponent = (props: NodeViewProps) => {
       style={{
         width,
         height: height || 'auto',
-        transform: `rotate(${rotation}deg)`
       }}
       data-float={float}
       draggable="true" data-drag-handle
     >
       <div 
-        ref={containerRef}
-        className={cn(
-          "relative w-full h-full",
-          selected && 'border-2 border-primary border-dashed'
-        )}
+        ref={containerRef} // ref is on this outer un-rotated container
+        className="relative w-full h-full"
       >
-        {isImage && (
-            href ? (
-              <a href={href} target="_blank" rel="noopener noreferrer nofollow" className="w-full h-full block cursor-pointer" onClick={handleLinkClick}>
-                {imageContent}
-              </a>
-            ) : imageContent
-        )}
-        {isVideo && (
-          <div className="w-full h-full relative">
-              <iframe
-                className="absolute inset-0 w-full h-full"
-                src={node.attrs.src}
-                frameBorder="0"
-                allowFullScreen
-              />
-              {editor.isEditable && (
-                  <div 
-                      className={cn(
-                          "absolute inset-0 z-10",
-                          selected && "cursor-move"
-                      )} 
-                      aria-hidden="true" 
-                  />
-              )}
-          </div>
-        )}
-      
-        {selected && (
-          <>
-            {handles.map((handle, index) => (
-                    <div
-                      key={index}
-                      className={cn(
-                        "absolute w-2.5 h-2.5 bg-primary rounded-full border border-card pointer-events-auto z-20",
-                        handle.pos
-                      )}
-                      style={handleStyles[index]}
-                      onMouseDown={createResizeHandler(handle.direction)}
+        <div
+            className="absolute inset-0"
+            style={{
+                transform: `rotate(${rotation}deg)`,
+                transformOrigin: 'center center'
+            }}
+        >
+            {isImage && (
+                href ? (
+                <a href={href} target="_blank" rel="noopener noreferrer nofollow" className="w-full h-full block cursor-pointer" onClick={handleLinkClick}>
+                    {imageContent}
+                </a>
+                ) : imageContent
+            )}
+            {isVideo && (
+            <div className="w-full h-full relative">
+                <iframe
+                    className="absolute inset-0 w-full h-full"
+                    src={node.attrs.src}
+                    frameBorder="0"
+                    allowFullScreen
+                />
+                {editor.isEditable && (
+                    <div 
+                        className={cn(
+                            "absolute inset-0 z-10",
+                            selected && "cursor-move"
+                        )} 
+                        aria-hidden="true" 
                     />
-            ))}
-              <div
-                className="absolute bottom-0 right-0 translate-x-[150%] translate-y-[150%] p-1 bg-card rounded-full border border-primary pointer-events-auto z-20 cursor-alias"
-                onMouseDown={createRotationHandler}
-                title="Rotate"
-              >
-                  <RotateCw className="w-3 h-3 text-primary"/>
-              </div>
-          </>
-        )}
+                )}
+            </div>
+            )}
+            {selected && (
+                <div className="absolute inset-0 pointer-events-none">
+                    <div className="w-full h-full border-2 border-primary border-dashed" />
+                    {handles.map((handle, index) => (
+                        <div
+                            key={index}
+                            className={cn(
+                                "absolute w-2.5 h-2.5 bg-primary rounded-full border border-card pointer-events-auto z-20",
+                                handle.pos
+                            )}
+                            style={handleStyles[index]}
+                            onMouseDown={createResizeHandler(handle.direction)}
+                        />
+                    ))}
+                </div>
+            )}
+        </div>
       </div>
        {selected && (
           <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[calc(100%+12px)] z-20 flex gap-1 bg-card p-1 rounded-md shadow-lg border border-border pointer-events-auto">
@@ -431,6 +428,15 @@ const MediaResizeComponent = (props: NodeViewProps) => {
               </Button>
             </div>
       )}
+       {selected && (
+            <div
+                className="absolute bottom-0 right-0 translate-x-[150%] translate-y-[150%] p-1 bg-card rounded-full border border-primary pointer-events-auto z-20 cursor-alias"
+                onMouseDown={createRotationHandler}
+                title="Rotate"
+            >
+                <RotateCw className="w-3 h-3 text-primary"/>
+            </div>
+       )}
     </NodeViewWrapper>
   );
 };
@@ -958,6 +964,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
 };
 
     
+
 
 
 

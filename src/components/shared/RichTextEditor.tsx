@@ -410,18 +410,18 @@ const MediaResizeComponent = (props: NodeViewProps) => {
                         onMouseDown={createResizeHandler(handle.direction)}
                     />
                 ))}
+                <div
+                    className="absolute -top-3 -right-3 w-6 h-6 bg-primary rounded-full border-2 border-card flex items-center justify-center cursor-[grab] active:cursor-grabbing pointer-events-auto z-30"
+                    onMouseDown={createRotationHandler}
+                    title="Rotate (hold Shift to snap)"
+                >
+                    <RotateCw className="w-3.5 h-3.5 text-primary-foreground" />
+                </div>
             </div>
         )}
       </div>
        {selected && (
           <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[calc(100%+12px)] z-20 flex gap-1 bg-card p-1 rounded-md shadow-lg border border-border pointer-events-auto">
-              <div
-                  className="absolute -top-3 -right-3 w-6 h-6 bg-primary rounded-full border-2 border-card flex items-center justify-center cursor-[grab] active:cursor-grabbing pointer-events-auto z-30"
-                  onMouseDown={createRotationHandler}
-                  title="Rotate (hold Shift to snap)"
-                >
-                  <RotateCw className="w-3.5 h-3.5 text-primary-foreground" />
-              </div>
               <Button type="button" size="icon" variant={float === 'left' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('left')} title="Align left"><AlignLeft className="w-4 h-4" /></Button>
               <Button type="button" size="icon" variant={!float || float === 'center' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('center')} title="Align center"><AlignCenter className="w-4 h-4" /></Button>
               <Button type="button" size="icon" variant={float === 'right' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('right')} title="Align right"><AlignRight className="w-4 h-4" /></Button>
@@ -960,6 +960,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
 };
 
     
+
 
 
 

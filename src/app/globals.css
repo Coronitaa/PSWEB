@@ -197,6 +197,9 @@
      code { @apply bg-muted text-accent px-1 py-0.5 rounded-sm text-sm; }
      pre { @apply bg-muted p-4 rounded-md overflow-x-auto; }
      blockquote { @apply border-l-4 border-primary pl-4 italic text-muted-foreground; }
+     ul { @apply list-disc pl-6 my-4; }
+     ol { @apply list-decimal pl-6 my-4; }
+     li { @apply my-2; }
     }
     .prose .rich-text-media-node {
        
@@ -204,10 +207,15 @@
     .dark .prose-invert {
       h1, h2, h3, h4, h5, h6 { @apply text-primary; } 
       a { @apply text-accent hover:text-accent/80; }
-      strong { @apply text-foreground; } 
+      /* strong color removed to allow inheritance for gradients */
       code { @apply bg-secondary text-accent; } 
       pre { @apply bg-secondary; }
       blockquote { @apply border-primary; }
+      ul, ol {
+        li::marker {
+          @apply text-muted-foreground;
+        }
+      }
     }
 
   /* Sheen effect for Follow button (and other buttons if class is applied) */

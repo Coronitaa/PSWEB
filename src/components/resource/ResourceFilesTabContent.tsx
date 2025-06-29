@@ -15,26 +15,49 @@ import { incrementResourceDownloadCountAction } from '@/app/actions/resourceActi
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, isValid } from 'date-fns';
 
-interface ResourceFilesTabContentProps {
-  files: ResourceFile[];
-  resourceId: string; // ID del recurso padre
-  dynamicAvailableFileTagGroups: DynamicAvailableFilterTags;
-}
-
 const SimpleMarkdown: React.FC<{ text: string }> = ({ text }) => {
+  const renderedContent: React.ReactNode[] = useMemo(() => {
+    const lines = text.split('\n');
+    const elements: React.ReactNode[] = [];
+    let currentList: string[] = [];
+
+    const flushList = (key: string) => {
+      if (currentList.length > 0) {
+        elements.push(
+          <ul key={key} className="list-disc pl-5 my-2 space-y-1">
+            {currentList.map((item, index) => (
+              <li key={index} dangerouslySetInnerHTML={{ __html: item }} />
+            ))}
+          </ul>
+        );
+        currentList = [];
+      }
+    };
+
+    lines.forEach((line, index) => {
+      const listItemMatch = line.match(/^(\s*[-*]\s+)(.*)/);
+
+      if (listItemMatch) {
+        currentList.push(listItemMatch[2]);
+      } else {
+        flushList(`ul-${index}`);
+        if (line.trim() !== '') {
+          const processedLine = line
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/(\*|_)(.*?)\1/g, '<em>$2</em>');
+          elements.push(<p key={index} className="mb-1 last:mb-0" dangerouslySetInnerHTML={{ __html: processedLine }} />);
+        }
+      }
+    });
+
+    flushList(`ul-final`);
+
+    return elements;
+  }, [text]);
+
   return (
     <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-line text-popover-foreground">
-      {text.split('\\n').map((line, index) => {
-        // Basic list item handling (simplified)
-        if (line.match(/^(\s*-\s+)/) || line.match(/^(\s*\*\s+)/)) {
-          return <li key={index} className="ml-4 list-disc">{line.replace(/^(\s*[-\*]\s+)/, '')}</li>;
-        }
-        // Basic bold and italic
-        line = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        line = line.replace(/(\*|_)(.*?)\1/g, '<em>$2</em>');
-        
-        return <p key={index} className="mb-1 last:mb-0" dangerouslySetInnerHTML={{ __html: line }} />;
-      })}
+      {renderedContent}
     </div>
   );
 };

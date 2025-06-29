@@ -164,7 +164,7 @@ export const TextGradient = Extension.create<any>({
                     renderHTML: attributes => {
                         if (!attributes.textGradient) return {};
                         return { 
-                            style: `background: ${attributes.textGradient}; -webkit-background-clip: text; background-clip: text; color: transparent;`,
+                            style: `background-image: ${attributes.textGradient}; -webkit-background-clip: text; background-clip: text; color: transparent;`,
                         };
                     },
                 },
@@ -343,7 +343,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
     window.addEventListener('mouseup', handleMouseUp);
   };
 
-  const imageContent = <img src={node.attrs.src} alt={node.attrs.alt} className="w-full h-full block object-fill" />;
+  const imageContent = <img src={node.attrs.src} alt={node.attrs.alt} className="w-full h-full block object-cover" />;
 
   const handleLinkClick = (e: React.MouseEvent) => {
     if (editor.isEditable) {
@@ -362,16 +362,16 @@ const MediaResizeComponent = (props: NodeViewProps) => {
       data-float={float}
       draggable="true" data-drag-handle
     >
-      <div 
-        ref={containerRef} // ref is on this outer un-rotated container
+      <div
+        ref={containerRef}
         className="relative w-full h-full"
+        style={{
+          transform: `rotate(${rotation}deg)`,
+          transformOrigin: 'center center'
+        }}
       >
         <div
             className="absolute inset-0"
-            style={{
-                transform: `rotate(${rotation}deg)`,
-                transformOrigin: 'center center'
-            }}
         >
             {isImage && (
                 href ? (
@@ -409,7 +409,10 @@ const MediaResizeComponent = (props: NodeViewProps) => {
                                 "absolute w-2.5 h-2.5 bg-primary rounded-full border border-card pointer-events-auto z-20",
                                 handle.pos
                             )}
-                            style={handleStyles[index]}
+                            style={{
+                                transform: 'rotate(0deg)', // Handles no longer need to counter-rotate
+                                ...handleStyles[index]
+                            }}
                             onMouseDown={createResizeHandler(handle.direction)}
                         />
                     ))}
@@ -530,12 +533,14 @@ const CustomImage = TiptapImage.extend({
 
   renderHTML({ HTMLAttributes }) {
     const { href, target, ...imgAttributes } = HTMLAttributes;
-    const imgTag: any = ['img', imgAttributes]; // DOMOutputSpec for img
+    // Add object-cover to the output HTML as well
+    imgAttributes.class = cn(imgAttributes.class, 'object-cover');
+    const imgTag: any = ['img', imgAttributes];
 
     if (href) {
-      return ['a', { href, target, rel: 'noopener noreferrer nofollow' }, imgTag]; // DOMOutputSpec for a tag containing img
+      return ['a', { href, target, rel: 'noopener noreferrer nofollow' }, imgTag];
     }
-    return imgTag; // DOMOutputSpec for img
+    return imgTag;
   },
 
   addNodeView() {
@@ -964,6 +969,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
 };
 
     
+
 
 
 

@@ -212,6 +212,40 @@ export const TextGradient = Extension.create<any>({
     },
 });
 
+// Helper function to identify media type from URL
+const parseMediaUrl = (url: string): { type: 'image' | 'video', src: string, original: string } | null => {
+    if (!url || typeof url !== 'string') return null;
+
+    // YouTube URL patterns
+    const youtubeRegexes = [
+        /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
+        /(?:https?:\/\/)?youtu\.be\/([a-zA-Z0-9_-]{11})/,
+        /(?:https?:\/\/)?(?:www\.)?youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/
+    ];
+
+    for (const regex of youtubeRegexes) {
+        const match = url.match(regex);
+        if (match && match[1]) {
+            return { type: 'video', src: `https://www.youtube-nocookie.com/embed/${match[1]}`, original: url };
+        }
+    }
+
+    // Basic image URL pattern (including data URIs)
+    const imageRegex = /(\.(jpeg|jpg|gif|png|webp|svg)$)|(^data:image)/i;
+    if (imageRegex.test(url)) {
+        return { type: 'image', src: url, original: url };
+    }
+    
+    // If it's a URL but doesn't match video or image extensions, assume it's an image.
+    // This is for URLs that don't have an extension but point to an image.
+    if (url.startsWith('http')) {
+        return { type: 'image', src: url, original: url };
+    }
+
+    return null;
+};
+
+
 // --- Media Resize Component ---
 
 const handles = [
@@ -626,10 +660,10 @@ const ImageCarouselModal = ({
         </DialogHeader>
         <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-6 p-6 min-h-0 items-start">
           {/* Left Column: Editor */}
-          <div className="flex flex-col min-h-0">
+          <div className="flex flex-col min-h-0 space-y-4">
             {isImporting ? (
                 <div className="space-y-2 flex flex-col flex-grow">
-                    <Label htmlFor="import-urls">Paste Image URLs (one per line)</Label>
+                    <Label htmlFor="import-urls">Paste Image/Video URLs (one per line)</Label>
                     <Textarea id="import-urls" value={importText} onChange={e => setImportText(e.target.value)} className="flex-grow" />
                     <div className="flex justify-end gap-2 shrink-0">
                     <Button variant="ghost" onClick={() => setIsImporting(false)}>Cancel</Button>
@@ -637,10 +671,10 @@ const ImageCarouselModal = ({
                     </div>
                 </div>
             ) : (
-              <div className="flex-grow flex flex-col min-h-0 space-y-4">
+              <>
                   <div>
                       <div className="flex justify-between items-center mb-1">
-                          <h3 className="text-sm font-medium">Image URLs</h3>
+                          <h3 className="text-sm font-medium">Image/Video URLs</h3>
                           <Button variant="outline" size="sm" onClick={() => setIsImporting(true)}>Import</Button>
                       </div>
                       <ScrollArea className="border rounded-md p-2 h-40">
@@ -663,10 +697,10 @@ const ImageCarouselModal = ({
                               <Button variant="ghost" size="icon" onClick={() => removeImage(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                               </div>
                           ))}
-                          {images.length === 0 && <p className="text-center text-xs text-muted-foreground py-4">No images yet. Add one below.</p>}
+                          {images.length === 0 && <p className="text-center text-xs text-muted-foreground py-4">No media yet. Add one below.</p>}
                           </div>
                       </ScrollArea>
-                      <Button variant="outline" size="sm" onClick={addImage} className="mt-2 w-full">Add Image</Button>
+                      <Button variant="outline" size="sm" onClick={addImage} className="mt-2 w-full">Add Media URL</Button>
                   </div>
                   
                   <Separator />
@@ -675,15 +709,15 @@ const ImageCarouselModal = ({
                     <div className="flex justify-between items-center">
                         <Label htmlFor="autoplay-slider" className="text-sm font-medium">Autoplay Speed</Label>
                         <span className="text-xs text-muted-foreground w-16 text-right">
-                            {autoplaySeconds === 0 ? 'Off' : `${autoplaySeconds}s`}
+                            {autoplaySeconds === 0 ? 'Off' : `${autoplaySeconds.toFixed(1)}s`}
                         </span>
                     </div>
                     <p className="text-xs text-muted-foreground mb-2">Set to 0 to disable autoplay.</p>
                     <Slider
                         id="autoplay-slider"
                         min={0}
-                        max={10}
-                        step={1}
+                        max={30}
+                        step={0.5}
                         value={[autoplaySeconds]}
                         onValueChange={handleSliderChange}
                     />
@@ -720,7 +754,7 @@ const ImageCarouselModal = ({
                           </div>
                       </TooltipProvider>
                   </div>
-              </div>
+              </>
             )}
           </div>
           
@@ -733,19 +767,33 @@ const ImageCarouselModal = ({
                 aspectRatio === '4/3' && 'aspect-[4/3]',
                 aspectRatio === '1/1' && 'aspect-square',
             )}>
-                {images.filter(img => img).length > 0 ? (
-                    <Carousel itemsToShow={1} showArrows={images.filter(img => img).length > 1} autoplay>
-                        {images.filter(img => img).map((src, i) => (
-                            <CarouselItem key={i}>
-                                <div className="relative w-full h-full">
-                                    <img src={src} alt={`Preview ${i + 1}`} className="w-full h-full object-cover rounded-md" />
-                                </div>
-                            </CarouselItem>
-                        ))}
+                {images.filter(url => url).length > 0 ? (
+                    <Carousel itemsToShow={1} showArrows={images.filter(url => url).length > 1} autoplay>
+                        {images.filter(url => url).map((url, i) => {
+                            const media = parseMediaUrl(url);
+                            return (
+                                <CarouselItem key={i}>
+                                    <div className="relative w-full h-full bg-black rounded-md overflow-hidden">
+                                        {media?.type === 'video' ? (
+                                            <iframe
+                                                src={media.src}
+                                                title={`Preview ${i + 1}`}
+                                                className="w-full h-full object-cover"
+                                                frameBorder="0"
+                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                allowFullScreen
+                                            />
+                                        ) : (
+                                            <img src={media?.src || 'https://placehold.co/800x450/211F25/EBEAF2?text=Invalid+URL'} alt={`Preview ${i + 1}`} className="w-full h-full object-cover" />
+                                        )}
+                                    </div>
+                                </CarouselItem>
+                            );
+                        })}
                     </Carousel>
                 ) : (
                     <div className="flex items-center justify-center h-full text-muted-foreground text-xs">
-                        <p>Add image URLs to see a preview</p>
+                        <p>Add image/video URLs to see a preview</p>
                     </div>
                 )}
             </div>
@@ -935,13 +983,28 @@ const ImageCarouselComponent = (props: NodeViewProps) => {
         <div className="w-full h-full bg-muted rounded-md overflow-hidden relative">
           {images.length > 0 ? (
             <Carousel itemsToShow={1} showArrows={images.length > 1} autoplay={!selected} autoplayInterval={autoplayInterval}>
-              {images.map((src: string, i: number) => (
-                <CarouselItem key={i}>
-                  <div className="relative w-full h-full">
-                    <img src={src} alt={`Carousel image ${i + 1}`} className="w-full h-full object-cover" />
-                  </div>
-                </CarouselItem>
-              ))}
+              {images.map((url: string, i: number) => {
+                  const media = parseMediaUrl(url);
+                  if (!media) return null;
+                  return (
+                    <CarouselItem key={i}>
+                      <div className="relative w-full h-full bg-black">
+                        {media.type === 'video' ? (
+                            <iframe
+                                src={media.src}
+                                title={`Carousel item ${i + 1}`}
+                                className="w-full h-full object-cover"
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                            />
+                        ) : (
+                            <img src={media.src} alt={`Carousel image ${i + 1}`} className="w-full h-full object-cover" />
+                        )}
+                      </div>
+                    </CarouselItem>
+                  );
+                })}
             </Carousel>
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground">

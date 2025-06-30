@@ -97,6 +97,7 @@ async function initDbSchema(db: Database): Promise<void> {
     '  slug TEXT NOT NULL,' +
     '  parent_item_id TEXT NOT NULL,' +
     '  category_id TEXT NOT NULL,' +
+    '  author_id TEXT, ' + // Old field, will be migrated
     '  version TEXT, ' +
     '  description TEXT NOT NULL, ' + 
     '  detailed_description TEXT, ' + 
@@ -119,6 +120,7 @@ async function initDbSchema(db: Database): Promise<void> {
     '  updated_at TEXT,' +
     '  FOREIGN KEY (parent_item_id) REFERENCES items(id) ON DELETE CASCADE,' +
     '  FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,' +
+    '  FOREIGN KEY (author_id) REFERENCES profiles(id) ON DELETE SET NULL, ' + // Keep for migration
     '  UNIQUE (parent_item_id, category_id, slug)' +
     ');' +
     
@@ -231,7 +233,7 @@ async function initDbSchema(db: Database): Promise<void> {
           // This is a simplified migration. A real-world scenario would be more robust.
           const resourcesWithAuthor = await db.all('SELECT id, author_id FROM resources WHERE author_id IS NOT NULL');
           for (const res of resourcesWithAuthor) {
-            await db.run('INSERT OR IGNORE INTO resource_authors (resource_id, user_id, is_creator, role_description) VALUES (?, ?, ?, ?)', res.id, res.author_id, TRUE, 'Creator');
+            await db.run('INSERT OR IGNORE INTO resource_authors (resource_id, user_id, is_creator, role_description) VALUES (?, ?, ?, ?)', res.id, res.author_id, true, 'Creator');
           }
           // In a real migration, you would drop the old column here after creating the new table.
           // For this environment, we will assume the CREATE TABLE statement is the source of truth and the column is gone.

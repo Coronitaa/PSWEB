@@ -32,6 +32,8 @@ import { createPortal } from 'react-dom';
 import { Carousel, CarouselItem } from '@/components/shared/Carousel';
 import { Reorder, useDragControls } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Slider } from '@/components/ui/slider';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 declare global {
   namespace JSX {
@@ -510,16 +512,26 @@ const ImageCarouselModal = ({
   const [isImporting, setIsImporting] = useState(false);
   const [importText, setImportText] = useState('');
   const [draggingImageIndex, setDraggingImageIndex] = useState<number | null>(null);
+  
+  const [autoplaySeconds, setAutoplaySeconds] = useState(initialAutoplayInterval === 999999999 ? 0 : initialAutoplayInterval / 1000);
 
   useEffect(() => {
     if (isOpen) {
       setImages(initialImages);
       setAspectRatio(initialAspectRatio);
-      setAutoplayInterval(initialAutoplayInterval);
+      const initialSeconds = initialAutoplayInterval === 999999999 ? 0 : initialAutoplayInterval / 1000;
+      setAutoplaySeconds(initialSeconds);
+      setAutoplayInterval(initialAutoplayInterval); // Make sure the ms state is also in sync
       setIsImporting(false);
       setImportText('');
     }
   }, [isOpen, initialImages, initialAspectRatio, initialAutoplayInterval]);
+
+  const handleSliderChange = (value: number[]) => {
+      const seconds = value[0];
+      setAutoplaySeconds(seconds);
+      setAutoplayInterval(seconds === 0 ? 999999999 : seconds * 1000);
+  };
 
   const addImage = () => {
     setImages([...images, '']);
@@ -570,6 +582,16 @@ const ImageCarouselModal = ({
   const handleImageDragEnd = () => {
       setDraggingImageIndex(null);
   };
+
+  const AspectRatioIcon = ({ ratio, className }: { ratio: '16:9' | '4:3' | '1:1', className?: string }) => {
+      const viewBox = { '16:9': '0 0 16 9', '4:3': '0 0 16 12', '1:1': '0 0 16 16' }[ratio];
+      const rectProps = { '16:9': { width: 16, height: 9 }, '4:3': { width: 16, height: 12 }, '1:1': { width: 16, height: 16 } }[ratio];
+      return (
+          <svg viewBox={viewBox} className={cn("fill-current", className)} xmlns="http://www.w3.org/2000/svg">
+              <rect {...rectProps} rx="1" />
+          </svg>
+      );
+  };
   
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -578,7 +600,7 @@ const ImageCarouselModal = ({
           <DialogTitle>Configure Image Carousel</DialogTitle>
           <DialogDescription>Add, remove, and reorder images for your carousel.</DialogDescription>
         </DialogHeader>
-        <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-6 p-6 min-h-0">
+        <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-6 p-6 min-h-0 items-start">
           {/* Left Column: Editor */}
           <div className="flex flex-col min-h-0">
             {isImporting ? (
@@ -626,36 +648,63 @@ const ImageCarouselModal = ({
                   <Separator />
 
                   <div>
-                      <Label htmlFor="autoplay-interval" className="text-sm font-medium">Autoplay Speed</Label>
-                      <p className="text-xs text-muted-foreground mb-2">Time before switching to the next image.</p>
-                      <Select value={String(autoplayInterval)} onValueChange={(val) => setAutoplayInterval(Number(val))}>
-                          <SelectTrigger id="autoplay-interval"><SelectValue placeholder="Select speed..." /></SelectTrigger>
-                          <SelectContent>
-                              <SelectItem value="3000">Fast (3s)</SelectItem>
-                              <SelectItem value="5000">Normal (5s)</SelectItem>
-                              <SelectItem value="8000">Slow (8s)</SelectItem>
-                              <SelectItem value="999999999">Off</SelectItem>
-                          </SelectContent>
-                      </Select>
+                    <div className="flex justify-between items-center">
+                        <Label htmlFor="autoplay-slider" className="text-sm font-medium">Autoplay Speed</Label>
+                        <span className="text-xs text-muted-foreground w-16 text-right">
+                            {autoplaySeconds === 0 ? 'Off' : `${autoplaySeconds}s`}
+                        </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-2">Set to 0 to disable autoplay.</p>
+                    <Slider
+                        id="autoplay-slider"
+                        min={0}
+                        max={10}
+                        step={1}
+                        value={[autoplaySeconds]}
+                        onValueChange={handleSliderChange}
+                    />
                   </div>
                   <div>
                       <Label className="text-sm font-medium">Aspect Ratio</Label>
                       <p className="text-xs text-muted-foreground mb-2">Set the shape of the carousel.</p>
-                      <div className="grid grid-cols-3 gap-2">
-                          <Button type="button" variant={aspectRatio === '16/9' ? 'default' : 'outline'} onClick={() => setAspectRatio('16/9')}>16:9</Button>
-                          <Button type="button" variant={aspectRatio === '4/3' ? 'default' : 'outline'} onClick={() => setAspectRatio('4/3')}>4:3</Button>
-                          <Button type="button" variant={aspectRatio === '1/1' ? 'default' : 'outline'} onClick={() => setAspectRatio('1/1')}>1:1</Button>
-                      </div>
+                      <TooltipProvider>
+                          <div className="flex justify-start gap-2">
+                              <Tooltip>
+                                  <TooltipTrigger asChild>
+                                      <Button type="button" variant={aspectRatio === '16/9' ? 'default' : 'outline'} size="icon" onClick={() => setAspectRatio('16/9')}>
+                                          <AspectRatioIcon ratio="16:9" className="w-5 h-5" />
+                                      </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent><p>Widescreen (16:9)</p></TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                  <TooltipTrigger asChild>
+                                      <Button type="button" variant={aspectRatio === '4/3' ? 'default' : 'outline'} size="icon" onClick={() => setAspectRatio('4/3')}>
+                                          <AspectRatioIcon ratio="4:3" className="w-5 h-5" />
+                                      </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent><p>Standard (4:3)</p></TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                  <TooltipTrigger asChild>
+                                      <Button type="button" variant={aspectRatio === '1/1' ? 'default' : 'outline'} size="icon" onClick={() => setAspectRatio('1/1')}>
+                                          <AspectRatioIcon ratio="1:1" className="w-5 h-5" />
+                                      </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent><p>Square (1:1)</p></TooltipContent>
+                              </Tooltip>
+                          </div>
+                      </TooltipProvider>
                   </div>
               </div>
             )}
           </div>
           
           {/* Right Column: Preview */}
-          <div className="flex flex-col">
+          <div className="flex flex-col sticky top-0">
             <h3 className="text-sm font-medium mb-2 shrink-0">Preview</h3>
             <div className={cn(
-                "border rounded-md p-2 bg-muted/30 relative flex-grow min-h-0",
+                "border rounded-md p-2 bg-muted/30 relative w-full",
                 aspectRatio === '16/9' && 'aspect-video',
                 aspectRatio === '4/3' && 'aspect-[4/3]',
                 aspectRatio === '1/1' && 'aspect-square',

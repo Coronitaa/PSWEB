@@ -6,7 +6,7 @@ import { useForm, Controller, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
-import type { Resource, ItemType, ResourceFormData, DynamicAvailableFilterTags, ProjectStatus, ResourceLinks, DynamicTagSelection, UserAppRole, FileChannelId, ResourceFileFormData, TagInGroupConfig, ResourceFile, Tag } from '@/lib/types';
+import type { Resource, ItemType, ResourceFormData, DynamicAvailableFilterTags, ProjectStatus, ResourceLinks, DynamicTagSelection, UserAppRole, FileChannelId, ResourceFileFormData, TagInGroupConfig, ResourceFile, Tag, ResourceAuthor } from '@/lib/types';
 import { PROJECT_STATUSES_CONST, PROJECT_STATUS_NAMES, FILE_CHANNELS } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { saveResource, deleteResource } from '@/app/actions/clientWrappers';
 import { useState, useTransition, useEffect, useMemo } from 'react';
-import { Loader2, Save, Trash2, Link as LinkIconLucide, PlusCircle, Image as ImageIcon, ListChecks, FileText, Info, ExternalLink, Sparkles, X, Check, Archive, FileUp, Tags, Edit2, GripVertical, CalendarDays, ChevronUp, ChevronDown } from 'lucide-react';
+import { Loader2, Save, Trash2, Link as LinkIconLucide, PlusCircle, Image as ImageIcon, ListChecks, FileText, Info, ExternalLink, Sparkles, X, Check, Archive, FileUp, Tags, Edit2, GripVertical, CalendarDays, ChevronUp, ChevronDown, Users } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,6 +42,7 @@ import { Checkbox } from '../ui/checkbox';
 import { RichTextEditor } from '../shared/RichTextEditor';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Slider } from '@/components/ui/slider';
+import { ResourceAuthorsManager } from './ResourceAuthorsManager';
 
 
 const CLEAR_SELECTION_VALUE = "__CLEAR_SELECTION__";
@@ -164,6 +165,8 @@ export function ResourceForm({
 
   const [draggingImageIndex, setDraggingImageIndex] = useState<number | null>(null);
 
+  const [currentAuthors, setCurrentAuthors] = useState<ResourceAuthor[]>(initialData?.authors || []);
+
   const defaultNewFileModalValues: ResourceFileFormData = useMemo(() => ({
     name: 'New File',
     url: 'https://example.com/newfile.zip',
@@ -284,7 +287,10 @@ export function ResourceForm({
   const stringifiedDefaultValues = JSON.stringify(defaultValues);
   useEffect(() => {
     form.reset(defaultValues);
-  }, [stringifiedDefaultValues, form]);
+    if(initialData?.authors) {
+      setCurrentAuthors(initialData.authors);
+    }
+  }, [stringifiedDefaultValues, form, initialData]);
 
   const watchedImageUrl = useWatch({ control: form.control, name: 'imageUrl' });
   const watchedGallery = useWatch({ control: form.control, name: 'imageGallery' });
@@ -347,7 +353,7 @@ export function ResourceForm({
             selectedFileTags: f.selectedFileTags || {}
           }))
         };
-        const result = await saveResource(initialData?.id, resourceFormData, isNew, parentItemId, categoryId, initialData?.authorId);
+        const result = await saveResource(initialData?.id, resourceFormData, isNew, parentItemId, categoryId);
         if (result.success && result.data?.resource) {
           toast({ title: isNew ? "Resource Created" : "Resource Updated", description: `"${result.data.resource.name}" has been saved.` });
           if (onSuccess) onSuccess();
@@ -505,8 +511,9 @@ export function ResourceForm({
       <Card className="bg-card/80 backdrop-blur-sm shadow-lg border-none">
         <Tabs defaultValue="general" className="w-full">
           <div className="overflow-x-auto whitespace-nowrap px-6 pt-4">
-            <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 mb-4 bg-card-foreground/5 rounded-lg shrink-0">
+            <TabsList className="grid w-full grid-cols-4 sm:grid-cols-7 mb-4 bg-card-foreground/5 rounded-lg shrink-0">
               <TabsTrigger value="general">General</TabsTrigger>
+              <TabsTrigger value="authors">Authors</TabsTrigger>
               <TabsTrigger value="details">Details</TabsTrigger>
               <TabsTrigger value="visuals">Visuals</TabsTrigger>
               <TabsTrigger value="files">Files</TabsTrigger>
@@ -561,6 +568,21 @@ export function ResourceForm({
                 )}
                 {form.formState.errors.selectedDynamicTags?.root && <p className="text-sm text-destructive mt-2 bg-destructive/10 p-2 rounded-md flex items-center"><Info className="w-4 h-4 mr-2"/>{form.formState.errors.selectedDynamicTags.root.message}</p>}
                 {form.formState.errors.files?.root && <p className="text-sm text-destructive mt-2 bg-destructive/10 p-2 rounded-md flex items-center"><Info className="w-4 h-4 mr-2"/>{form.formState.errors.files.root.message}</p>}
+              </TabsContent>
+              
+              <TabsContent value="authors" className="space-y-6 m-0">
+                  <CardTitle className="text-xl mb-4 flex items-center"><Users className="w-5 h-5 mr-2 text-primary" />Authors & Collaborators</CardTitle>
+                  {!isNew && initialData?.id ? (
+                      <ResourceAuthorsManager 
+                          resourceId={initialData.id}
+                          initialAuthors={currentAuthors}
+                          onAuthorsUpdate={setCurrentAuthors}
+                      />
+                  ) : (
+                      <div className="text-center text-muted-foreground py-8 border border-dashed rounded-md">
+                          <p>Save the resource first to manage authors.</p>
+                      </div>
+                  )}
               </TabsContent>
   
               <TabsContent value="details" className="space-y-6 m-0">
@@ -788,7 +810,7 @@ export function ResourceForm({
                                               tagIdsInGroup.forEach(tagId => {
                                                   const tagConfig = (groupConfig.tags || []).find(t => t.id === tagId);
                                                   if (tagConfig) {
-                                                      displayTags.push(mapConfigToTagInterface(tagConfig, groupConfig.displayName.toLowerCase().replace(/\s+/g, '-')));
+                                                      displayTags.push(mapConfigToTagInterface(tagConfig, groupConfig.groupDisplayName.toLowerCase().replace(/\s+/g, '-')));
                                                   }
                                               });
                                           }

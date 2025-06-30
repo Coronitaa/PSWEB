@@ -1,4 +1,5 @@
 
+
 "use client"; 
 // This file houses client-side wrappers for server actions
 // to inject mock user authentication details if needed.
@@ -27,7 +28,7 @@ import {
     updateReviewInteractionAction as serverUpdateReviewInteractionAction,
     getUserSentimentForReviewAction as serverGetUserSentimentForReviewAction
 } from './reviewActions';
-import type { ReviewFormData, ActionResult, ReviewInteractionCounts, Resource, ProfileUpdateFormData, Author as ProfileAuthor } from '@/lib/types'; // Added Resource, ProfileUpdateFormData, ProfileAuthor
+import type { ReviewFormData, ActionResult, ReviewInteractionCounts, Resource, ProfileUpdateFormData, Author as ProfileAuthor, ResourceAuthor } from '@/lib/types'; // Added Resource, ProfileUpdateFormData, ProfileAuthor
 
 export async function addReview(resourceId: string, data: ReviewFormData): Promise<ActionResult<{ reviewId: string }>> {
   const clientMockUserId = getMockUserIdFromStorage();
@@ -77,8 +78,11 @@ import {
     updateCategoryOrderInMemoryAction as serverUpdateCategoryOrderInMemoryAction,
     fetchProjectCategoryTagConfigurationsAction as serverFetchProjectCategoryTagConfigurationsAction,
     saveResourceAction as serverSaveResourceAction,
-    // deleteResourceAction is already imported via reviewActions for some reason, let's ensure it's the admin one
-    // deleteResourceAction as serverAdminDeleteResourceAction 
+    searchUsersAction as serverSearchUsersAction,
+    addAuthorAction as serverAddAuthorAction,
+    removeAuthorAction as serverRemoveAuthorAction,
+    updateAuthorRoleAction as serverUpdateAuthorRoleAction,
+    transferOwnershipAction as serverTransferOwnershipAction
 } from '@/app/admin/actions'; // Path to admin actions
 import { deleteResourceAction as serverAdminDeleteResourceAction } from '@/app/admin/actions'; // Explicit import for admin version
 
@@ -146,11 +150,10 @@ export async function saveResource(
   data: ResourceFormData,
   isNewResource: boolean,
   parentItemId: string, 
-  categoryId: string,   
-  authorIdProp: string | undefined
+  categoryId: string
 ): Promise<ActionResult<{ resource: Resource }>> {
   const clientMockUserId = getMockUserIdFromStorage();
-  return serverSaveResourceAction(resourceIdFromForm, data, isNewResource, parentItemId, categoryId, authorIdProp, clientMockUserId);
+  return serverSaveResourceAction(resourceIdFromForm, data, isNewResource, parentItemId, categoryId, clientMockUserId);
 }
 
 export async function deleteResource(resourceId: string): Promise<ActionResult> {
@@ -167,8 +170,28 @@ export async function updateProfile(data: ProfileUpdateFormData): Promise<Action
   return serverUpdateProfileAction(data, clientMockUserId);
 }
 
-// Note: You'll need to go through your components and update direct calls
-// to server actions to use these wrapped versions instead.
-// For example, in ReviewCard.tsx, instead of importing `deleteReviewAction` from `../actions/reviewActions`,
-// you would import `deleteReview` from `../actions/clientWrappers`.
-// This is a larger refactoring task for all action call sites.
+// --- Resource Author Action Wrappers ---
+export async function searchUsers(query: string): Promise<ActionResult<ProfileAuthor[]>> {
+  const clientMockUserId = getMockUserIdFromStorage();
+  return serverSearchUsersAction(query, clientMockUserId);
+}
+
+export async function addAuthor(resourceId: string, userIdToAdd: string, roleDescription?: string): Promise<ActionResult<{ authors: ResourceAuthor[] }>> {
+  const clientMockUserId = getMockUserIdFromStorage();
+  return serverAddAuthorAction(resourceId, userIdToAdd, roleDescription, clientMockUserId);
+}
+
+export async function removeAuthor(resourceId: string, userIdToRemove: string): Promise<ActionResult<{ authors: ResourceAuthor[] }>> {
+  const clientMockUserId = getMockUserIdFromStorage();
+  return serverRemoveAuthorAction(resourceId, userIdToRemove, clientMockUserId);
+}
+
+export async function updateAuthorRole(resourceId: string, userIdToUpdate: string, newRoleDescription: string): Promise<ActionResult<{ authors: ResourceAuthor[] }>> {
+  const clientMockUserId = getMockUserIdFromStorage();
+  return serverUpdateAuthorRoleAction(resourceId, userIdToUpdate, newRoleDescription, clientMockUserId);
+}
+
+export async function transferOwnership(resourceId: string, newCreatorId: string): Promise<ActionResult<{ authors: ResourceAuthor[] }>> {
+  const clientMockUserId = getMockUserIdFromStorage();
+  return serverTransferOwnershipAction(resourceId, newCreatorId, clientMockUserId);
+}

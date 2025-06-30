@@ -1,11 +1,12 @@
 
+
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ResourceForm } from '@/components/admin/ResourceForm';
-import type { Resource, ItemType, DynamicAvailableFilterTags, UserAppRole, RawCategoryProjectDetails } from '@/lib/types';
+import type { Resource, ItemType, DynamicAvailableFilterTags, UserAppRole, RawCategoryProjectDetails, ResourceAuthor } from '@/lib/types';
 import { Edit3, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { getAvailableFilterTags, getRawCategoryDetailsForForm } from '@/lib/data';
@@ -34,18 +35,12 @@ export function EditResourceButtonAndModal({ resource }: EditResourceButtonAndMo
   useEffect(() => {
     setIsLoadingUser(true);
     const storedUser = localStorage.getItem('mockUser');
-    if (storedUser && resource) {
+    if (storedUser && resource?.authors) {
       try {
         const user: MockUserForRole = JSON.parse(storedUser);
-        // Ensure the mock user ID matches the pattern used in the DB (e.g., 'mock-admin-id')
-        // or simply check roles for admin/mod. For author check, resource.authorId is key.
         const userIsAdminOrMod = user.role === 'admin' || user.role === 'mod';
-        // For mock setup, if author ID on resource is a mock ID, compare directly.
-        // In a real setup, user.id would come from a session.
-        const userIsAuthor = user.id === resource.authorId;
-
-        setIsAllowedToEdit(userIsAdminOrMod || userIsAuthor);
-
+        const userIsCreator = resource.authors.some(author => author.id === user.id && author.isCreator);
+        setIsAllowedToEdit(userIsAdminOrMod || userIsCreator);
       } catch (e) {
         console.error("Failed to parse mockUser for edit permissions", e);
         setIsAllowedToEdit(false);
@@ -70,8 +65,6 @@ export function EditResourceButtonAndModal({ resource }: EditResourceButtonAndMo
     setIsOpen(true);
 
     try {
-      // Fetch parent details needed for ResourceForm (project and category context)
-      // These should ideally come from the resource object itself if it's complete
       const fetchedParentDetails: RawCategoryProjectDetails = {
         projectName: resource.parentItemName,
         projectSlug: resource.parentItemSlug,
@@ -105,12 +98,11 @@ export function EditResourceButtonAndModal({ resource }: EditResourceButtonAndMo
   };
 
   if (isLoadingUser) {
-    // Render nothing or a tiny loader while checking permissions
-    return <div className="h-9 w-20" />; // Placeholder to prevent layout shift
+    return <div className="h-9 w-20" />; 
   }
 
   if (!isAllowedToEdit) {
-    return null; // Don't render the button if user is not allowed
+    return null;
   }
 
 

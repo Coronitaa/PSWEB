@@ -63,6 +63,12 @@ export interface Author {
   badges?: UserBadge[];
 }
 
+export interface ResourceAuthor extends Author {
+  isCreator: boolean;
+  roleDescription: string | null;
+  sortOrder: number;
+}
+
 export interface Tag {
   id: string;
   name: string;
@@ -225,7 +231,6 @@ export interface Review {
   resourceVersion: string; 
   authorId: string;
   author: Author;
-  // rating?: number | null; // Rating is now derived on the resource, not stored per review
   isRecommended: boolean;
   comment: string;
   createdAt: string;
@@ -256,8 +261,7 @@ export interface Resource {
   categoryId: string;
   categoryName: string;
   categorySlug: string;
-  authorId: string;
-  author: Author;
+  authors: ResourceAuthor[];
   version: string | null;
   description: string;
   detailedDescription: string | null;
@@ -364,7 +368,6 @@ export interface ReviewFormData {
   resourceVersion: string;
   isRecommended: boolean;
   comment: string;
-  // rating?: number; // Removed as per previous discussion
 }
 
 export interface SectionTagFormData {

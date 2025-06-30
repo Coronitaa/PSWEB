@@ -8,7 +8,6 @@ import Image from "next/image";
 import { ChevronLeft, ChevronRight, X as XIconLucide } from "lucide-react";
 
 const ONE_SECOND = 1000;
-const AUTO_DELAY = ONE_SECOND * 5;
 const DRAG_BUFFER = 50;
 
 const SPRING_OPTIONS = {
@@ -21,9 +20,16 @@ const SPRING_OPTIONS = {
 interface ImageGalleryCarouselProps {
   images: string[];
   className?: string;
+  autoplayInterval?: number;
+  aspectRatio?: string;
 }
 
-export const ImageGalleryCarousel: React.FC<ImageGalleryCarouselProps> = ({ images, className }) => {
+export const ImageGalleryCarousel: React.FC<ImageGalleryCarouselProps> = ({ 
+  images, 
+  className,
+  autoplayInterval = 5000,
+  aspectRatio = '16/9'
+}) => {
   const [imgIndex, setImgIndex] = useState(0);
   const dragX = useMotionValue(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -32,6 +38,7 @@ export const ImageGalleryCarousel: React.FC<ImageGalleryCarouselProps> = ({ imag
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   const numImages = images.length;
+  const isAutoplayDisabled = autoplayInterval === 999999999;
 
   useEffect(() => {
     // Reset index if it's out of bounds after images array changes
@@ -42,13 +49,13 @@ export const ImageGalleryCarousel: React.FC<ImageGalleryCarouselProps> = ({ imag
 
   const startAutoPlay = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
-    if (numImages > 1 && !lightboxOpen) {
+    if (!isAutoplayDisabled && numImages > 1 && !lightboxOpen) {
       intervalRef.current = setInterval(() => {
         const x = dragX.get();
         if (x === 0) {
           setImgIndex((prevIndex) => (prevIndex + 1) % numImages);
         }
-      }, AUTO_DELAY);
+      }, autoplayInterval);
     }
   };
 
@@ -58,7 +65,7 @@ export const ImageGalleryCarousel: React.FC<ImageGalleryCarouselProps> = ({ imag
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dragX, numImages, lightboxOpen]); // Added numImages to deps for correctness
+  }, [dragX, numImages, lightboxOpen, autoplayInterval, isAutoplayDisabled]); 
 
   const onDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     const x = info.offset.x;
@@ -101,7 +108,15 @@ export const ImageGalleryCarousel: React.FC<ImageGalleryCarouselProps> = ({ imag
 
   return (
     <>
-      <div className={cn("relative overflow-hidden bg-card/50 w-full aspect-[16/9] rounded-lg shadow-inner group", className)}>
+      <div className={cn(
+        "relative overflow-hidden bg-card/50 w-full rounded-lg shadow-inner group",
+        {
+          'aspect-[16/9]': aspectRatio === '16/9',
+          'aspect-[4/3]': aspectRatio === '4/3',
+          'aspect-square': aspectRatio === '1/1',
+        },
+        className
+      )}>
         <motion.div
           drag="x"
           dragConstraints={{ left: 0, right: 0 }}

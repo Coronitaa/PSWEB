@@ -1802,7 +1802,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
       {editor && (
          <BubbleMenu 
           editor={editor}
-          tippyOptions={{ duration: 100 }}
+          tippyOptions={{ duration: 100, zIndex: 20 }}
           className="bg-card p-1 rounded-lg shadow-lg border border-border flex items-center gap-0.5"
           shouldShow={({ editor, view, from, to }) => {
             if (!editor.isFocused) {
@@ -1818,17 +1818,6 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
             });
             if (isMediaSelection) {
               return false;
-            }
-      
-            if (toolbarRef.current) {
-              const toolbarRect = toolbarRef.current.getBoundingClientRect();
-              const selectionCoords = view.coordsAtPos(from);
-              
-              const bubbleMenuHeight = 50; 
-              
-              if (selectionCoords.top < toolbarRect.bottom + bubbleMenuHeight) {
-                return false;
-              }
             }
             
             return from !== to;

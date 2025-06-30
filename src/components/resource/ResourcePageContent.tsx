@@ -100,12 +100,16 @@ export function ResourcePageContent({ resource, relatedResources }: ResourcePage
                     const { 
                         ['data-image-carousel']: _,
                         ['data-images']: imagesJson,
+                        ['data-aspect-ratio']: aspectRatio,
+                        ['data-autoplay-interval']: autoplayIntervalStr,
                         style,
                         class: className,
                         ...restAttribs 
                     } = domNode.attribs;
 
                     const images = JSON.parse(imagesJson || '[]');
+                    const autoplayInterval = autoplayIntervalStr ? parseInt(autoplayIntervalStr, 10) : 5000;
+                    const finalAspectRatio = aspectRatio || '16/9';
 
                     const styleString = style || '';
                     const styleObject = styleString.split(';').reduce((acc: React.CSSProperties, styleRule: string) => {
@@ -119,7 +123,11 @@ export function ResourcePageContent({ resource, relatedResources }: ResourcePage
                     
                     return (
                         <div {...restAttribs} style={styleObject} className={cn("rich-text-media-node", className)}> 
-                            <ImageGalleryCarousel images={images} />
+                            <ImageGalleryCarousel
+                              images={images}
+                              aspectRatio={finalAspectRatio}
+                              autoplayInterval={autoplayInterval}
+                            />
                         </div>
                     );
 

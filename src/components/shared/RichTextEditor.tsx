@@ -949,11 +949,27 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
                 value={editor.getAttributes('textStyle').textGradient || editor.getAttributes('textStyle').color || '#ffffff'}
                 onChange={(value) => {
                     const isGradient = value.includes('gradient');
+                    const { fontFamily, fontSize } = editor.getAttributes('textStyle');
+        
+                    const newAttrs: { 
+                      fontFamily?: string;
+                      fontSize?: string;
+                      color?: string | null;
+                      textGradient?: string | null;
+                    } = {
+                      fontFamily: fontFamily,
+                      fontSize: fontSize,
+                    };
+        
                     if (isGradient) {
-                    editor.chain().focus().unsetColor().setTextGradient(value).run();
+                      newAttrs.color = null;
+                      newAttrs.textGradient = value;
                     } else {
-                    editor.chain().focus().unsetTextGradient().setColor(value).run();
+                      newAttrs.textGradient = null;
+                      newAttrs.color = value;
                     }
+                    
+                    editor.chain().focus().setMark('textStyle', newAttrs).run();
                 }}
             />
         </BubbleMenu>
@@ -969,22 +985,3 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
     </div>
   );
 };
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

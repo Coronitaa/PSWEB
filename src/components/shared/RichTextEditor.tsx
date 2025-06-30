@@ -31,6 +31,7 @@ import { cn } from '@/lib/utils';
 import { createPortal } from 'react-dom';
 import { Carousel, CarouselItem } from '@/components/shared/Carousel';
 import { Reorder, useDragControls } from 'framer-motion';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 declare global {
   namespace JSX {
@@ -492,6 +493,7 @@ const ImageCarouselModal = ({ isOpen, onOpenChange, initialImages = [], onSave }
   const [images, setImages] = useState(initialImages);
   const [isImporting, setIsImporting] = useState(false);
   const [importText, setImportText] = useState('');
+  const [draggingImageIndex, setDraggingImageIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -526,44 +528,103 @@ const ImageCarouselModal = ({ isOpen, onOpenChange, initialImages = [], onSave }
     onSave(images.filter(url => url));
     onOpenChange(false);
   };
+
+  const handleImageDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+    setDraggingImageIndex(index);
+  };
+  const handleImageDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault(); 
+  };
+  const handleImageDrop = (e: React.DragEvent<HTMLDivElement>, targetIndex: number) => {
+      e.preventDefault();
+      if (draggingImageIndex !== null && draggingImageIndex !== targetIndex) {
+          const newImages = [...images];
+          const [draggedItem] = newImages.splice(draggingImageIndex, 1);
+          newImages.splice(targetIndex, 0, draggedItem);
+          setImages(newImages);
+      }
+      setDraggingImageIndex(null);
+  };
+  const handleImageDragEnd = () => {
+      setDraggingImageIndex(null);
+  };
   
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle>Configure Image Carousel</DialogTitle>
           <DialogDescription>Add, remove, and reorder images for your carousel.</DialogDescription>
         </DialogHeader>
-        <div className="py-4 max-h-[60vh] overflow-y-auto pr-4">
-          {isImporting ? (
-            <div className="space-y-2">
-              <Label htmlFor="import-urls">Paste Image URLs (one per line)</Label>
-              <Textarea id="import-urls" value={importText} onChange={e => setImportText(e.target.value)} rows={8} />
-              <div className="flex justify-end gap-2">
-                <Button variant="ghost" onClick={() => setIsImporting(false)}>Cancel</Button>
-                <Button onClick={handleImport}>Import URLs</Button>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4 max-h-[60vh]">
+          {/* Left Column: Editor */}
+          <div className="flex flex-col">
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-sm font-medium">Image URLs</h3>
+                <Button variant="outline" size="sm" onClick={() => setIsImporting(true)}>Import from URLs</Button>
               </div>
+              {isImporting ? (
+                <div className="space-y-2">
+                  <Label htmlFor="import-urls">Paste Image URLs (one per line)</Label>
+                  <Textarea id="import-urls" value={importText} onChange={e => setImportText(e.target.value)} rows={8} />
+                  <div className="flex justify-end gap-2">
+                    <Button variant="ghost" onClick={() => setIsImporting(false)}>Cancel</Button>
+                    <Button onClick={handleImport}>Import URLs</Button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                <ScrollArea className="border rounded-md p-2 flex-grow">
+                  <div className="space-y-2">
+                    {images.map((image, index) => (
+                      <div 
+                        key={index} // Not ideal, but URL can be duplicated.
+                        draggable="true"
+                        onDragStart={(e) => handleImageDragStart(e, index)}
+                        onDragOver={handleImageDragOver}
+                        onDrop={(e) => handleImageDrop(e, index)}
+                        onDragEnd={handleImageDragEnd}
+                        className={cn(
+                          "flex items-center gap-2 p-2 rounded-md bg-muted/50 group cursor-grab",
+                          draggingImageIndex === index && "opacity-50 bg-primary/20"
+                        )}
+                      >
+                        <GripVertical className="h-5 w-5 text-muted-foreground shrink-0 opacity-50 group-hover:opacity-100" />
+                        <Input value={image} onChange={(e) => updateImage(index, e.target.value)} placeholder="https://..." />
+                        <Button variant="ghost" size="icon" onClick={() => removeImage(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                      </div>
+                    ))}
+                    {images.length === 0 && <p className="text-center text-xs text-muted-foreground py-4">No images yet. Add one below.</p>}
+                  </div>
+                </ScrollArea>
+                <Button variant="outline" size="sm" onClick={addImage} className="mt-2">Add Image</Button>
+                </>
+              )}
+          </div>
+          
+          {/* Right Column: Preview */}
+          <div className="flex flex-col">
+            <h3 className="text-sm font-medium mb-2">Preview</h3>
+            <div className="border rounded-md p-2 bg-muted/30 aspect-video flex-grow relative">
+                {images.filter(img => img).length > 0 ? (
+                    <Carousel itemsToShow={1} showArrows={images.filter(img => img).length > 1} autoplay>
+                        {images.filter(img => img).map((src, i) => (
+                            <CarouselItem key={i}>
+                                <div className="relative w-full h-full">
+                                    <img src={src} alt={`Preview ${i + 1}`} className="w-full h-full object-cover rounded-md" />
+                                </div>
+                            </CarouselItem>
+                        ))}
+                    </Carousel>
+                ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground text-xs">
+                        <p>Add image URLs to see a preview</p>
+                    </div>
+                )}
             </div>
-          ) : (
-            <Reorder.Group axis="y" values={images} onReorder={setImages} className="space-y-2">
-              {images.map((image, index) => (
-                <Reorder.Item key={index} value={image} className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
-                   <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
-                   <Input value={image} onChange={(e) => updateImage(index, e.target.value)} placeholder="https://..." />
-                   <Button variant="ghost" size="icon" onClick={() => removeImage(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                </Reorder.Item>
-              ))}
-            </Reorder.Group>
-          )}
+          </div>
         </div>
         <DialogFooter>
-          {!isImporting && (
-            <>
-              <Button variant="outline" onClick={addImage}>Add Image</Button>
-              <Button variant="outline" onClick={() => setIsImporting(true)}>Import from URLs</Button>
-            </>
-          )}
-          <div className="flex-grow" />
           <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
           <Button onClick={handleSave}>Save Carousel</Button>
         </DialogFooter>
@@ -1163,6 +1224,7 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [isModelModalOpen, setIsModelModalOpen] = useState(false);
+  const [isCarouselModalOpen, setIsCarouselModalOpen] = useState(false);
   const [url, setUrl] = useState('');
   const [debouncedUrl, setDebouncedUrl] = useState('');
 
@@ -1208,12 +1270,13 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
       return null;
   };
   
-  const handleMediaModalOpen = (type: 'image' | 'video' | 'model') => {
+  const handleMediaModalOpen = (type: 'image' | 'video' | 'model' | 'carousel') => {
     setUrl('');
     setDebouncedUrl('');
     if (type === 'image') setIsImageModalOpen(true);
     if (type === 'video') setIsVideoModalOpen(true);
     if (type === 'model') setIsModelModalOpen(true);
+    if (type === 'carousel') setIsCarouselModalOpen(true);
   };
 
 
@@ -1297,6 +1360,12 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
     setIsModelModalOpen(false);
     setUrl('');
     setDebouncedUrl('');
+  };
+
+  const handleSaveCarousel = (images: string[]) => {
+    if (images.length > 0) {
+        editor.chain().focus().setImageCarousel({ images }).run();
+    }
   };
 
   const fontSizes = [
@@ -1446,107 +1515,118 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
                 <DropdownMenuItem onClick={() => handleMediaModalOpen('model')}>
                     <Box className="h-4 w-4 mr-2" /> Embed 3D Model
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => editor.isActive('imageCarousel') ? {} : editor.chain().focus().setImageCarousel({ images: [] }).run()}>
+                <DropdownMenuItem onClick={() => handleMediaModalOpen('carousel')}>
                     <GalleryHorizontal className="h-4 w-4 mr-2" /> Embed Image Carousel
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
 
       </div>
-
-      <Dialog open={isLinkModalOpen} onOpenChange={setIsLinkModalOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Set Link URL</DialogTitle></DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="linkUrl">URL</Label>
-            <Input id="linkUrl" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://example.com" />
-          </div>
-          <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-between sm:space-x-2">
-            <div>
-              {isLinkActive && (
-                <Button type="button" variant="ghost" className="w-full sm:w-auto justify-start text-destructive hover:text-destructive hover:bg-destructive/10" onClick={handleClearLink}>
-                  Clear Link
-                </Button>
-              )}
-            </div>
-            <div className="flex justify-end gap-2">
-                <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-                <Button type="button" onClick={setLink}>{url ? 'Update Link' : 'Set Link'}</Button>
-            </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Embed Image</DialogTitle></DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="imageUrl">Image URL</Label>
-            <Input id="imageUrl" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://example.com/image.png" />
-            {debouncedUrl && <img src={debouncedUrl} alt="Preview" className="rounded-md object-contain max-h-48 w-full border mt-2" />}
-          </div>
-          <DialogFooter>
-            <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-            <Button type="button" onClick={addImage}>Add Image</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      <Dialog open={isVideoModalOpen} onOpenChange={setIsVideoModalOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Embed YouTube Video</DialogTitle></DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="videoUrl">YouTube URL</Label>
-            <Input id="videoUrl" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://youtube.com/watch?v=..." />
-             {debouncedUrl && getYoutubeEmbedUrl(debouncedUrl) && (
-                <iframe
-                    className="w-full aspect-video mt-2 rounded-md border"
-                    src={getYoutubeEmbedUrl(debouncedUrl)!}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    title="YouTube video preview"
-                ></iframe>
-            )}
-          </div>
-          <DialogFooter>
-            <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-            <Button type="button" onClick={addYoutubeVideo}>Add Video</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      <Dialog open={isModelModalOpen} onOpenChange={setIsModelModalOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Embed 3D Model</DialogTitle></DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="modelUrl">Model URL (.glb, .gltf, or Sketchfab link)</Label>
-            <Input id="modelUrl" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="e.g., https://sketchfab.com/3d-models/..." />
-            {debouncedUrl && (() => {
-                const sketchfabUrl = getSketchfabEmbedUrl(debouncedUrl);
-                if (sketchfabUrl) {
-                    return (
+      
+      {createPortal(
+        <>
+            <Dialog open={isLinkModalOpen} onOpenChange={setIsLinkModalOpen}>
+                <DialogContent>
+                <DialogHeader><DialogTitle>Set Link URL</DialogTitle></DialogHeader>
+                <div className="space-y-2">
+                    <Label htmlFor="linkUrl">URL</Label>
+                    <Input id="linkUrl" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://example.com" />
+                </div>
+                <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-between sm:space-x-2">
+                    <div>
+                    {isLinkActive && (
+                        <Button type="button" variant="ghost" className="w-full sm:w-auto justify-start text-destructive hover:text-destructive hover:bg-destructive/10" onClick={handleClearLink}>
+                        Clear Link
+                        </Button>
+                    )}
+                    </div>
+                    <div className="flex justify-end gap-2">
+                        <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+                        <Button type="button" onClick={setLink}>{url ? 'Update Link' : 'Set Link'}</Button>
+                    </div>
+                </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
+                <DialogContent>
+                <DialogHeader><DialogTitle>Embed Image</DialogTitle></DialogHeader>
+                <div className="space-y-2">
+                    <Label htmlFor="imageUrl">Image URL</Label>
+                    <Input id="imageUrl" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://example.com/image.png" />
+                    {debouncedUrl && <img src={debouncedUrl} alt="Preview" className="rounded-md object-contain max-h-48 w-full border mt-2" />}
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+                    <Button type="button" onClick={addImage}>Add Image</Button>
+                </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            <Dialog open={isVideoModalOpen} onOpenChange={setIsVideoModalOpen}>
+                <DialogContent>
+                <DialogHeader><DialogTitle>Embed YouTube Video</DialogTitle></DialogHeader>
+                <div className="space-y-2">
+                    <Label htmlFor="videoUrl">YouTube URL</Label>
+                    <Input id="videoUrl" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://youtube.com/watch?v=..." />
+                    {debouncedUrl && getYoutubeEmbedUrl(debouncedUrl) && (
                         <iframe
                             className="w-full aspect-video mt-2 rounded-md border"
-                            src={sketchfabUrl}
+                            src={getYoutubeEmbedUrl(debouncedUrl)!}
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             allowFullScreen
-                            title="Sketchfab preview"
+                            title="YouTube video preview"
                         ></iframe>
-                    );
-                }
-                if (debouncedUrl.match(/\.(glb|gltf)$/i)) {
-                    return (
-                        <div className="mt-2 text-center text-sm text-muted-foreground p-4 border rounded-md">
-                            <Box className="mx-auto h-8 w-8 mb-2" />
-                            3D Model Preview (GLB/GLTF)
-                        </div>
-                    );
-                }
-                return null;
-            })()}
-          </div>
-          <DialogFooter>
-            <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-            <Button type="button" onClick={addModelViewer}>Add Model</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                    )}
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+                    <Button type="button" onClick={addYoutubeVideo}>Add Video</Button>
+                </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            <Dialog open={isModelModalOpen} onOpenChange={setIsModelModalOpen}>
+                <DialogContent>
+                <DialogHeader><DialogTitle>Embed 3D Model</DialogTitle></DialogHeader>
+                <div className="space-y-2">
+                    <Label htmlFor="modelUrl">Model URL (.glb, .gltf, or Sketchfab link)</Label>
+                    <Input id="modelUrl" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="e.g., https://sketchfab.com/3d-models/..." />
+                    {debouncedUrl && (() => {
+                        const sketchfabUrl = getSketchfabEmbedUrl(debouncedUrl);
+                        if (sketchfabUrl) {
+                            return (
+                                <iframe
+                                    className="w-full aspect-video mt-2 rounded-md border"
+                                    src={sketchfabUrl}
+                                    allowFullScreen
+                                    title="Sketchfab preview"
+                                ></iframe>
+                            );
+                        }
+                        if (debouncedUrl.match(/\.(glb|gltf)$/i)) {
+                            return (
+                                <div className="mt-2 text-center text-sm text-muted-foreground p-4 border rounded-md">
+                                    <Box className="mx-auto h-8 w-8 mb-2" />
+                                    3D Model Preview (GLB/GLTF)
+                                </div>
+                            );
+                        }
+                        return null;
+                    })()}
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+                    <Button type="button" onClick={addModelViewer}>Add Model</Button>
+                </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            <ImageCarouselModal
+                isOpen={isCarouselModalOpen}
+                onOpenChange={setIsCarouselModalOpen}
+                initialImages={[]}
+                onSave={handleSaveCarousel}
+            />
+        </>,
+        document.body
+      )}
     </>
   );
 };

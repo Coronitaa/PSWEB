@@ -734,9 +734,29 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
   };
   
   const addModelViewer = () => {
-    if (url) {
+    if (!url || !editor) return;
+    
+    // Regex for standard Sketchfab page URL, e.g., https://sketchfab.com/3d-models/model-name-and-id
+    const sketchfabPageRegex = /sketchfab\.com\/3d-models\/(?:[a-z0-9\-_]+-)?([a-fA-F0-9]{32})/;
+    
+    // Regex for Sketchfab embed URL, e.g., https://sketchfab.com/models/model-id/embed
+    const sketchfabEmbedRegex = /sketchfab\.com\/models\/[a-fA-F0-9]{32}\/embed/;
+
+    const pageMatch = url.match(sketchfabPageRegex);
+
+    if (pageMatch) {
+      const modelId = pageMatch[1];
+      const embedUrl = `https://sketchfab.com/models/${modelId}/embed`;
+      // Use the YouTube node for generic iframe embedding
+      editor.chain().focus().setYoutubeVideo({ src: embedUrl }).run();
+    } else if (sketchfabEmbedRegex.test(url)) {
+      // It's already an embed link, use it directly
+      editor.chain().focus().setYoutubeVideo({ src: url }).run();
+    } else {
+      // Assume it's a direct model file (.glb, .gltf) for <model-viewer>
       editor.chain().focus().setModelViewer({ src: url }).run();
     }
+
     setIsModelModalOpen(false);
     setUrl('');
   };
@@ -952,8 +972,8 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
         <DialogContent>
           <DialogHeader><DialogTitle>Embed 3D Model</DialogTitle></DialogHeader>
           <div className="space-y-2">
-            <Label htmlFor="modelUrl">Model URL (.glb, .gltf)</Label>
-            <Input id="modelUrl" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://example.com/model.glb" />
+            <Label htmlFor="modelUrl">Model URL (.glb, .gltf, or Sketchfab link)</Label>
+            <Input id="modelUrl" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="e.g., https://sketchfab.com/3d-models/..." />
           </div>
           <DialogFooter>
             <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>

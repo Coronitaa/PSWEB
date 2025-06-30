@@ -123,6 +123,7 @@
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    caret-color: hsl(var(--primary)); /* Make caret visible on gradient text */
   }
 
   /* Improved scrollbar aesthetics */
@@ -213,9 +214,12 @@
       blockquote { @apply border-primary; }
       ul, ol {
         li::marker {
-          @apply text-muted-foreground;
+          @apply text-foreground/80;
         }
       }
+      /* Ensure decorations are visible on gradient text */
+      u { text-decoration-color: hsl(var(--foreground) / 0.8); }
+      s { text-decoration-color: hsl(var(--foreground) / 0.8); }
     }
 
   /* Sheen effect for Follow button (and other buttons if class is applied) */

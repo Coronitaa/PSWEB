@@ -100,14 +100,15 @@ export function ResourcePageContent({ resource, relatedResources }: ResourcePage
                     const { 
                         ['data-image-carousel']: _,
                         ['data-images']: imagesJson,
-                        style, // Extract style string
+                        style,
+                        class: className,
                         ...restAttribs 
                     } = domNode.attribs;
 
                     const images = JSON.parse(imagesJson || '[]');
 
-                    // Convert style string to a React style object
-                    const styleObject = (style || '').split(';').reduce((acc: React.CSSProperties, styleRule: string) => {
+                    const styleString = style || '';
+                    const styleObject = styleString.split(';').reduce((acc: React.CSSProperties, styleRule: string) => {
                       const [key, value] = styleRule.split(':');
                       if (key && value) {
                         const camelCasedKey = key.trim().replace(/-(\w)/g, (_, letter) => letter.toUpperCase());
@@ -117,7 +118,7 @@ export function ResourcePageContent({ resource, relatedResources }: ResourcePage
                     }, {} as React.CSSProperties);
                     
                     return (
-                        <div {...restAttribs} style={styleObject}> 
+                        <div {...restAttribs} style={styleObject} className={cn("rich-text-media-node", className)}> 
                             <ImageGalleryCarousel images={images} />
                         </div>
                     );

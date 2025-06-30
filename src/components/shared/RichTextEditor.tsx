@@ -581,6 +581,13 @@ const ImageCarouselComponent = (props: NodeViewProps) => {
   const width = node.attrs.width;
   const height = node.attrs.height;
   const rotation = node.attrs.rotate || 0;
+  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleSaveCarousel = (newImages: string[]) => {
+    updateAttributes({ images: newImages });
+  };
+
 
   const setAlignment = (align: 'left' | 'center' | 'right' | null) => {
     updateAttributes({ 'data-float': align });
@@ -754,6 +761,10 @@ const ImageCarouselComponent = (props: NodeViewProps) => {
 
        {selected && (
           <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[calc(100%+12px)] z-20 flex gap-1 bg-card p-1 rounded-md shadow-lg border border-border pointer-events-auto">
+              <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => setIsModalOpen(true)} title="Edit Carousel">
+                <ImageIcon className="w-4 h-4" />
+              </Button>
+              <div className="w-px h-5 bg-border mx-1 self-center" />
               <Button type="button" size="icon" variant={float === 'left' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('left')} title="Align left"><AlignLeft className="w-4 h-4" /></Button>
               <Button type="button" size="icon" variant={!float || float === 'center' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('center')} title="Align center"><AlignCenter className="w-4 h-4" /></Button>
               <Button type="button" size="icon" variant={float === 'right' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('right')} title="Align right"><AlignRight className="w-4 h-4" /></Button>
@@ -761,7 +772,16 @@ const ImageCarouselComponent = (props: NodeViewProps) => {
               <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => rotateByAxis(90)} title="Rotate 90°">
                   <RotateCw className="w-4 h-4" />
               </Button>
-            </div>
+          </div>
+      )}
+      {createPortal(
+        <ImageCarouselModal
+            isOpen={isModalOpen}
+            onOpenChange={setIsModalOpen}
+            initialImages={images}
+            onSave={handleSaveCarousel}
+        />,
+        document.body
       )}
     </NodeViewWrapper>
   );
@@ -818,6 +838,7 @@ const ImageCarouselNode = Node.create({
   renderHTML({ HTMLAttributes }) {
     // Combine multiple style properties into a single style string
     const styles: string[] = [];
+    // Ensure width and rotate are included in the style attribute
     if (HTMLAttributes.width) styles.push(`width: ${HTMLAttributes.width}`);
     if (HTMLAttributes.height) styles.push(`height: ${HTMLAttributes.height}`);
     if (HTMLAttributes.rotate) styles.push(`transform: rotate(${HTMLAttributes.rotate}deg)`);
@@ -826,6 +847,7 @@ const ImageCarouselNode = Node.create({
     if (styles.length) {
       finalAttrs.style = styles.join('; ');
     }
+    // Clean up attributes that are now in the style string
     delete finalAttrs.width;
     delete finalAttrs.height;
     delete finalAttrs.rotate;
@@ -1536,8 +1558,7 @@ interface RichTextEditorProps {
 
 export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps) => {
   const toolbarRef = useRef<HTMLDivElement>(null);
-  const [isCarouselModalOpen, setIsCarouselModalOpen] = useState(false);
-
+  
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ heading: false }),
@@ -1575,21 +1596,6 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
       },
     },
   });
-
-  const openCarouselEditModal = () => {
-    setIsCarouselModalOpen(true);
-  };
-  
-  const handleSaveCarousel = (images: string[]) => {
-      if (editor) {
-        if(editor.isActive('imageCarousel')) {
-          editor.chain().focus().updateAttributes('imageCarousel', { images }).run();
-        } else {
-          editor.chain().focus().setImageCarousel({ images }).run();
-        }
-      }
-  };
-
 
   return (
     <div className="w-full rounded-md border border-input bg-card ring-offset-background focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
@@ -1661,19 +1667,6 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
             />
         </BubbleMenu>
       )}
-
-      {editor && (
-        <BubbleMenu
-          editor={editor}
-          shouldShow={({ editor }) => editor.isActive('imageCarousel')}
-          tippyOptions={{ duration: 100 }}
-          className="bg-card p-1 rounded-lg shadow-lg border border-border"
-        >
-          <Button variant="ghost" size="sm" onClick={openCarouselEditModal}>
-            <ImageIcon className="h-4 w-4 mr-2" /> Edit Carousel
-          </Button>
-        </BubbleMenu>
-      )}
       
       <div ref={toolbarRef} className="sticky top-0 bg-card/95 backdrop-blur-sm z-10">
         <Toolbar editor={editor} />
@@ -1682,13 +1675,6 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
       <div className="min-h-[250px] overflow-y-auto overflow-x-hidden px-3 py-2">
         <EditorContent editor={editor} />
       </div>
-
-       <ImageCarouselModal
-        isOpen={isCarouselModalOpen}
-        onOpenChange={setIsCarouselModalOpen}
-        initialImages={editor?.isActive('imageCarousel') ? editor.getAttributes('imageCarousel').images : []}
-        onSave={handleSaveCarousel}
-      />
     </div>
   );
 };

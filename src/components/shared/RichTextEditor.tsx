@@ -558,7 +558,7 @@ const ImageCarouselModal = ({ isOpen, onOpenChange, initialImages = [], onSave }
         </DialogHeader>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4 max-h-[60vh]">
           {/* Left Column: Editor */}
-          <div className="flex flex-col">
+          <div className="flex flex-col overflow-hidden">
               <div className="flex justify-between items-center mb-2">
                 <h3 className="text-sm font-medium">Image URLs</h3>
                 <Button variant="outline" size="sm" onClick={() => setIsImporting(true)}>Import from URLs</Button>

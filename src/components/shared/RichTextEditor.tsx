@@ -22,7 +22,7 @@ import { GradientPicker } from './GradientPicker';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -262,6 +262,27 @@ const MediaResizeComponent = (props: NodeViewProps) => {
   const href = node.attrs.href;
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const [menuPosition, setMenuPosition] = useState<'top' | 'bottom'>('top');
+
+  useEffect(() => {
+    if (selected && containerRef.current) {
+        const editorViewDom = editor.view.dom;
+        const editorRect = editorViewDom.getBoundingClientRect();
+        const nodeRect = containerRef.current.getBoundingClientRect();
+        
+        const toolbar = editorViewDom.parentElement?.querySelector('[data-testid="rte-toolbar"]');
+        const toolbarHeight = toolbar?.clientHeight || 45;
+        
+        const spaceAbove = nodeRect.top - editorRect.top;
+        const menuHeightEstimate = 40;
+
+        if (spaceAbove < toolbarHeight + menuHeightEstimate) {
+            setMenuPosition('bottom');
+        } else {
+            setMenuPosition('top');
+        }
+    }
+  }, [selected, editor.view.dom]);
   
   const setAlignment = (align: 'left' | 'center' | 'right' | null) => {
     updateAttributes({ 'data-float': align });
@@ -476,7 +497,10 @@ const MediaResizeComponent = (props: NodeViewProps) => {
         )}
       </div>
        {selected && (
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[calc(100%+12px)] z-20 flex gap-1 bg-card p-1 rounded-md shadow-lg border border-border pointer-events-auto">
+          <div className={cn(
+            "absolute left-1/2 -translate-x-1/2 z-20 flex gap-1 bg-card p-1 rounded-md shadow-lg border border-border pointer-events-auto",
+            menuPosition === 'top' ? "top-0 -translate-y-[calc(100%+12px)]" : "bottom-0 translate-y-[calc(100%+12px)]"
+          )}>
               <Button type="button" size="icon" variant={float === 'left' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('left')} title="Align left"><AlignLeft className="w-4 h-4" /></Button>
               <Button type="button" size="icon" variant={!float || float === 'center' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('center')} title="Align center"><AlignCenter className="w-4 h-4" /></Button>
               <Button type="button" size="icon" variant={float === 'right' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('right')} title="Align right"><AlignRight className="w-4 h-4" /></Button>
@@ -748,6 +772,27 @@ const ImageCarouselComponent = (props: NodeViewProps) => {
   const rotation = node.attrs.rotate || 0;
   
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<'top' | 'bottom'>('top');
+
+  useEffect(() => {
+    if (selected && containerRef.current) {
+        const editorViewDom = editor.view.dom;
+        const editorRect = editorViewDom.getBoundingClientRect();
+        const nodeRect = containerRef.current.getBoundingClientRect();
+        
+        const toolbar = editorViewDom.parentElement?.querySelector('[data-testid="rte-toolbar"]');
+        const toolbarHeight = toolbar?.clientHeight || 45;
+        
+        const spaceAbove = nodeRect.top - editorRect.top;
+        const menuHeightEstimate = 40;
+
+        if (spaceAbove < toolbarHeight + menuHeightEstimate) {
+            setMenuPosition('bottom');
+        } else {
+            setMenuPosition('top');
+        }
+    }
+  }, [selected, editor.view.dom]);
 
   const handleSaveCarousel = (config: { images: string[], aspectRatio: string, autoplayInterval: number }) => {
     updateAttributes({ 
@@ -934,7 +979,10 @@ const ImageCarouselComponent = (props: NodeViewProps) => {
       </div>
 
        {selected && (
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[calc(100%+12px)] z-20 flex gap-1 bg-card p-1 rounded-md shadow-lg border border-border pointer-events-auto">
+          <div className={cn(
+            "absolute left-1/2 -translate-x-1/2 z-20 flex gap-1 bg-card p-1 rounded-md shadow-lg border border-border pointer-events-auto",
+            menuPosition === 'top' ? "top-0 -translate-y-[calc(100%+12px)]" : "bottom-0 translate-y-[calc(100%+12px)]"
+          )}>
               <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => setIsModalOpen(true)} title="Edit Carousel">
                 <ImageIcon className="w-4 h-4" />
               </Button>
@@ -1484,7 +1532,14 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
 
   const handleSaveCarousel = (config: { images: string[], aspectRatio: string, autoplayInterval: number }) => {
     if (config.images.length > 0) {
-        editor.chain().focus().setImageCarousel(config).run();
+        const { selection } = editor.state;
+        const node = selection.$anchor.node(selection.$anchor.depth);
+
+        if (node.type.name === 'imageCarousel') {
+            editor.chain().focus().updateAttributes('imageCarousel', config).run();
+        } else {
+            editor.chain().focus().setImageCarousel(config).run();
+        }
     }
   };
 
@@ -1510,7 +1565,7 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
   
   return (
     <>
-      <div className="flex flex-wrap items-center gap-1 p-1 border-b">
+      <div data-testid="rte-toolbar" className="flex flex-wrap items-center gap-1 p-1 border-b">
         <Select
             value={editor.getAttributes('textStyle').fontFamily || '_default_font_'}
             onValueChange={(value) => {
@@ -1802,7 +1857,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
       {editor && (
          <BubbleMenu 
           editor={editor}
-          tippyOptions={{ duration: 100, zIndex: 20 }}
+          tippyOptions={{ duration: 100, zIndex: 30 }}
           className="bg-card p-1 rounded-lg shadow-lg border border-border flex items-center gap-0.5"
           shouldShow={({ editor, view, from, to }) => {
             if (!editor.isFocused) {

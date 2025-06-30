@@ -34,6 +34,7 @@ import { Reorder, useDragControls } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Slider } from '@/components/ui/slider';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { parseMediaUrl } from '@/lib/utils';
 
 declare global {
   namespace JSX {
@@ -211,40 +212,6 @@ export const TextGradient = Extension.create<any>({
         };
     },
 });
-
-// Helper function to identify media type from URL
-const parseMediaUrl = (url: string): { type: 'image' | 'video', src: string, original: string } | null => {
-    if (!url || typeof url !== 'string') return null;
-
-    // YouTube URL patterns
-    const youtubeRegexes = [
-        /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
-        /(?:https?:\/\/)?youtu\.be\/([a-zA-Z0-9_-]{11})/,
-        /(?:https?:\/\/)?(?:www\.)?youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/
-    ];
-
-    for (const regex of youtubeRegexes) {
-        const match = url.match(regex);
-        if (match && match[1]) {
-            return { type: 'video', src: `https://www.youtube-nocookie.com/embed/${match[1]}`, original: url };
-        }
-    }
-
-    // Basic image URL pattern (including data URIs)
-    const imageRegex = /(\.(jpeg|jpg|gif|png|webp|svg)$)|(^data:image)/i;
-    if (imageRegex.test(url)) {
-        return { type: 'image', src: url, original: url };
-    }
-    
-    // If it's a URL but doesn't match video or image extensions, assume it's an image.
-    // This is for URLs that don't have an extension but point to an image.
-    if (url.startsWith('http')) {
-        return { type: 'image', src: url, original: url };
-    }
-
-    return null;
-};
-
 
 // --- Media Resize Component ---
 
@@ -729,7 +696,7 @@ const ImageCarouselModal = ({
                           <div className="flex justify-start gap-2">
                               <Tooltip>
                                   <TooltipTrigger asChild>
-                                      <Button type="button" variant={aspectRatio === '16/9' ? 'default' : 'outline'} size="icon" onClick={() => setAspectRatio('16/9')}>
+                                      <Button type="button" variant={aspectRatio === '16:9' ? 'default' : 'outline'} size="icon" onClick={() => setAspectRatio('16/9')}>
                                           <AspectRatioIcon ratio="16:9" className="w-5 h-5" />
                                       </Button>
                                   </TooltipTrigger>

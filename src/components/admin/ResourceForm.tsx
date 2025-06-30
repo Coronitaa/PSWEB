@@ -35,9 +35,9 @@ import { Separator } from '../ui/separator';
 import { ScrollArea } from '../ui/scroll-area';
 import { TagBadge } from '@/components/shared/TagBadge';
 import { cn } from '@/lib/utils';
-import { mapConfigToTagInterface, formatTimeAgo, getItemTypePlural } from '@/lib/utils';
+import { mapConfigToTagInterface, formatTimeAgo, getItemTypePlural, parseMediaUrl } from '@/lib/utils';
 import Image from 'next/image';
-import { ImageGalleryCarousel } from '../shared/ImageGalleryCarousel';
+import { Carousel, CarouselItem } from '@/components/shared/Carousel';
 import { Checkbox } from '../ui/checkbox';
 import { RichTextEditor } from '../shared/RichTextEditor';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
@@ -635,16 +635,30 @@ export function ResourceForm({
                           <Label className="text-xs font-medium">Aspect Ratio</Label>
                           <div className="flex justify-start gap-2 mt-1">
                             <TooltipProvider>
-                              {(['16:9', '4:3', '1:1'] as const).map(ratio => (
-                                <Tooltip key={ratio}>
-                                  <TooltipTrigger asChild>
-                                    <Button type="button" variant={watchedGalleryAspectRatio === ratio ? 'default' : 'outline'} size="icon" onClick={() => form.setValue('galleryAspectRatio', ratio, { shouldDirty: true })}>
-                                      <AspectRatioIcon ratio={ratio as '16:9' | '4:3' | '1:1'} className="w-5 h-5" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent><p>{ratio === '16:9' ? 'Widescreen' : ratio === '4:3' ? 'Standard' : 'Square'}</p></TooltipContent>
-                                </Tooltip>
-                              ))}
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button type="button" variant={watchedGalleryAspectRatio === '16/9' ? 'default' : 'outline'} size="icon" onClick={() => form.setValue('galleryAspectRatio', '16/9', { shouldDirty: true })}>
+                                    <AspectRatioIcon ratio="16:9" className="w-5 h-5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Widescreen</p></TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button type="button" variant={watchedGalleryAspectRatio === '4/3' ? 'default' : 'outline'} size="icon" onClick={() => form.setValue('galleryAspectRatio', '4/3', { shouldDirty: true })}>
+                                    <AspectRatioIcon ratio="4:3" className="w-5 h-5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Standard</p></TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button type="button" variant={watchedGalleryAspectRatio === '1/1' ? 'default' : 'outline'} size="icon" onClick={() => form.setValue('galleryAspectRatio', '1/1', { shouldDirty: true })}>
+                                    <AspectRatioIcon ratio="1:1" className="w-5 h-5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Square</p></TooltipContent>
+                              </Tooltip>
                             </TooltipProvider>
                           </div>
                         </div>
@@ -698,17 +712,46 @@ export function ResourceForm({
                             </Button>
                         </div>
                         <div className={cn(
-                            "lg:col-span-5 border rounded-md bg-background/30 p-2",
-                            watchedGalleryAspectRatio === '16/9' && 'aspect-video',
-                            watchedGalleryAspectRatio === '4/3' && 'aspect-[4/3]',
-                            watchedGalleryAspectRatio === '1/1' && 'aspect-square',
-                            !watchedGalleryAspectRatio && 'aspect-video'
+                          "lg:col-span-5 border rounded-md bg-background/30 p-2",
+                          watchedGalleryAspectRatio === '16/9' && 'aspect-video',
+                          watchedGalleryAspectRatio === '4/3' && 'aspect-[4/3]',
+                          watchedGalleryAspectRatio === '1/1' && 'aspect-square',
+                          !watchedGalleryAspectRatio && 'aspect-[4/3]'
                         )}>
-                            <ImageGalleryCarousel 
-                                images={galleryImagesForPreview}
-                                aspectRatio={watchedGalleryAspectRatio || '16/9'}
+                            {galleryImagesForPreview.length > 0 ? (
+                              <Carousel 
+                                itemsToShow={1}
+                                showArrows={galleryImagesForPreview.length > 1}
+                                autoplay
                                 autoplayInterval={watchedGalleryAutoplayInterval}
-                             />
+                              >
+                                {galleryImagesForPreview.map((url, i) => {
+                                  const media = parseMediaUrl(url);
+                                  return (
+                                    <CarouselItem key={i}>
+                                      <div className="relative w-full h-full bg-black rounded-md overflow-hidden">
+                                        {media?.type === 'video' ? (
+                                          <iframe
+                                            src={media.src}
+                                            title={`Preview ${i + 1}`}
+                                            className="w-full h-full"
+                                            frameBorder="0"
+                                            allow="autoplay; encrypted-media; picture-in-picture"
+                                            allowFullScreen
+                                          />
+                                        ) : (
+                                          <Image src={media?.src || 'https://placehold.co/800x450.png'} alt={`Preview ${i+1}`} fill style={{objectFit:'cover'}} className="rounded-md" />
+                                        )}
+                                      </div>
+                                    </CarouselItem>
+                                  );
+                                })}
+                              </Carousel>
+                            ) : (
+                              <div className="flex items-center justify-center h-full text-muted-foreground text-xs">
+                                <p>No media to preview.</p>
+                              </div>
+                            )}
                         </div>
                     </div>
                 </div>

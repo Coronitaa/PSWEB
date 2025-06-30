@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, X as XIconLucide } from "lucide-react";
 import { createPortal } from "react-dom";
+import { parseMediaUrl } from '@/lib/utils';
 
 const ONE_SECOND = 1000;
 const DRAG_BUFFER = 50;
@@ -18,37 +19,6 @@ const SPRING_OPTIONS = {
   stiffness: 400,
   damping: 50,
 };
-
-// Helper function to identify media type from URL
-const parseMediaUrl = (url: string): { type: 'image' | 'video', src: string, videoId: string | null } | null => {
-    if (!url || typeof url !== 'string') return null;
-
-    // YouTube URL patterns
-    const youtubeRegexes = [
-        /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
-        /(?:https?:\/\/)?youtu\.be\/([a-zA-Z0-9_-]{11})/,
-        /(?:https?:\/\/)?(?:www\.)?youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/
-    ];
-
-    for (const regex of youtubeRegexes) {
-        const match = url.match(regex);
-        if (match && match[1]) {
-            return { type: 'video', src: `https://www.youtube-nocookie.com/embed/${match[1]}`, videoId: match[1] };
-        }
-    }
-
-    const imageRegex = /(\.(jpeg|jpg|gif|png|webp|svg)$)|(^data:image)/i;
-    if (imageRegex.test(url)) {
-        return { type: 'image', src: url, videoId: null };
-    }
-    
-    if (url.startsWith('http')) {
-        return { type: 'image', src: url, videoId: null };
-    }
-
-    return null;
-};
-
 
 interface ImageGalleryCarouselProps {
   images: string[];
@@ -116,7 +86,8 @@ export const ImageGalleryCarousel: React.FC<ImageGalleryCarouselProps> = ({
     startAutoPlay();
   };
 
-  const openLightbox = (index: number) => {
+  const openLightbox = (e: React.MouseEvent, index: number) => {
+    e.stopPropagation();
     setSelectedImageIndex(index);
     setLightboxOpen(true);
     if (intervalRef.current) clearInterval(intervalRef.current);
@@ -172,14 +143,14 @@ export const ImageGalleryCarousel: React.FC<ImageGalleryCarouselProps> = ({
             return (
               <motion.div
                 key={`${idx}-${imgSrc}`}
-                onClick={() => openLightbox(idx)}
+                onClick={(e) => openLightbox(e, idx)}
                 animate={{ scale: imgIndex === idx ? 1 : 0.95 }}
                 transition={SPRING_OPTIONS}
-                className="relative aspect-video w-full shrink-0 object-cover h-full cursor-pointer bg-black"
+                className="relative w-full shrink-0 object-cover h-full cursor-pointer bg-black"
               >
                 {!media ? (
                   <div className="w-full h-full flex items-center justify-center text-destructive-foreground bg-destructive/50 text-xs p-2">Invalid URL</div>
-                ) : media.type === 'video' && media.videoId ? (
+                ) : media.type === 'video' ? (
                   <iframe
                     src={`${media.src}?autoplay=${isActive ? 1 : 0}&mute=1&controls=0&loop=1&playlist=${media.videoId}&rel=0&iv_load_policy=3`}
                     className="w-full h-full block object-cover pointer-events-none"

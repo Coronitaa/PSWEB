@@ -1,4 +1,5 @@
 
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { GenericListItem, ItemType, Tag, TagInGroupConfig } from './types';
@@ -147,4 +148,34 @@ export const calculateGenericItemSearchScore = (item: GenericListItem, query: st
     });
   }
   return score;
+};
+
+
+export const parseMediaUrl = (url: string): { type: 'image' | 'video', src: string, videoId: string | null } | null => {
+    if (!url || typeof url !== 'string') return null;
+
+    // YouTube URL patterns
+    const youtubeRegexes = [
+        /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
+        /(?:https?:\/\/)?youtu\.be\/([a-zA-Z0-9_-]{11})/,
+        /(?:https?:\/\/)?(?:www\.)?youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/
+    ];
+
+    for (const regex of youtubeRegexes) {
+        const match = url.match(regex);
+        if (match && match[1]) {
+            return { type: 'video', src: `https://www.youtube-nocookie.com/embed/${match[1]}`, videoId: match[1] };
+        }
+    }
+
+    const imageRegex = /(\.(jpeg|jpg|gif|png|webp|svg)$)|(^data:image)/i;
+    if (imageRegex.test(url)) {
+        return { type: 'image', src: url, videoId: null };
+    }
+    
+    if (url.startsWith('http')) {
+        return { type: 'image', src: url, videoId: null };
+    }
+
+    return null;
 };

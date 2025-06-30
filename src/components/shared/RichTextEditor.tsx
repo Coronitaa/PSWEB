@@ -62,6 +62,9 @@ declare module '@tiptap/core' {
     modelViewer: {
       setModelViewer: (options: { src: string }) => ReturnType,
     }
+    iframe: {
+      setIframe: (options: { src: string, width?: string, height?: string }) => ReturnType,
+    }
   }
 }
 
@@ -238,6 +241,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
   const { node, updateAttributes, selected, editor } = props;
   const isImage = node.type.name === 'image';
   const isVideo = node.type.name === 'youtube';
+  const isIframe = node.type.name === 'iframe';
   const isModel = node.type.name === 'modelViewer';
   const href = node.attrs.href;
 
@@ -392,7 +396,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
               </a>
             ) : imageContent
         )}
-        {isVideo && (
+        {(isVideo || isIframe) && (
           <div className="w-full h-full relative">
               <iframe
                 className="absolute inset-0 w-full h-full"
@@ -664,6 +668,51 @@ const CustomModelViewer = Node.create({
   },
 });
 
+const CustomIframe = Node.create({
+  name: 'iframe',
+  group: 'block',
+  atom: true,
+  draggable: true,
+
+  addAttributes() {
+    return {
+      src: { default: null },
+      frameborder: { default: 0 },
+      allowfullscreen: { default: true },
+      width: { default: '640px' },
+      height: { default: '480px' },
+      'data-float': { default: 'center' },
+      rotate: { default: 0 },
+      class: { default: 'rich-text-media-node' },
+    };
+  },
+
+  parseHTML() {
+    return [{
+      tag: 'iframe[src]:not([data-youtube-video])',
+    }];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ['iframe', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes)];
+  },
+  
+  addCommands() {
+    return {
+      setIframe: (options: { src: string, width?: string, height?: string }) => ({ commands }) => {
+        return commands.insertContent({
+          type: this.name,
+          attrs: options,
+        });
+      },
+    };
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(MediaResizeComponent);
+  },
+});
+
 
 const Toolbar = ({ editor }: { editor: Editor | null }) => {
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
@@ -736,10 +785,7 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
   const addModelViewer = () => {
     if (!url || !editor) return;
     
-    // Regex for standard Sketchfab page URL, e.g., https://sketchfab.com/3d-models/model-name-and-id
     const sketchfabPageRegex = /sketchfab\.com\/3d-models\/(?:[a-z0-9\-_]+-)?([a-fA-F0-9]{32})/;
-    
-    // Regex for Sketchfab embed URL, e.g., https://sketchfab.com/models/model-id/embed
     const sketchfabEmbedRegex = /sketchfab\.com\/models\/[a-fA-F0-9]{32}\/embed/;
 
     const pageMatch = url.match(sketchfabPageRegex);
@@ -747,13 +793,10 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
     if (pageMatch) {
       const modelId = pageMatch[1];
       const embedUrl = `https://sketchfab.com/models/${modelId}/embed`;
-      // Use the YouTube node for generic iframe embedding
-      editor.chain().focus().setYoutubeVideo({ src: embedUrl }).run();
+      editor.chain().focus().setIframe({ src: embedUrl }).run();
     } else if (sketchfabEmbedRegex.test(url)) {
-      // It's already an embed link, use it directly
-      editor.chain().focus().setYoutubeVideo({ src: url }).run();
+      editor.chain().focus().setIframe({ src: url }).run();
     } else {
-      // Assume it's a direct model file (.glb, .gltf) for <model-viewer>
       editor.chain().focus().setModelViewer({ src: url }).run();
     }
 
@@ -1012,7 +1055,8 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
         nocookie: true,
       }),
       CustomModelViewer,
-      TextAlign.configure({ types: ['paragraph', 'image', 'youtube', 'modelViewer'] }),
+      CustomIframe,
+      TextAlign.configure({ types: ['paragraph', 'image', 'youtube', 'modelViewer', 'iframe'] }),
       Color,
       Underline,
     ],
@@ -1043,7 +1087,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
             const { from: selectionFrom, to: selectionTo } = editor.state.selection;
             let isMediaSelection = false;
             editor.state.doc.nodesBetween(selectionFrom, selectionTo, (node) => {
-              if (node.type.name === 'image' || node.type.name === 'youtube' || node.type.name === 'modelViewer') {
+              if (node.type.name === 'image' || node.type.name === 'youtube' || node.type.name === 'modelViewer' || node.type.name === 'iframe') {
                 isMediaSelection = true;
               }
             });

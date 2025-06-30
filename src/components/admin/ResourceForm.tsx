@@ -40,7 +40,7 @@ import Image from 'next/image';
 import { ImageGalleryCarousel } from '../shared/ImageGalleryCarousel';
 import { Checkbox } from '../ui/checkbox';
 import { RichTextEditor } from '../shared/RichTextEditor';
-import { Tooltip, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Slider } from '@/components/ui/slider';
 
 
@@ -635,7 +635,7 @@ export function ResourceForm({
                           <Label className="text-xs font-medium">Aspect Ratio</Label>
                           <div className="flex justify-start gap-2 mt-1">
                             <TooltipProvider>
-                              {(['16/9', '4/3', '1/1'] as const).map(ratio => (
+                              {(['16/9', '4/3', '1:1'] as const).map(ratio => (
                                 <Tooltip key={ratio}>
                                   <TooltipTrigger asChild>
                                     <Button type="button" variant={watchedGalleryAspectRatio === ratio ? 'default' : 'outline'} size="icon" onClick={() => form.setValue('galleryAspectRatio', ratio, { shouldDirty: true })}>

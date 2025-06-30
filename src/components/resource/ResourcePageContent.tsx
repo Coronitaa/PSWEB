@@ -100,13 +100,24 @@ export function ResourcePageContent({ resource, relatedResources }: ResourcePage
                     const { 
                         ['data-image-carousel']: _,
                         ['data-images']: imagesJson,
+                        style, // Extract style string
                         ...restAttribs 
                     } = domNode.attribs;
 
                     const images = JSON.parse(imagesJson || '[]');
+
+                    // Convert style string to a React style object
+                    const styleObject = (style || '').split(';').reduce((acc: React.CSSProperties, styleRule: string) => {
+                      const [key, value] = styleRule.split(':');
+                      if (key && value) {
+                        const camelCasedKey = key.trim().replace(/-(\w)/g, (_, letter) => letter.toUpperCase());
+                        (acc as any)[camelCasedKey] = value.trim();
+                      }
+                      return acc;
+                    }, {} as React.CSSProperties);
                     
                     return (
-                        <div {...restAttribs}> 
+                        <div {...restAttribs} style={styleObject}> 
                             <ImageGalleryCarousel images={images} />
                         </div>
                     );

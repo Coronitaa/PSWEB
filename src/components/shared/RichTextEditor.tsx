@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
@@ -573,42 +574,199 @@ const ImageCarouselModal = ({ isOpen, onOpenChange, initialImages = [], onSave }
 
 
 const ImageCarouselComponent = (props: NodeViewProps) => {
-  const { node, selected, editor } = props;
+  const { node, selected, editor, updateAttributes } = props;
   const images = node.attrs.images || [];
+  const containerRef = useRef<HTMLDivElement>(null);
+  const float = node.attrs['data-float'];
+  const width = node.attrs.width;
+  const height = node.attrs.height;
+  const rotation = node.attrs.rotate || 0;
+
+  const setAlignment = (align: 'left' | 'center' | 'right' | null) => {
+    updateAttributes({ 'data-float': align });
+  };
+  
+  const rotateByAxis = (degrees: number) => {
+    updateAttributes({ rotate: (rotation + degrees) % 360 });
+  };
+
+  const handleStyles = useMemo(() => {
+    return handles.map(handle => ({
+        cursor: getDynamicCursor(handle.direction, rotation)
+    }));
+  }, [rotation]);
+
+  const createResizeHandler = (direction: string) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const container = containerRef.current;
+    if (!container) return;
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startWidth = container.offsetWidth;
+    const startHeight = container.offsetHeight;
+    const aspectRatio = 16 / 9; // Lock carousel to 16:9
+    const angleRad = rotation * (Math.PI / 180);
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const dx = moveEvent.clientX - startX;
+      const dy = moveEvent.clientY - startY;
+
+      const cos = Math.cos(angleRad);
+      const sin = Math.sin(angleRad);
+      const dxRot = dx * cos + dy * sin;
+      const dyRot = -dx * sin + dy * cos;
+
+      let newWidth = startWidth;
+      let newHeight = startHeight;
+
+      if (direction.includes('right')) newWidth = startWidth + dxRot;
+      if (direction.includes('left')) newWidth = startWidth - dxRot;
+      if (direction.includes('bottom')) newHeight = startHeight + dyRot;
+      if (direction.includes('top')) newHeight = startHeight - dyRot;
+      
+      const isCorner = direction.includes('-');
+      if (isCorner) {
+        if (Math.abs(dxRot) > Math.abs(dyRot)) {
+          newHeight = newWidth / aspectRatio;
+        } else {
+          newWidth = newHeight * aspectRatio;
+        }
+      } else {
+        if (direction.includes('left') || direction.includes('right')) {
+          newHeight = newWidth / aspectRatio;
+        } else {
+          newWidth = newHeight * aspectRatio;
+        }
+      }
+
+      newWidth = Math.max(200, newWidth);
+      newHeight = Math.max(112.5, newHeight);
+
+      updateAttributes({ width: `${newWidth}px`, height: `${newHeight}px` });
+    };
+
+    const handleMouseUp = () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+  
+  const createRotationHandler = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const container = containerRef.current;
+    if (!container) return;
+
+    const rect = container.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const startAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
+    const initialRotation = rotation;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const currentAngle = Math.atan2(moveEvent.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
+      const newRotation = initialRotation + (currentAngle - startAngle);
+      updateAttributes({ rotate: newRotation });
+    };
+
+    const handleMouseUp = () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+
 
   return (
     <NodeViewWrapper
-      className={cn(
-        "rich-text-media-node group clear-both relative my-4",
-        selected && 'border-2 border-primary border-solid rounded-lg p-1'
-      )}
+      as="div"
+      className="rich-text-media-node group clear-both relative my-4"
+      style={{ width }}
+      data-float={float}
       draggable="true"
       data-drag-handle
     >
-      <div className="aspect-[16/9] w-full bg-muted rounded-md overflow-hidden relative">
-        {images.length > 0 ? (
-          <Carousel itemsToShow={1} showArrows={images.length > 1} autoplay={!selected}>
-            {images.map((src: string, i: number) => (
-              <CarouselItem key={i}>
-                <div className="relative w-full h-full">
-                  <img src={src} alt={`Carousel image ${i + 1}`} className="w-full h-full object-cover" />
-                </div>
-              </CarouselItem>
-            ))}
-          </Carousel>
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-            <GalleryHorizontal className="w-12 h-12" />
-            <p className="mt-2 text-sm">Empty Carousel</p>
-          </div>
+      <div 
+        ref={containerRef}
+        className={cn(
+          "relative w-full",
+          selected && 'border-2 border-primary border-solid'
         )}
-        {editor.isEditable && (
-          <div className="absolute inset-0 z-10 cursor-move" />
+        style={{
+            height: height || 'auto',
+            transform: `rotate(${rotation}deg)`
+        }}
+      >
+        <div className="w-full h-full bg-muted rounded-md overflow-hidden relative">
+          {images.length > 0 ? (
+            <Carousel itemsToShow={1} showArrows={images.length > 1} autoplay={!selected}>
+              {images.map((src: string, i: number) => (
+                <CarouselItem key={i}>
+                  <div className="relative w-full h-full">
+                    <img src={src} alt={`Carousel image ${i + 1}`} className="w-full h-full object-cover" />
+                  </div>
+                </CarouselItem>
+              ))}
+            </Carousel>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+              <GalleryHorizontal className="w-12 h-12" />
+              <p className="mt-2 text-sm">Empty Carousel</p>
+            </div>
+          )}
+          {editor.isEditable && (
+            <div className="absolute inset-0 z-10 cursor-move" />
+          )}
+        </div>
+        
+        {selected && (
+          <>
+            {handles.map((handle, index) => (
+              <div
+                key={index}
+                className={cn(
+                  "absolute w-2.5 h-2.5 bg-primary rounded-full border border-card pointer-events-auto z-20",
+                  handle.pos
+                )}
+                style={handleStyles[index]}
+                onMouseDown={createResizeHandler(handle.direction)}
+              />
+            ))}
+            <div
+              className="absolute bottom-0 right-0 translate-x-[110%] translate-y-[110%] p-1.5 bg-card rounded-full border border-primary pointer-events-auto z-20 cursor-alias transition-transform group-hover:scale-110"
+              onMouseDown={createRotationHandler}
+              title="Rotate Freely"
+            >
+              <RotateCw className="w-4 h-4 text-primary"/>
+            </div>
+          </>
         )}
       </div>
+
+       {selected && (
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[calc(100%+12px)] z-20 flex gap-1 bg-card p-1 rounded-md shadow-lg border border-border pointer-events-auto">
+              <Button type="button" size="icon" variant={float === 'left' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('left')} title="Align left"><AlignLeft className="w-4 h-4" /></Button>
+              <Button type="button" size="icon" variant={!float || float === 'center' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('center')} title="Align center"><AlignCenter className="w-4 h-4" /></Button>
+              <Button type="button" size="icon" variant={float === 'right' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('right')} title="Align right"><AlignRight className="w-4 h-4" /></Button>
+              <div className="w-px h-5 bg-border mx-1 self-center" />
+              <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => rotateByAxis(90)} title="Rotate 90°">
+                  <RotateCw className="w-4 h-4" />
+              </Button>
+            </div>
+      )}
     </NodeViewWrapper>
   );
 };
+
 
 const ImageCarouselNode = Node.create({
   name: 'imageCarousel',
@@ -622,6 +780,33 @@ const ImageCarouselNode = Node.create({
         default: [],
         parseHTML: element => JSON.parse(element.getAttribute('data-images') || '[]'),
         renderHTML: attributes => ({ 'data-images': JSON.stringify(attributes.images) }),
+      },
+      width: {
+        default: '100%',
+        renderHTML: attributes => ({ style: `width: ${attributes.width};` }),
+        parseHTML: element => element.style.width || null,
+      },
+      height: {
+        default: null,
+        renderHTML: attributes => ({ style: `height: ${attributes.height};` }),
+        parseHTML: element => element.style.height || null,
+      },
+      'data-float': {
+        default: 'center',
+        renderHTML: attributes => ({ 'data-float': attributes['data-float'] }),
+        parseHTML: element => element.getAttribute('data-float'),
+      },
+      rotate: {
+        default: 0,
+        renderHTML: attributes => ({ style: `transform: rotate(${attributes.rotate}deg)` }),
+        parseHTML: element => {
+          const transform = element.style.transform;
+          if (transform && transform.includes('rotate')) {
+            const match = transform.match(/rotate\(([^deg)]+)deg\)/);
+            return match ? parseFloat(match[1]) : 0;
+          }
+          return 0;
+        },
       },
     };
   },

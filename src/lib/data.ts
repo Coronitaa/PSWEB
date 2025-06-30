@@ -1,9 +1,8 @@
 
-
 'use server';
 
 import { getDb } from './db';
-import type { Game, Category, Resource, Author, Tag, ResourceFile, GetResourcesParams, PaginatedResourcesResponse, ResourceLinks, ChangelogEntry, WebItem, AppItem, ArtMusicItem, ItemStats, ItemType, ItemWithDetails, GenericListItem, ProjectStatus, UserAppRole, CategoryTagGroupConfig, ProjectCategoryTagConfigurations, ProjectTagGroupSource, DynamicAvailableFilterTags, DynamicTagGroup, TagInGroupConfig, Review, ReviewInteractionCounts, UserStats, UserBadge, RankedResource, ProjectFormData, CategoryFormData, ResourceFormData, MainFileDetails, DynamicTagSelection, RawCategoryProjectDetails, FileChannelId, ResourceFileFormData, SectionTagFormData, ProfileUpdateFormData } from './types';
+import type { Game, Category, Resource, Author, Tag, ResourceFile, GetResourcesParams, PaginatedResourcesResponse, ResourceLinks, ChangelogEntry, WebItem, AppItem, ArtMusicItem, ItemStats, ItemType, ItemWithDetails, GenericListItem, ProjectStatus, UserAppRole, CategoryTagGroupConfig, ProjectCategoryTagConfigurations, ProjectTagGroupSource, DynamicAvailableFilterTags, DynamicTagGroup, TagInGroupConfig, Review, ReviewInteractionCounts, UserStats, UserBadge, RankedResource, ProjectFormData, CategoryFormData, ResourceFormData, MainFileDetails, DynamicTagSelection, RawCategoryProjectDetails, FileChannelId, ResourceFileFormData, SectionTagFormData, ProfileUpdateFormData, ResourceAuthor } from './types';
 import { ITEM_TYPES_CONST, PROJECT_STATUSES_CONST, PROJECT_STATUS_NAMES, USER_APP_ROLES_CONST, FILE_CHANNELS } from './types';
 import { calculateGenericItemSearchScore, mapConfigToTagInterface } from './utils';
 
@@ -24,14 +23,13 @@ export const mapFileChannelToTagInterface = async (channelId: FileChannelId | st
     color: channelInfo.color,
     text_color: channelInfo.textColor,
     border_color: channelInfo.borderColor,
-    hover_bg_color: channelInfo.color, // Or a slightly different hover variant
+    hover_bg_color: channelInfo.color,
     hover_text_color: channelInfo.textColor,
     hover_border_color: channelInfo.borderColor,
-    icon_svg: undefined, // Channels don't have icons by default
+    icon_svg: undefined,
     type: 'channel',
   };
 };
-
 
 const parseDescriptionAndConfigFromRow = (row: any): Category => {
   const rawDescription = row.description;
@@ -63,11 +61,9 @@ const parseDescriptionAndConfigFromRow = (row: any): Category => {
             appliesToFiles: typeof group.appliesToFiles === 'boolean' ? group.appliesToFiles : false,
           }));
         } else {
-          // console.warn("Parsed tagGroupConfigs is not an array:", parsedConfigs);
           tagGroupConfigs = [];
         }
       } catch (e) {
-        // console.error("Failed to parse tagGroupConfigs JSON:", e, "Raw JSON:", parts[1]);
         tagGroupConfigs = [];
       }
     }
@@ -83,7 +79,7 @@ const parseDescriptionAndConfigFromRow = (row: any): Category => {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     tagGroupConfigs: tagGroupConfigs,
-    rawDescription: rawDescription, // Keep the raw combined string for updates
+    rawDescription: rawDescription,
   } as Category;
 };
 
@@ -96,18 +92,16 @@ export const generateSlugLocal = async (
   const db = await getDb();
   let effectiveName = name;
   if (!effectiveName) {
-    // Fallback if name is empty, though forms should prevent this
     effectiveName = tableName + '-' + Date.now().toString(36);
   }
 
   let baseSlug = effectiveName.toLowerCase()
-    .replace(/\s+/g, '-') // Replace spaces with -
-    .replace(/[^\w-]+/g, '') // Remove all non-word chars except -
-    .replace(/--+/g, '-') // Replace multiple - with single -
-    .replace(/^-+/, '') // Trim - from start of text
-    .replace(/-+$/, ''); // Trim - from end of text
+    .replace(/\s+/g, '-')
+    .replace(/[^\w-]+/g, '')
+    .replace(/--+/g, '-')
+    .replace(/^-+/, '')
+    .replace(/-+$/, '');
 
-  // Ensure baseSlug is not empty after sanitization
   if (baseSlug.length === 0) {
     baseSlug = tableName + '-' + Date.now().toString(36);
   }
@@ -147,8 +141,80 @@ export const generateSlugLocal = async (
   return slug;
 };
 
+// --- Author Management ---
+export async function getAuthorsForResource(resourceId: string): Promise<ResourceAuthor[]> {
+    const db = await getDb();
+    const authorRows = await db.all(`
+        SELECT p.id, p.name, p.usertag, p.avatar_url, p.role, ra.is_creator, ra.role_description, ra.sort_order
+        FROM resource_authors ra
+        JOIN profiles p ON ra.user_id = p.id
+        WHERE ra.resource_id = ?
+        ORDER BY ra.is_creator DESC, ra.sort_order ASC, p.name ASC
+    `, resourceId);
 
-// --- Section Tag CRUD (for the pool of tags) ---
+    return authorRows.map(row => ({
+        id: row.id,
+        name: row.name || 'Unnamed User',
+        usertag: row.usertag,
+        avatarUrl: row.avatar_url,
+        isCreator: Boolean(row.is_creator),
+        roleDescription: row.role_description,
+        sortOrder: row.sort_order,
+        role: row.role as UserAppRole,
+    }));
+}
+
+export const searchProfiles = async (query: string): Promise<Author[]> => {
+  const db = await getDb();
+  if (!query) return [];
+  const rows = await db.all(
+    "SELECT id, name, usertag, avatar_url, role FROM profiles WHERE usertag LIKE ? OR name LIKE ? LIMIT 10",
+    `%${query.replace('@', '')}%`,
+    `%${query}%`
+  );
+  return rows.map(p => ({
+    id: p.id, name: p.name, usertag: p.usertag, avatarUrl: p.avatar_url, role: p.role as UserAppRole
+  }));
+};
+
+export const addAuthorToResource = async (resourceId: string, userIdToAdd: string, roleDescription?: string): Promise<ResourceAuthor[]> => {
+  const db = await getDb();
+  await db.run(
+    'INSERT OR IGNORE INTO resource_authors (resource_id, user_id, role_description, is_creator) VALUES (?, ?, ?, ?)',
+    resourceId, userIdToAdd, roleDescription || 'Collaborator', false
+  );
+  return getAuthorsForResource(resourceId);
+};
+
+export const removeAuthorFromResource = async (resourceId: string, userIdToRemove: string): Promise<ResourceAuthor[]> => {
+  const db = await getDb();
+  await db.run('DELETE FROM resource_authors WHERE resource_id = ? AND user_id = ? AND is_creator = 0', resourceId, userIdToRemove);
+  return getAuthorsForResource(resourceId);
+};
+
+export const updateAuthorRoleInDb = async (resourceId: string, userIdToUpdate: string, newRoleDescription: string): Promise<ResourceAuthor[]> => {
+  const db = await getDb();
+  await db.run('UPDATE resource_authors SET role_description = ? WHERE resource_id = ? AND user_id = ?', newRoleDescription, resourceId, userIdToUpdate);
+  return getAuthorsForResource(resourceId);
+};
+
+export const transferResourceOwnershipInDb = async (resourceId: string, newCreatorId: string): Promise<ResourceAuthor[]> => {
+  const db = await getDb();
+  const currentCreator = await db.get('SELECT user_id FROM resource_authors WHERE resource_id = ? AND is_creator = 1', resourceId);
+
+  if (currentCreator) {
+    await db.exec('BEGIN TRANSACTION');
+    // Demote current creator to a regular author
+    await db.run('UPDATE resource_authors SET is_creator = 0, role_description = ? WHERE resource_id = ? AND user_id = ?', 'Collaborator', resourceId, currentCreator.user_id);
+    // Promote new user to creator
+    await db.run('UPDATE resource_authors SET is_creator = 1, role_description = ? WHERE resource_id = ? AND user_id = ?', 'Creator', resourceId, newCreatorId);
+    await db.exec('COMMIT');
+  }
+
+  return getAuthorsForResource(resourceId);
+};
+
+// --- Section Tag CRUD ---
 export const createSectionTagDefinition = async (itemType: ItemType, name: string, description?: string): Promise<Tag> => {
   const db = await getDb();
   const slug = await generateSlugLocal(name, 'section_tags', { item_type: itemType });
@@ -195,16 +261,14 @@ export const deleteSectionTagDefinition = async (tagId: string): Promise<boolean
   const db = await getDb();
   try {
     await db.exec('BEGIN TRANSACTION');
-    // Desasignar de todos los proyectos
     await db.run('DELETE FROM project_section_tags WHERE section_tag_id = ?', tagId);
-    // Eliminar el tag del pool
     const result = await db.run('DELETE FROM section_tags WHERE id = ?', tagId);
     await db.exec('COMMIT');
     return (result.changes ?? 0) > 0;
   } catch (error) {
     await db.exec('ROLLBACK');
     console.error("Error deleting section tag definition:", error);
-    throw error; // Re-throw para que la acción pueda capturarlo
+    throw error;
   }
 };
 
@@ -217,14 +281,14 @@ export const getSectionTagsForItemType = async (itemType: ItemType): Promise<Tag
     name: row.name,
     slug: row.slug,
     description: row.description,
-    color: row.color, // Keep style fields for TagBadge compatibility
+    color: row.color,
     text_color: row.text_color,
     border_color: row.border_color,
     hover_bg_color: row.hover_bg_color,
     hover_text_color: row.hover_text_color,
     hover_border_color: row.hover_border_color,
     icon_svg: row.icon_svg,
-    type: 'section', // Ensure type is 'section'
+    type: 'section',
   }));
 };
 
@@ -265,7 +329,7 @@ export const getItemBySlugGeneric = async (
   slugOrId: string,
   itemType: ItemType,
   byId: boolean = false,
-  adminAccess: boolean = false // Determines if draft/archived items are returned
+  adminAccess: boolean = false
 ): Promise<GenericListItem | undefined> => {
   const db = await getDb();
   let queryCondition = byId ? "i.id = ?" : "i.slug = ?";
@@ -280,7 +344,7 @@ export const getItemBySlugGeneric = async (
   if (!itemRow) return undefined;
 
   if (!adminAccess && itemRow.status === 'archived') return undefined;
-  if (!adminAccess && itemRow.status === 'draft' && !byId) { // If accessing by slug and it's a draft, don't show to public
+  if (!adminAccess && itemRow.status === 'draft' && !byId) {
       return undefined;
   }
 
@@ -321,7 +385,7 @@ export const getCategoriesForItemGeneric = async (itemIdOrSlug: string, itemType
                        itemIdOrSlug.includes('-');
 
   if (isLikelySlug) {
-      const parentItem = await getItemBySlugGeneric(itemIdOrSlug, itemType, false, true); // Use adminAccess true to get parent even if draft
+      const parentItem = await getItemBySlugGeneric(itemIdOrSlug, itemType, false, true);
       if (!parentItem) {
         console.warn(`[getCategoriesForItemGeneric] Parent item with slug "${itemIdOrSlug}" and type "${itemType}" not found.`);
         return [];
@@ -355,7 +419,6 @@ export const getItemStatsGeneric = async (itemId: string, itemType: ItemType): P
   );
   const totalFollowers = itemFollowersResult?.followers_count || 0;
 
-  // totalViews remains a placeholder for now
   const totalViews = Math.floor(Math.random() * 20000) + totalResources + (totalDownloads || 0) + (totalFollowers || 0);
 
 
@@ -363,7 +426,7 @@ export const getItemStatsGeneric = async (itemId: string, itemType: ItemType): P
     totalResources,
     totalDownloads,
     totalFollowers,
-    totalViews, // Placeholder
+    totalViews,
   };
 };
 
@@ -375,7 +438,7 @@ export const getAllItemsWithDetails = async (): Promise<ItemWithDetails[]> => {
     itemRows.map(async (itemRow) => {
       const categories = await getCategoriesForItemGeneric(itemRow.id, itemRow.item_type as ItemType);
       const stats = await getItemStatsGeneric(itemRow.id, itemRow.item_type as ItemType);
-      const baseItem = await getItemBySlugGeneric(itemRow.id, itemRow.item_type as ItemType, true, true); // adminAccess true
+      const baseItem = await getItemBySlugGeneric(itemRow.id, itemRow.item_type as ItemType, true, true);
       return { ...(baseItem as GenericListItem), categories, stats } as ItemWithDetails;
     })
   );
@@ -388,7 +451,7 @@ const getPublishedItemsWithDetailsByType = async (itemType: ItemType): Promise<I
     itemRows.map(async (itemRow) => {
       const categories = await getCategoriesForItemGeneric(itemRow.id, itemRow.item_type as ItemType);
       const stats = await getItemStatsGeneric(itemRow.id, itemRow.item_type as ItemType);
-      const baseItem = await getItemBySlugGeneric(itemRow.id, itemRow.item_type as ItemType, true, false); // adminAccess false for public
+      const baseItem = await getItemBySlugGeneric(itemRow.id, itemRow.item_type as ItemType, true, false);
       return { ...(baseItem as GenericListItem), categories, stats } as ItemWithDetails;
     })
   );
@@ -402,7 +465,7 @@ export const getArtMusicItemsWithDetails = async (): Promise<ItemWithDetails[]> 
 // --- Category Functions ---
 export const getCategoryDetails = async (parentItemSlug: string, parentItemType: ItemType, categorySlug: string): Promise<Category | undefined> => {
   const db = await getDb();
-  const parentItem = await getItemBySlugGeneric(parentItemSlug, parentItemType, false, true); // Admin access true to get parent context even if draft
+  const parentItem = await getItemBySlugGeneric(parentItemSlug, parentItemType, false, true);
   if (!parentItem) return undefined;
   const row = await db.get('SELECT * FROM categories WHERE parent_item_id = ? AND slug = ?', parentItem.id, categorySlug);
   return row ? parseDescriptionAndConfigFromRow(row) : undefined;
@@ -427,7 +490,6 @@ export const getRawCategoryDetailsForForm = async (projectSlug: string, itemType
 };
 
 // --- Resource Functions ---
-
 export const getResourceForEdit = async (resourceSlugOrId: string, byId: boolean = false): Promise<Resource | undefined> => {
     const db = await getDb();
     const queryCondition = byId ? 'r.id = ?' : 'r.slug = ?';
@@ -435,6 +497,8 @@ export const getResourceForEdit = async (resourceSlugOrId: string, byId: boolean
 
     if (!row) return undefined;
 
+    const authors = await getAuthorsForResource(row.id);
+    const creator = authors.find(a => a.isCreator);
     const categoryForResource = await getCategoryDetails(row.parent_item_slug, row.parent_item_type as ItemType, row.category_slug);
 
     const filesDb = await db.all("SELECT rf.*, ce.notes as changelog_notes FROM resource_files rf LEFT JOIN changelog_entries ce ON ce.resource_file_id = rf.id WHERE rf.resource_id = ? ORDER BY rf.updated_at DESC, rf.created_at DESC", row.id);
@@ -511,8 +575,9 @@ export const getResourceForEdit = async (resourceSlugOrId: string, byId: boolean
         categoryId: row.category_id,
         categorySlug: row.category_slug,
         categoryName: row.category_name,
-        authorId: row.author_id,
-        author: { id: row.author_id, name: '', usertag: '', role: 'usuario'},
+        authorId: creator?.id,
+        author: creator,
+        authors: authors,
         version: row.version,
         description: row.description,
         detailedDescription: row.detailed_description,
@@ -554,7 +619,7 @@ export const getResources = async (params: GetResourcesParams): Promise<Paginate
     return { resources: [], total: 0, hasMore: false };
   }
 
-  const parentItem = await getItemBySlugGeneric(parentItemSlug, parentItemType, false, true); // Admin access for parent context
+  const parentItem = await getItemBySlugGeneric(parentItemSlug, parentItemType, false, true);
   if (!parentItem) {
     return { resources: [], total: 0, hasMore: false };
   }
@@ -603,7 +668,7 @@ export const getResources = async (params: GetResourcesParams): Promise<Paginate
   const countQueryParams = [...queryParams];
 
   let countQuery = 'SELECT COUNT(DISTINCT r.id) as total FROM resources r WHERE ' + whereString;
-  let query = 'SELECT r.*, p.name as author_name, p.usertag as author_usertag, p.avatar_url as author_avatar_url, pi.name as parent_item_name, pi.slug as parent_item_slug, pi.item_type as parent_item_type, c.name as category_name, c.slug as category_slug FROM resources r JOIN profiles p ON r.author_id = p.id JOIN items pi ON r.parent_item_id = pi.id JOIN categories c ON r.category_id = c.id WHERE ' + whereString + ' ' + orderByClause + ' LIMIT ? OFFSET ?';
+  let query = 'SELECT r.*, pi.name as parent_item_name, pi.slug as parent_item_slug, pi.item_type as parent_item_type, c.name as category_name, c.slug as category_slug FROM resources r JOIN items pi ON r.parent_item_id = pi.id JOIN categories c ON r.category_id = c.id WHERE ' + whereString + ' ' + orderByClause + ' LIMIT ? OFFSET ?';
 
   try {
     const resourceRows = await db.all(query, ...mainQueryParams);
@@ -612,6 +677,8 @@ export const getResources = async (params: GetResourcesParams): Promise<Paginate
     const filteredTotal = totalRow?.total || 0;
 
     let resources = await Promise.all(resourceRows.map(async (row) => {
+      const authors = await getAuthorsForResource(row.id);
+      const creator = authors.find(a => a.isCreator);
       const categoryForResource = category;
 
       let resourceDisplayTags: Tag[] = [];
@@ -672,7 +739,7 @@ export const getResources = async (params: GetResourcesParams): Promise<Paginate
         id: row.id, name: row.name, slug: row.slug,
         parentItemId: row.parent_item_id, parentItemName: row.parent_item_name, parentItemSlug: row.parent_item_slug, parentItemType: row.parent_item_type as ItemType,
         categoryId: row.category_id, categoryName: row.category_name, categorySlug: row.category_slug,
-        authorId: row.author_id, author: { id: row.author_id, name: row.author_name, usertag: row.author_usertag, avatarUrl: row.author_avatar_url, role: 'usuario' },
+        authorId: creator?.id, author: creator, authors: authors,
         version: row.version, description: row.description, detailedDescription: row.detailed_description,
         imageUrl: row.image_url, imageGallery: row.image_gallery ? JSON.parse(row.image_gallery) : [],
         galleryAspectRatio: row.gallery_aspect_ratio,
@@ -705,10 +772,12 @@ export const getBestMatchForCategoryAction = async (parentItemSlug: string, pare
 
 export const getResourceBySlug = async (slug: string): Promise<Resource | undefined> => {
   const db = await getDb();
-  const row = await db.get('SELECT r.*, p.name as author_name, p.usertag as author_usertag, p.avatar_url as author_avatar_url, pi.name as parent_item_name, pi.slug as parent_item_slug, pi.item_type as parent_item_type, c.name as category_name, c.slug as category_slug FROM resources r JOIN profiles p ON r.author_id = p.id JOIN items pi ON r.parent_item_id = pi.id JOIN categories c ON r.category_id = c.id WHERE r.slug = ? AND (r.status = "published" OR r.status = "draft")', slug);
+  const row = await db.get('SELECT r.*, pi.name as parent_item_name, pi.slug as parent_item_slug, pi.item_type as parent_item_type, c.name as category_name, c.slug as category_slug FROM resources r JOIN items pi ON r.parent_item_id = pi.id JOIN categories c ON r.category_id = c.id WHERE r.slug = ? AND (r.status = "published" OR r.status = "draft")', slug);
 
   if (!row) return undefined;
 
+  const authors = await getAuthorsForResource(row.id);
+  const creator = authors.find(a => a.isCreator);
   const categoryForResource = await getCategoryDetails(row.parent_item_slug, row.parent_item_type as ItemType, row.category_slug);
 
   let resourceDisplayTags: Tag[] = [];
@@ -770,28 +839,27 @@ export const getResourceBySlug = async (slug: string): Promise<Resource | undefi
         'FROM reviews rev ' +
         'JOIN profiles p_author ON rev.author_id = p_author.id ' +
         'WHERE rev.resource_id = ? ' +
-        'ORDER BY rev.created_at DESC', // Default sort, most_helpful logic will be applied below
+        'ORDER BY rev.created_at DESC',
     row.id
     );
 
     let reviews: Review[] = reviewRows.map(revRow => ({
         id: revRow.id,
         resourceId: revRow.resource_id,
-        authorId: revRow.author_id,
         resourceVersion: revRow.resource_version,
-        isRecommended: Boolean(revRow.is_recommended),
-        comment: revRow.comment,
-        createdAt: revRow.created_at,
-        updatedAt: revRow.updated_at,
-        interactionCounts: revRow.interaction_counts ? JSON.parse(revRow.interaction_counts) : { helpful: 0, unhelpful: 0, funny: 0 },
-        // isMostHelpful will be set dynamically
+        authorId: revRow.author_id,
         author: {
             id: revRow.author_id,
             name: revRow.author_name,
             usertag: revRow.author_usertag,
             avatarUrl: revRow.author_avatar_url,
             role: 'usuario',
-        }
+        },
+        isRecommended: Boolean(revRow.is_recommended),
+        comment: revRow.comment,
+        createdAt: revRow.created_at,
+        updatedAt: revRow.updated_at,
+        interactionCounts: revRow.interaction_counts ? JSON.parse(revRow.interaction_counts) : { helpful: 0, unhelpful: 0, funny: 0 },
     }));
 
     if (reviews.length > 0) {
@@ -803,7 +871,6 @@ export const getResourceBySlug = async (slug: string): Promise<Resource | undefi
           maxHelpfulCount = helpfulCount;
           mostHelpfulIdx = idx;
         } else if (helpfulCount === maxHelpfulCount && helpfulCount > 0 && mostHelpfulIdx !== -1) {
-          // Tie-breaking: prefer newer review among those with max helpful votes
           if (new Date(rev.createdAt) > new Date(reviews[mostHelpfulIdx].createdAt)) {
             mostHelpfulIdx = idx;
           }
@@ -819,7 +886,7 @@ export const getResourceBySlug = async (slug: string): Promise<Resource | undefi
     id: row.id, name: row.name, slug: row.slug,
     parentItemId: row.parent_item_id, parentItemName: row.parent_item_name, parentItemSlug: row.parent_item_slug, parentItemType: row.parent_item_type as ItemType,
     categoryId: row.category_id, categoryName: row.category_name, categorySlug: row.category_slug,
-    authorId: row.author_id, author: { id: row.author_id, name: row.author_name, usertag: row.author_usertag, avatarUrl: row.author_avatar_url, role: 'usuario' },
+    authorId: creator?.id, author: creator, authors: authors,
     version: row.version, description: row.description, detailedDescription: row.detailed_description,
     imageUrl: row.image_url, imageGallery: row.image_gallery ? JSON.parse(row.image_gallery) : [],
     galleryAspectRatio: row.gallery_aspect_ratio,
@@ -880,14 +947,13 @@ export const getUserProfileByUsertag = async (usertagWithoutAt: string): Promise
   const mockBadges: UserBadge[] = [];
   if (profileRow.role === 'admin') mockBadges.push({ id: 'badge-admin', name: 'Admin', icon: 'ShieldCheck', color: 'hsl(var(--destructive))', textColor: 'hsl(var(--destructive-foreground))' });
   if (profileRow.role === 'mod') mockBadges.push({ id: 'badge-mod', name: 'Moderator', icon: 'Shield', color: 'hsl(var(--primary))', textColor: 'hsl(var(--primary-foreground))' });
-  // All users get a "verified" badge for now as part of mock data
   mockBadges.push({id: 'badge-verified', name: 'Verified', icon: 'CheckCircle', color: 'hsl(var(--accent))', textColor: 'hsl(var(--accent-foreground))' });
 
 
   return {
     id: profileRow.id,
     name: profileRow.name,
-    usertag: profileRow.usertag, // Store with @ from DB
+    usertag: profileRow.usertag,
     avatarUrl: profileRow.avatar_url,
     bannerUrl: profileRow.banner_url,
     bio: profileRow.bio,
@@ -927,7 +993,7 @@ export const getUserStats = async (userId: string): Promise<UserStats> => {
   const db = await getDb();
 
   const resourcesPublishedResult = await db.get(
-    "SELECT COUNT(*) as count FROM resources WHERE author_id = ? AND status = 'published'",
+    "SELECT COUNT(DISTINCT r.id) as count FROM resources r JOIN resource_authors ra ON r.id = ra.resource_id WHERE ra.user_id = ? AND r.status = 'published'",
     userId
   );
   const resourcesPublishedCount = resourcesPublishedResult?.count || 0;
@@ -939,7 +1005,7 @@ export const getUserStats = async (userId: string): Promise<UserStats> => {
   const reviewsPublishedCount = reviewsPublishedResult?.count || 0;
 
   const userPublishedResources = await db.all(
-    "SELECT rating, review_count FROM resources WHERE author_id = ? AND status = 'published' AND rating IS NOT NULL AND review_count > 0",
+    "SELECT r.rating, r.review_count FROM resources r JOIN resource_authors ra ON r.id = ra.resource_id WHERE ra.user_id = ? AND r.status = 'published' AND r.rating IS NOT NULL AND r.review_count > 0",
     userId
   );
 
@@ -953,7 +1019,7 @@ export const getUserStats = async (userId: string): Promise<UserStats> => {
   const overallResourceRating = totalReviewCountForAllResources > 0 ? (totalWeightedRating / totalReviewCountForAllResources) : null;
 
   return {
-    followersCount: 0, // Placeholder as user followers are not tracked directly
+    followersCount: 0,
     resourcesPublishedCount,
     reviewsPublishedCount,
     overallResourceRating,
@@ -963,6 +1029,8 @@ export const getUserStats = async (userId: string): Promise<UserStats> => {
 
 const hydrateResourceRows = async (rows: any[]): Promise<Resource[]> => {
   return Promise.all(rows.map(async (row) => {
+    const authors = await getAuthorsForResource(row.id);
+    const creator = authors.find(a => a.isCreator);
     const categoryForResource = await getCategoryDetails(row.parent_item_slug, row.parent_item_type as ItemType, row.category_slug);
     let resourceDisplayTags: Tag[] = [];
     const selectedTagGroups: DynamicTagSelection = row.selected_dynamic_tags_json ? JSON.parse(row.selected_dynamic_tags_json) : {};
@@ -1021,7 +1089,7 @@ const hydrateResourceRows = async (rows: any[]): Promise<Resource[]> => {
       id: row.id, name: row.name, slug: row.slug,
       parentItemId: row.parent_item_id, parentItemName: row.parent_item_name, parentItemSlug: row.parent_item_slug, parentItemType: row.parent_item_type as ItemType,
       categoryId: row.category_id, categoryName: row.category_name, categorySlug: row.category_slug,
-      authorId: row.author_id, author: { id: row.author_id, name: row.author_name, usertag: row.author_usertag, avatarUrl: row.author_avatar_url, role: 'usuario' },
+      authorId: creator?.id, author: creator, authors: authors,
       version: row.version, description: row.description, detailedDescription: row.detailed_description,
       imageUrl: row.image_url, imageGallery: row.image_gallery ? JSON.parse(row.image_gallery) : [],
       galleryAspectRatio: row.gallery_aspect_ratio,
@@ -1035,7 +1103,7 @@ const hydrateResourceRows = async (rows: any[]): Promise<Resource[]> => {
       status: row.status as ProjectStatus,
       tags: resourceDisplayTags,
       files: files,
-      reviews: [], // Reviews not hydrated here for performance on lists
+      reviews: [],
       selectedDynamicTagsJson: row.selected_dynamic_tags_json,
       mainFileDetailsJson: row.main_file_details_json,
     } as Resource;
@@ -1047,14 +1115,13 @@ export const getTopUserResources = async (userId: string, count: number = 3): Pr
   const db = await getDb();
   const resourceRows = await db.all(`
     SELECT r.*,
-           p.name as author_name, p.usertag as author_usertag, p.avatar_url as author_avatar_url,
            pi.name as parent_item_name, pi.slug as parent_item_slug, pi.item_type as parent_item_type,
            c.name as category_name, c.slug as category_slug
     FROM resources r
-    JOIN profiles p ON r.author_id = p.id
+    JOIN resource_authors ra ON r.id = ra.resource_id
     JOIN items pi ON r.parent_item_id = pi.id
     JOIN categories c ON r.category_id = c.id
-    WHERE r.author_id = ? AND r.status = 'published'
+    WHERE ra.user_id = ? AND r.status = 'published'
     ORDER BY r.downloads DESC, r.rating DESC, r.updated_at DESC
     LIMIT ?
   `, userId, count);
@@ -1083,16 +1150,15 @@ export async function getAuthorPublishedResources(
 
   let baseQuery = `
     SELECT r.*,
-           p.name as author_name, p.usertag as author_usertag, p.avatar_url as author_avatar_url,
            pi.name as parent_item_name, pi.slug as parent_item_slug, pi.item_type as parent_item_type,
            c.name as category_name, c.slug as category_slug
     FROM resources r
-    JOIN profiles p ON r.author_id = p.id
+    JOIN resource_authors ra ON r.id = ra.resource_id
     JOIN items pi ON r.parent_item_id = pi.id
     JOIN categories c ON r.category_id = c.id
   `;
   
-  const whereClauses: string[] = ["r.author_id = ?", "r.status = 'published'"];
+  const whereClauses: string[] = ["ra.user_id = ?", "r.status = 'published'"];
   const whereQueryParams: any[] = [userId];
 
   if (excludeIds && excludeIds.length > 0) {
@@ -1120,7 +1186,7 @@ export async function getAuthorPublishedResources(
   const whereString = whereClauses.join(' AND ');
   baseQuery += ' WHERE ' + whereString;
   
-  const countQuery = `SELECT COUNT(r.id) as total FROM resources r JOIN items pi ON r.parent_item_id = pi.id JOIN categories c ON r.category_id = c.id WHERE ${whereString}`;
+  const countQuery = `SELECT COUNT(DISTINCT r.id) as total FROM resources r JOIN resource_authors ra ON r.id = ra.resource_id JOIN items pi ON r.parent_item_id = pi.id JOIN categories c ON r.category_id = c.id WHERE ${whereString}`;
   const totalRow = await db.get(countQuery, ...whereQueryParams);
   const total = totalRow?.total || 0;
   
@@ -1141,6 +1207,7 @@ export async function getAuthorPublishedResources(
     baseQuery += ` ORDER BY ${orderByField} ${orderDirection}, r.id DESC`;
   }
 
+  baseQuery += ' GROUP BY r.id';
 
   const offset = (page - 1) * limit;
   baseQuery += ` LIMIT ? OFFSET ?`;
@@ -1160,7 +1227,8 @@ export const getProjectsForUser = async (userId: string): Promise<{ [key in Item
   const projectRows = await db.all(
     `SELECT DISTINCT i.* FROM items i
      JOIN resources r ON i.id = r.parent_item_id
-     WHERE r.author_id = ? AND i.status = 'published'
+     JOIN resource_authors ra ON r.id = ra.resource_id
+     WHERE ra.user_id = ? AND i.status = 'published'
      ORDER BY i.item_type, i.name ASC`,
     userId
   );
@@ -1199,7 +1267,7 @@ export const addProjectToDb = async (projectData: ProjectFormData): Promise<Gene
     projectData.iconUrl || 'https://placehold.co/128x128.png',
     projectData.itemType, projectData.projectUrl || null,
     projectData.authorDisplayName || null, projectData.status,
-    0, // Initialize followers_count to 0
+    0,
   );
 
   if (projectData.tagIds && projectData.tagIds.length > 0) {
@@ -1231,7 +1299,7 @@ export const updateProjectInDb = async (projectId: string, projectData: Partial<
     projectData.longDescription ?? currentProject.long_description, projectData.bannerUrl ?? currentProject.banner_url,
     projectData.iconUrl ?? currentProject.icon_url, projectData.projectUrl ?? currentProject.project_url,
     projectData.authorDisplayName ?? currentProject.author_display_name, projectData.status ?? currentProject.status,
-    projectData.followers_count ?? currentProject.followers_count ?? 0, // Ensure followers_count is handled
+    projectData.followers_count ?? currentProject.followers_count ?? 0,
     projectId
   );
 

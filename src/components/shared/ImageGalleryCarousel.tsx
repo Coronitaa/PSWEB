@@ -1,11 +1,11 @@
-
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { motion, useMotionValue, PanInfo, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, X as XIconLucide } from "lucide-react";
+import { createPortal } from "react-dom";
 
 const ONE_SECOND = 1000;
 const DRAG_BUFFER = 50;
@@ -67,9 +67,14 @@ export const ImageGalleryCarousel: React.FC<ImageGalleryCarouselProps> = ({
 
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [isMounted, setIsMounted] = useState(false);
 
   const numImages = images.length;
   const isAutoplayDisabled = autoplayInterval === 999999999;
+  
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     if (imgIndex >= numImages) {
@@ -77,7 +82,7 @@ export const ImageGalleryCarousel: React.FC<ImageGalleryCarouselProps> = ({
     }
   }, [numImages, imgIndex]);
 
-  const startAutoPlay = () => {
+  const startAutoPlay = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (!isAutoplayDisabled && numImages > 1 && !lightboxOpen) {
       intervalRef.current = setInterval(() => {
@@ -87,14 +92,15 @@ export const ImageGalleryCarousel: React.FC<ImageGalleryCarouselProps> = ({
         }
       }, autoplayInterval);
     }
-  };
+  }, [autoplayInterval, dragX, isAutoplayDisabled, lightboxOpen, numImages]);
+
 
   useEffect(() => {
     startAutoPlay();
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [dragX, numImages, lightboxOpen, autoplayInterval, isAutoplayDisabled]); 
+  }, [dragX, numImages, lightboxOpen, autoplayInterval, isAutoplayDisabled, startAutoPlay]); 
 
   const onDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     const x = info.offset.x;
@@ -199,94 +205,97 @@ export const ImageGalleryCarousel: React.FC<ImageGalleryCarouselProps> = ({
         <GradientEdges />
       </div>
 
-      <AnimatePresence>
-        {lightboxOpen && (
-          <motion.div
-            id="lightbox-modal"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4 sm:p-10"
-            onClick={closeLightbox} 
-          >
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); closeLightbox(); }}
-              className="absolute top-4 right-4 z-[102] p-2 rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors focus:outline-none"
-              aria-label="Close lightbox"
-            >
-              <XIconLucide size={28} />
-            </button>
-
-            {numImages > 1 && (
-                <>
-                <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); goToPrevImage(); }}
-                    className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-[101] p-2 sm:p-3 rounded-full bg-black/30 text-white hover:bg-black/50 transition-all focus:outline-none opacity-70 hover:opacity-100"
-                    aria-label="Previous image"
-                >
-                    <ChevronLeft size={32} />
-                </button>
-                <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); goToNextImage(); }}
-                    className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-[101] p-2 sm:p-3 rounded-full bg-black/30 text-white hover:bg-black/50 transition-all focus:outline-none opacity-70 hover:opacity-100"
-                    aria-label="Next image"
-                >
-                    <ChevronRight size={32} />
-                </button>
-                </>
-            )}
-            
+      {isMounted && createPortal(
+        <AnimatePresence>
+          {lightboxOpen && (
             <motion.div
-              key={selectedImageIndex}
-              initial={{ opacity: 0.8, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-              className="relative w-full h-full flex items-center justify-center"
-              onClick={(e) => e.stopPropagation()} 
+              id="lightbox-modal"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4 sm:p-10"
+              onClick={closeLightbox} 
             >
-              {(() => {
-                    const media = parseMediaUrl(images[selectedImageIndex]);
-                    if (!media) return <div className="text-white">Invalid Media URL</div>;
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); closeLightbox(); }}
+                className="absolute top-4 right-4 z-[102] p-2 rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors focus:outline-none"
+                aria-label="Close lightbox"
+              >
+                <XIconLucide size={28} />
+              </button>
 
-                    if (media.type === 'video') {
-                        return (
-                           <div className="relative w-full h-full max-w-4xl aspect-video bg-black rounded-lg">
-                                <iframe
-                                    src={`${media.src}?autoplay=1&rel=0`}
-                                    className="w-full h-full"
-                                    frameBorder="0"
-                                    allow="autoplay; encrypted-media; picture-in-picture"
-                                    allowFullScreen
-                                    title={`Enlarged video ${selectedImageIndex + 1}`}
-                                />
-                           </div>
-                        );
-                    } else {
-                        return (
-                            <Image
-                                src={media.src}
-                                alt={`Enlarged image ${selectedImageIndex + 1}`}
-                                fill
-                                style={{ objectFit: "contain" }}
-                                className="rounded-lg shadow-2xl"
-                                priority 
-                                onDragStart={(e) => e.preventDefault()}
-                            />
-                        );
-                    }
-                })()}
+              {numImages > 1 && (
+                  <>
+                  <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); goToPrevImage(); }}
+                      className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-[101] p-2 sm:p-3 rounded-full bg-black/30 text-white hover:bg-black/50 transition-all focus:outline-none opacity-70 hover:opacity-100"
+                      aria-label="Previous image"
+                  >
+                      <ChevronLeft size={32} />
+                  </button>
+                  <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); goToNextImage(); }}
+                      className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-[101] p-2 sm:p-3 rounded-full bg-black/30 text-white hover:bg-black/50 transition-all focus:outline-none opacity-70 hover:opacity-100"
+                      aria-label="Next image"
+                  >
+                      <ChevronRight size={32} />
+                  </button>
+                  </>
+              )}
+              
+              <motion.div
+                key={selectedImageIndex}
+                initial={{ opacity: 0.8, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="relative w-full h-full flex items-center justify-center"
+                onClick={(e) => e.stopPropagation()} 
+              >
+                {(() => {
+                      const media = parseMediaUrl(images[selectedImageIndex]);
+                      if (!media) return <div className="text-white">Invalid Media URL</div>;
+
+                      if (media.type === 'video') {
+                          return (
+                            <div className="relative w-full h-full max-w-4xl aspect-video bg-black rounded-lg">
+                                  <iframe
+                                      src={`${media.src}?autoplay=1&rel=0`}
+                                      className="w-full h-full"
+                                      frameBorder="0"
+                                      allow="autoplay; encrypted-media; picture-in-picture"
+                                      allowFullScreen
+                                      title={`Enlarged video ${selectedImageIndex + 1}`}
+                                  />
+                            </div>
+                          );
+                      } else {
+                          return (
+                              <Image
+                                  src={media.src}
+                                  alt={`Enlarged image ${selectedImageIndex + 1}`}
+                                  fill
+                                  style={{ objectFit: "contain" }}
+                                  className="rounded-lg shadow-2xl"
+                                  priority 
+                                  onDragStart={(e) => e.preventDefault()}
+                              />
+                          );
+                      }
+                  })()}
+              </motion.div>
+              {numImages > 1 && (
+                <div className="absolute bottom-5 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full bg-black/50 text-white text-sm z-[101]">
+                  {selectedImageIndex + 1} / {numImages}
+                </div>
+              )}
             </motion.div>
-            {numImages > 1 && (
-              <div className="absolute bottom-5 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full bg-black/50 text-white text-sm z-[101]">
-                {selectedImageIndex + 1} / {numImages}
-              </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </>
   );
 };

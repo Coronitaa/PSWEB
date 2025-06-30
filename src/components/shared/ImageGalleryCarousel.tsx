@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useEffect, useState, useRef, useCallback } from "react";
@@ -126,11 +127,13 @@ export const ImageGalleryCarousel: React.FC<ImageGalleryCarouselProps> = ({
     startAutoPlay();
   };
 
-  const goToNextImage = () => {
+  const goToNextImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setSelectedImageIndex((prevIndex) => (prevIndex + 1) % numImages);
   };
 
-  const goToPrevImage = () => {
+  const goToPrevImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setSelectedImageIndex((prevIndex) => (prevIndex - 1 + numImages) % numImages);
   };
   
@@ -230,7 +233,7 @@ export const ImageGalleryCarousel: React.FC<ImageGalleryCarouselProps> = ({
                   <>
                   <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); goToPrevImage(); }}
+                      onClick={goToPrevImage}
                       className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-[101] p-2 sm:p-3 rounded-full bg-black/30 text-white hover:bg-black/50 transition-all focus:outline-none opacity-70 hover:opacity-100"
                       aria-label="Previous image"
                   >
@@ -238,7 +241,7 @@ export const ImageGalleryCarousel: React.FC<ImageGalleryCarouselProps> = ({
                   </button>
                   <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); goToNextImage(); }}
+                      onClick={goToNextImage}
                       className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-[101] p-2 sm:p-3 rounded-full bg-black/30 text-white hover:bg-black/50 transition-all focus:outline-none opacity-70 hover:opacity-100"
                       aria-label="Next image"
                   >

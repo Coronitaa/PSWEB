@@ -201,7 +201,7 @@ export function ResourceForm({
         detailedDescription: '',
         imageUrl: 'https://placehold.co/800x450.png',
         imageGallery: [],
-        galleryAspectRatio: '16/9',
+        galleryAspectRatio: '4/3',
         galleryAutoplayInterval: 5000,
         showMainImageInGallery: true,
         requirements: '',
@@ -247,7 +247,7 @@ export function ResourceForm({
       detailedDescription: initialData?.detailedDescription || '',
       imageUrl: initialData?.imageUrl || 'https://placehold.co/800x450.png',
       imageGallery: initialData?.imageGallery?.map(url => ({ value: url })) || [],
-      galleryAspectRatio: initialData?.galleryAspectRatio || '16/9',
+      galleryAspectRatio: initialData?.galleryAspectRatio || '4/3',
       galleryAutoplayInterval: initialData?.galleryAutoplayInterval ?? 5000,
       showMainImageInGallery: initialData?.showMainImageInGallery ?? true,
       requirements: initialData?.requirements || '',
@@ -635,14 +635,14 @@ export function ResourceForm({
                           <Label className="text-xs font-medium">Aspect Ratio</Label>
                           <div className="flex justify-start gap-2 mt-1">
                             <TooltipProvider>
-                              {(['16/9', '4/3', '1:1'] as const).map(ratio => (
+                              {(['16:9', '4:3', '1:1'] as const).map(ratio => (
                                 <Tooltip key={ratio}>
                                   <TooltipTrigger asChild>
                                     <Button type="button" variant={watchedGalleryAspectRatio === ratio ? 'default' : 'outline'} size="icon" onClick={() => form.setValue('galleryAspectRatio', ratio, { shouldDirty: true })}>
                                       <AspectRatioIcon ratio={ratio as '16:9' | '4:3' | '1:1'} className="w-5 h-5" />
                                     </Button>
                                   </TooltipTrigger>
-                                  <TooltipContent><p>{ratio === '16/9' ? 'Widescreen' : ratio === '4/3' ? 'Standard' : 'Square'}</p></TooltipContent>
+                                  <TooltipContent><p>{ratio === '16:9' ? 'Widescreen' : ratio === '4:3' ? 'Standard' : 'Square'}</p></TooltipContent>
                                 </Tooltip>
                               ))}
                             </TooltipProvider>

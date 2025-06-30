@@ -731,11 +731,29 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
           value={editor.getAttributes('textStyle').textGradient || editor.getAttributes('textStyle').color || '#ffffff'}
           onChange={(value) => {
             const isGradient = value.includes('gradient');
+            // Explicitly get existing attributes to preserve them
+            const { fontFamily, fontSize } = editor.getAttributes('textStyle');
+
+            const newAttrs: { 
+              fontFamily?: string,
+              fontSize?: string,
+              color?: string | null,
+              textGradient?: string | null
+            } = {
+              fontFamily: fontFamily,
+              fontSize: fontSize,
+            };
+
             if (isGradient) {
-              editor.chain().focus().unsetColor().setTextGradient(value).run();
+              newAttrs.color = null; // Ensure solid color is removed
+              newAttrs.textGradient = value;
             } else {
-              editor.chain().focus().unsetTextGradient().setColor(value).run();
+              newAttrs.textGradient = null; // Ensure gradient is removed
+              newAttrs.color = value;
             }
+            
+            // Using setMark with all relevant attributes ensures nothing is lost.
+            editor.chain().focus().setMark('textStyle', newAttrs).run();
           }}
         />
         <Button type="button" variant="ghost" size="icon" onClick={openLinkModal} className={cn("h-8 w-8", isLinkActive && "bg-muted text-primary")}><LinkIcon className="h-4 w-4" /></Button>
@@ -955,6 +973,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
 };
 
     
+
 
 
 

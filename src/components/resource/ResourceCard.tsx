@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Carousel as NestedCarousel, CarouselItem as NestedCarouselItem } from '@/components/shared/Carousel';
-import { formatNumberWithSuffix, getItemTypePlural } from '@/lib/utils';
+import { formatNumberWithSuffix, getItemTypePlural, parseMediaUrl } from '@/lib/utils';
 
 interface ResourceCardProps {
   resource: Resource;
@@ -99,7 +99,7 @@ export function ResourceCard({ resource, compact = false, onHoverChange, onOverf
   };
 
   const latestFile = resource.files && resource.files.length > 0
-    ? resource.files.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())[0]
+    ? resource.files.sort((a, b) => new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime())[0]
     : null;
 
   const SectionIcon = sectionIconMap[resource.parentItemType];
@@ -232,19 +232,34 @@ export function ResourceCard({ resource, compact = false, onHoverChange, onOverf
                     autoplayInterval={2500}
                     className="h-full"
                   >
-                    {imageGalleryForOverlay.map((imgUrl, idx) => (
-                      <NestedCarouselItem key={idx} className="h-full">
-                        <Image
-                          src={imgUrl}
-                          alt={`${resource.name} gallery image ${idx + 1}`}
-                          fill
-                          style={{ objectFit: "cover" }}
-                          className="rounded-md"
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                          data-ai-hint="resource detail image"
-                        />
-                      </NestedCarouselItem>
-                    ))}
+                    {imageGalleryForOverlay.map((imgUrl, idx) => {
+                      const media = parseMediaUrl(imgUrl);
+                      return (
+                        <NestedCarouselItem key={idx} className="h-full">
+                          <div className="relative w-full h-full bg-black rounded-md overflow-hidden">
+                            {media?.type === 'video' ? (
+                              <iframe
+                                src={`${media.src}?autoplay=${isHoveringLocal ? 1 : 0}&mute=1&controls=0&loop=1&playlist=${media.videoId}&rel=0&iv_load_policy=3`}
+                                title={`Preview ${idx + 1}`}
+                                className="w-full h-full pointer-events-none"
+                                frameBorder="0"
+                                allow="autoplay; encrypted-media;"
+                              />
+                            ) : (
+                              <Image
+                                src={media?.src || 'https://placehold.co/800x450.png'}
+                                alt={`${resource.name} gallery image ${idx + 1}`}
+                                fill
+                                style={{ objectFit: "cover" }}
+                                className="rounded-md"
+                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                data-ai-hint="resource detail image"
+                              />
+                            )}
+                          </div>
+                        </NestedCarouselItem>
+                      );
+                    })}
                   </NestedCarousel>
                 ) : (
                   <div className="aspect-video overflow-hidden rounded-md relative bg-muted/30">

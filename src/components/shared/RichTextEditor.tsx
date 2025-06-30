@@ -944,10 +944,49 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
   const [isModelModalOpen, setIsModelModalOpen] = useState(false);
   const [isCarouselModalOpen, setIsCarouselModalOpen] = useState(false);
   const [url, setUrl] = useState('');
+  const [debouncedUrl, setDebouncedUrl] = useState('');
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+        setDebouncedUrl(url);
+    }, 500); // 500ms debounce
+    return () => clearTimeout(handler);
+  }, [url]);
 
   if (!editor) {
     return null;
   }
+
+  const getYoutubeEmbedUrl = (ytUrl: string) => {
+    const standardRegex = /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/;
+    const shortRegex = /(?:https?:\/\/)?youtu\.be\/([a-zA-Z0-9_-]{11})/;
+    const embedRegex = /(?:https?:\/\/)?(?:www\.)?youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/;
+
+    let match = ytUrl.match(standardRegex);
+    if (match) return `https://www.youtube-nocookie.com/embed/${match[1]}`;
+    match = ytUrl.match(shortRegex);
+    if (match) return `https://www.youtube-nocookie.com/embed/${match[1]}`;
+    match = ytUrl.match(embedRegex);
+    if (match) return `https://www.youtube-nocookie.com/embed/${match[1]}`;
+    return null;
+  };
+  
+  const getSketchfabEmbedUrl = (sfUrl: string) => {
+      const sketchfabPageRegex = /sketchfab\.com\/3d-models\/(?:[a-z0-9\-_]+-)?([a-fA-F0-9]{32})/;
+      const sketchfabEmbedRegex = /sketchfab\.com\/models\/[a-fA-F0-9]{32}\/embed/;
+  
+      const pageMatch = sfUrl.match(sketchfabPageRegex);
+      if (pageMatch) {
+        const modelId = pageMatch[1];
+        return `https://sketchfab.com/models/${modelId}/embed?autospin=1&autostart=1&ui_theme=dark`;
+      }
+      
+      if (sketchfabEmbedRegex.test(sfUrl)) {
+          return sfUrl;
+      }
+      
+      return null;
+  };
   
   const openCarouselModal = () => {
     const images = editor.isActive('imageCarousel') ? editor.getAttributes('imageCarousel').images : [];
@@ -967,6 +1006,7 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
       ? editor.getAttributes('image').href
       : editor.getAttributes('link').href;
     setUrl(previousUrl || '');
+    setDebouncedUrl(previousUrl || '');
     setIsLinkModalOpen(true);
   };
   
@@ -979,6 +1019,7 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
     }
     setIsLinkModalOpen(false);
     setUrl('');
+    setDebouncedUrl('');
   };
 
   const setLink = () => {
@@ -998,6 +1039,7 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
     }
     setIsLinkModalOpen(false);
     setUrl('');
+    setDebouncedUrl('');
   };
 
   const addImage = () => {
@@ -1006,6 +1048,7 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
     }
     setIsImageModalOpen(false);
     setUrl('');
+    setDebouncedUrl('');
   };
 
   const addYoutubeVideo = () => {
@@ -1014,28 +1057,27 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
     }
     setIsVideoModalOpen(false);
     setUrl('');
+    setDebouncedUrl('');
   };
   
   const addModelViewer = () => {
     if (!url || !editor) return;
     
-    const sketchfabPageRegex = /sketchfab\.com\/3d-models\/(?:[a-z0-9\-_]+-)?([a-fA-F0-9]{32})/;
-    const sketchfabEmbedRegex = /sketchfab\.com\/models\/[a-fA-F0-9]{32}\/embed/;
+    const sketchfabUrl = getSketchfabEmbedUrl(url);
 
-    const pageMatch = url.match(sketchfabPageRegex);
-
-    if (pageMatch) {
-      const modelId = pageMatch[1];
-      const embedUrl = `https://sketchfab.com/models/${modelId}/embed`;
-      editor.chain().focus().setIframe({ src: embedUrl }).run();
-    } else if (sketchfabEmbedRegex.test(url)) {
-      editor.chain().focus().setIframe({ src: url }).run();
-    } else {
+    if (sketchfabUrl) {
+      editor.chain().focus().setIframe({ src: sketchfabUrl }).run();
+    } else if (url.match(/\.(glb|gltf)$/i)) {
       editor.chain().focus().setModelViewer({ src: url }).run();
+    } else {
+        // Fallback for other URLs, maybe try iframe? Or show error.
+        // For now, let's just insert as a generic iframe.
+        editor.chain().focus().setIframe({ src: url }).run();
     }
 
     setIsModelModalOpen(false);
     setUrl('');
+    setDebouncedUrl('');
   };
 
   const fontSizes = [
@@ -1060,6 +1102,7 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
 
   const handleMediaModalOpen = (type: 'image' | 'video' | 'model' | 'carousel') => {
     setUrl('');
+    setDebouncedUrl('');
     if (type === 'image') setIsImageModalOpen(true);
     if (type === 'video') setIsVideoModalOpen(true);
     if (type === 'model') setIsModelModalOpen(true);
@@ -1229,6 +1272,7 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
           <div className="space-y-2">
             <Label htmlFor="imageUrl">Image URL</Label>
             <Input id="imageUrl" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://example.com/image.png" />
+            {debouncedUrl && <img src={debouncedUrl} alt="Preview" className="rounded-md object-contain max-h-48 w-full border mt-2" />}
           </div>
           <DialogFooter>
             <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
@@ -1242,6 +1286,15 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
           <div className="space-y-2">
             <Label htmlFor="videoUrl">YouTube URL</Label>
             <Input id="videoUrl" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://youtube.com/watch?v=..." />
+             {debouncedUrl && getYoutubeEmbedUrl(debouncedUrl) && (
+                <iframe
+                    className="w-full aspect-video mt-2 rounded-md border"
+                    src={getYoutubeEmbedUrl(debouncedUrl)!}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    title="YouTube video preview"
+                ></iframe>
+            )}
           </div>
           <DialogFooter>
             <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
@@ -1255,6 +1308,28 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
           <div className="space-y-2">
             <Label htmlFor="modelUrl">Model URL (.glb, .gltf, or Sketchfab link)</Label>
             <Input id="modelUrl" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="e.g., https://sketchfab.com/3d-models/..." />
+            {debouncedUrl && (() => {
+                const sketchfabUrl = getSketchfabEmbedUrl(debouncedUrl);
+                if (sketchfabUrl) {
+                    return (
+                        <iframe
+                            className="w-full aspect-video mt-2 rounded-md border"
+                            src={sketchfabUrl}
+                            allowFullScreen
+                            title="Sketchfab preview"
+                        ></iframe>
+                    );
+                }
+                if (debouncedUrl.match(/\.(glb|gltf)$/i)) {
+                    return (
+                        <div className="mt-2 text-center text-sm text-muted-foreground p-4 border rounded-md">
+                            <Box className="mx-auto h-8 w-8 mb-2" />
+                            3D Model Preview (GLB/GLTF)
+                        </div>
+                    );
+                }
+                return null;
+            })()}
           </div>
           <DialogFooter>
             <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>

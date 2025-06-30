@@ -100,6 +100,7 @@ export function Carousel({
       {effectiveShowArrows && (
         <>
           <Button
+            type="button"
             variant="outline"
             size="icon"
             className="absolute left-2 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover:opacity-100 transition-opacity bg-background/70 hover:bg-background/90"
@@ -109,6 +110,7 @@ export function Carousel({
             <span className="sr-only">Previous</span>
           </Button>
           <Button
+            type="button"
             variant="outline"
             size="icon"
             className="absolute right-2 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover:opacity-100 transition-opacity bg-background/70 hover:bg-background/90"

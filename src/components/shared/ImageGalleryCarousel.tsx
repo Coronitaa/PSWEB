@@ -157,6 +157,7 @@ export const ImageGalleryCarousel: React.FC<ImageGalleryCarouselProps> = ({
         >
           {images.map((imgSrc, idx) => {
             const media = parseMediaUrl(imgSrc);
+            const isActive = imgIndex === idx;
 
             return (
               <motion.div
@@ -170,7 +171,7 @@ export const ImageGalleryCarousel: React.FC<ImageGalleryCarouselProps> = ({
                   <div className="w-full h-full flex items-center justify-center text-destructive-foreground bg-destructive/50 text-xs p-2">Invalid URL</div>
                 ) : media.type === 'video' && media.videoId ? (
                   <iframe
-                    src={`${media.src}?autoplay=1&mute=1&controls=0&loop=1&playlist=${media.videoId}&rel=0&iv_load_policy=3`}
+                    src={`${media.src}?autoplay=${isActive ? 1 : 0}&mute=1&controls=0&loop=1&playlist=${media.videoId}&rel=0&iv_load_policy=3`}
                     className="w-full h-full block object-cover pointer-events-none"
                     frameBorder="0"
                     allow="autoplay; encrypted-media;"

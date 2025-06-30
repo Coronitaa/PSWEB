@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
@@ -179,6 +177,47 @@ export const TextGradient = Extension.create<any>({
     },
 });
 
+// --- Media Resize Component ---
+
+const handles = [
+    { pos: 'top-0 left-0 -translate-x-1/2 -translate-y-1/2', direction: 'top-left' },
+    { pos: 'top-0 left-1/2 -translate-x-1/2 -translate-y-1/2', direction: 'top' },
+    { pos: 'top-0 right-0 translate-x-1/2 -translate-y-1/2', direction: 'top-right' },
+    { pos: 'top-1/2 left-0 -translate-x-1/2 -translate-y-1/2', direction: 'left' },
+    { pos: 'top-1/2 right-0 translate-x-1/2 -translate-y-1/2', direction: 'right' },
+    { pos: 'bottom-0 left-0 -translate-x-1/2 translate-y-1/2', direction: 'bottom-left' },
+    { pos: 'bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2', direction: 'bottom' },
+    { pos: 'bottom-0 right-0 translate-x-1/2 translate-y-1/2', direction: 'bottom-right' },
+];
+
+const getDynamicCursor = (handleDirection: string, objectRotation: number): string => {
+    // Base angle for the visual representation of the cursor arrow
+    const baseCursorAngles: { [key: string]: number } = {
+        'top': 90, 'bottom': 90,
+        'left': 0, 'right': 0,
+        'top-left': 135, 'top-right': 45,
+        'bottom-left': 45, 'bottom-right': 135,
+    };
+
+    const rotation = baseCursorAngles[handleDirection] + objectRotation;
+
+    // A two-headed arrow SVG that we will rotate.
+    // Stroke is white with a thin black outline for visibility on any background.
+    const svg = `
+        <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+            <g transform="rotate(${rotation} 16 16)">
+                <path d="M4 16 H28 M4 16 L10 10 M4 16 L10 22 M28 16 L22 10 M28 16 L22 22" stroke="black" stroke-width="3.5" fill="none" stroke-linejoin="round" stroke-linecap="round" />
+                <path d="M4 16 H28 M4 16 L10 10 M4 16 L10 22 M28 16 L22 10 M28 16 L22 22" stroke="white" stroke-width="1.5" fill="none" stroke-linejoin="round" stroke-linecap="round" />
+            </g>
+        </svg>
+    `.replace(/>\s+</g, '><').replace(/\s\s+/g, ' ').trim();
+
+    const encodedSvg = encodeURIComponent(svg);
+    // The cursor hotspot is the center of the SVG (16, 16)
+    return `url('data:image/svg+xml;charset=UTF-8,${encodedSvg}') 16 16, auto`;
+};
+
+
 const MediaResizeComponent = (props: NodeViewProps) => {
   const { node, updateAttributes, selected, editor } = props;
   const isImage = node.type.name === 'image';
@@ -200,54 +239,12 @@ const MediaResizeComponent = (props: NodeViewProps) => {
     const currentRotation = node.attrs.rotate || 0;
     updateAttributes({ rotate: currentRotation + degrees });
   };
-
-  const handles = [
-    { pos: 'top-0 left-0 -translate-x-1/2 -translate-y-1/2', direction: 'top-left' },
-    { pos: 'top-0 left-1/2 -translate-x-1/2 -translate-y-1/2', direction: 'top' },
-    { pos: 'top-0 right-0 translate-x-1/2 -translate-y-1/2', direction: 'top-right' },
-    { pos: 'top-1/2 left-0 -translate-x-1/2 -translate-y-1/2', direction: 'left' },
-    { pos: 'top-1/2 right-0 translate-x-1/2 -translate-y-1/2', direction: 'right' },
-    { pos: 'bottom-0 left-0 -translate-x-1/2 translate-y-1/2', direction: 'bottom-left' },
-    { pos: 'bottom-0 left-1/2 -translate-x-1/2 -translate-y-1/2', direction: 'bottom' },
-    { pos: 'bottom-0 right-0 translate-x-1/2 translate-y-1/2', direction: 'bottom-right' },
-  ];
-  
-  const initialHandleAngles: { [key: string]: number } = {
-    'top-left': 135,
-    'top': 90,
-    'top-right': 45,
-    'left': 180,
-    'right': 0,
-    'bottom-left': 225,
-    'bottom': 270,
-    'bottom-right': 315,
-  };
-  
-  const getCursorForAngle = (angle: number): string => {
-    const normalizedAngle = (angle % 360 + 360) % 360;
-    const slice = Math.round(normalizedAngle / 45) % 8;
-
-    switch (slice) {
-      case 0: return 'ew-resize';
-      case 1: return 'nesw-resize';
-      case 2: return 'ns-resize';
-      case 3: return 'nwse-resize';
-      case 4: return 'ew-resize';
-      case 5: return 'nesw-resize';
-      case 6: return 'ns-resize';
-      case 7: return 'nwse-resize';
-      default: return 'auto';
-    }
-  };
   
   const handleStyles = useMemo(() => {
-    return handles.map(handle => {
-        const initialAngle = initialHandleAngles[handle.direction];
-        const finalAngle = initialAngle + rotation;
-        const cursorStyle = getCursorForAngle(finalAngle);
-        return { cursor: cursorStyle };
-    })
-  }, [rotation, handles, initialHandleAngles]);
+    return handles.map(handle => ({
+        cursor: getDynamicCursor(handle.direction, rotation)
+    }));
+  }, [rotation]);
 
 
   const createResizeHandler = (direction: string) => (e: React.MouseEvent) => {
@@ -329,7 +326,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
     const initialRotation = rotation;
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
-        const currentAngle = Math.atan2(moveEvent.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
+        const currentAngle = Math.atan2(moveEvent.clientY - centerY, moveEvent.clientX - centerX) * (180 / Math.PI);
         const newRotation = initialRotation + (currentAngle - startAngle);
         updateAttributes({ rotate: newRotation });
     };
@@ -363,7 +360,8 @@ const MediaResizeComponent = (props: NodeViewProps) => {
         ref={containerRef}
         className={cn(
           "relative w-full",
-          selected && 'border-2 border-primary border-dashed'
+          // Changed to solid border for a clearer edge
+          selected && 'border-2 border-primary border-solid'
         )}
         style={{
             height: height || 'auto',
@@ -411,11 +409,11 @@ const MediaResizeComponent = (props: NodeViewProps) => {
                     />
             ))}
               <div
-                className="absolute bottom-0 right-0 translate-x-[150%] translate-y-[150%] p-1 bg-card rounded-full border border-primary pointer-events-auto z-20 cursor-alias"
+                className="absolute bottom-0 right-0 translate-x-[110%] translate-y-[110%] p-1.5 bg-card rounded-full border border-primary pointer-events-auto z-20 cursor-alias transition-transform group-hover:scale-110"
                 onMouseDown={createRotationHandler}
-                title="Rotate"
+                title="Rotate Freely"
               >
-                  <RotateCw className="w-3 h-3 text-primary"/>
+                  <RotateCw className="w-4 h-4 text-primary"/>
               </div>
           </>
         )}

@@ -745,7 +745,7 @@ export function ResourceForm({
                                               tagIdsInGroup.forEach(tagId => {
                                                   const tagConfig = (groupConfig.tags || []).find(t => t.id === tagId);
                                                   if (tagConfig) {
-                                                      fileDisplayTags.push(mapConfigToTagInterface(tagConfig, groupConfig.displayName.toLowerCase().replace(/\s+/g, '-')));
+                                                      displayTags.push(mapConfigToTagInterface(tagConfig, groupConfig.displayName.toLowerCase().replace(/\s+/g, '-')));
                                                   }
                                               });
                                           }

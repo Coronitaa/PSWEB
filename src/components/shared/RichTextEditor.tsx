@@ -71,7 +71,7 @@ declare module '@tiptap/core' {
       setIframe: (options: { src: string, width?: string, height?: string }) => ReturnType,
     }
     imageCarousel: {
-      setImageCarousel: (options: { images: string[] }) => ReturnType,
+      setImageCarousel: (options: { images: string[], width?: string, aspectRatio?: string, autoplayInterval?: number }) => ReturnType,
     }
   }
 }
@@ -489,8 +489,24 @@ const MediaResizeComponent = (props: NodeViewProps) => {
 };
 
 // --- Custom Image Carousel Node and Components ---
-const ImageCarouselModal = ({ isOpen, onOpenChange, initialImages = [], onSave }: { isOpen: boolean, onOpenChange: (open: boolean) => void, initialImages: string[], onSave: (images: string[]) => void }) => {
+const ImageCarouselModal = ({ 
+  isOpen, 
+  onOpenChange, 
+  initialImages = [], 
+  initialAspectRatio = '16/9',
+  initialAutoplayInterval = 5000,
+  onSave 
+}: { 
+  isOpen: boolean, 
+  onOpenChange: (open: boolean) => void, 
+  initialImages?: string[], 
+  initialAspectRatio?: string,
+  initialAutoplayInterval?: number,
+  onSave: (config: { images: string[], aspectRatio: string, autoplayInterval: number }) => void 
+}) => {
   const [images, setImages] = useState(initialImages);
+  const [aspectRatio, setAspectRatio] = useState(initialAspectRatio);
+  const [autoplayInterval, setAutoplayInterval] = useState(initialAutoplayInterval);
   const [isImporting, setIsImporting] = useState(false);
   const [importText, setImportText] = useState('');
   const [draggingImageIndex, setDraggingImageIndex] = useState<number | null>(null);
@@ -498,10 +514,12 @@ const ImageCarouselModal = ({ isOpen, onOpenChange, initialImages = [], onSave }
   useEffect(() => {
     if (isOpen) {
       setImages(initialImages);
+      setAspectRatio(initialAspectRatio);
+      setAutoplayInterval(initialAutoplayInterval);
       setIsImporting(false);
       setImportText('');
     }
-  }, [isOpen, initialImages]);
+  }, [isOpen, initialImages, initialAspectRatio, initialAutoplayInterval]);
 
   const addImage = () => {
     setImages([...images, '']);
@@ -525,7 +543,11 @@ const ImageCarouselModal = ({ isOpen, onOpenChange, initialImages = [], onSave }
   };
 
   const handleSave = () => {
-    onSave(images.filter(url => url));
+    onSave({
+      images: images.filter(url => url),
+      aspectRatio,
+      autoplayInterval,
+    });
     onOpenChange(false);
   };
 
@@ -558,54 +580,86 @@ const ImageCarouselModal = ({ isOpen, onOpenChange, initialImages = [], onSave }
         </DialogHeader>
         <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-6 p-6 min-h-0">
           {/* Left Column: Editor */}
-          <div className="flex flex-col overflow-hidden">
-              <div className="flex justify-between items-center mb-2 shrink-0">
-                <h3 className="text-sm font-medium">Image URLs</h3>
-                <Button variant="outline" size="sm" onClick={() => setIsImporting(true)}>Import from URLs</Button>
-              </div>
-              {isImporting ? (
-                <div className="space-y-2">
-                  <Label htmlFor="import-urls">Paste Image URLs (one per line)</Label>
-                  <Textarea id="import-urls" value={importText} onChange={e => setImportText(e.target.value)} rows={8} />
-                  <div className="flex justify-end gap-2">
+          <div className="flex flex-col min-h-0">
+            {isImporting ? (
+                <div className="space-y-2 flex flex-col flex-grow">
+                    <Label htmlFor="import-urls">Paste Image URLs (one per line)</Label>
+                    <Textarea id="import-urls" value={importText} onChange={e => setImportText(e.target.value)} className="flex-grow" />
+                    <div className="flex justify-end gap-2 shrink-0">
                     <Button variant="ghost" onClick={() => setIsImporting(false)}>Cancel</Button>
                     <Button onClick={handleImport}>Import URLs</Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex-grow flex flex-col min-h-0">
-                  <ScrollArea className="border rounded-md p-2 flex-grow">
-                    <div className="space-y-2">
-                      {images.map((image, index) => (
-                        <div 
-                          key={index}
-                          draggable="true"
-                          onDragStart={(e) => handleImageDragStart(e, index)}
-                          onDragOver={handleImageDragOver}
-                          onDrop={(e) => handleImageDrop(e, index)}
-                          onDragEnd={handleImageDragEnd}
-                          className={cn(
-                            "flex items-center gap-2 p-2 rounded-md bg-muted/50 group cursor-grab",
-                            draggingImageIndex === index && "opacity-50 bg-primary/20"
-                          )}
-                        >
-                          <GripVertical className="h-5 w-5 text-muted-foreground shrink-0 opacity-50 group-hover:opacity-100" />
-                          <Input value={image} onChange={(e) => updateImage(index, e.target.value)} placeholder="https://..." />
-                          <Button variant="ghost" size="icon" onClick={() => removeImage(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                        </div>
-                      ))}
-                      {images.length === 0 && <p className="text-center text-xs text-muted-foreground py-4">No images yet. Add one below.</p>}
                     </div>
-                  </ScrollArea>
-                  <Button variant="outline" size="sm" onClick={addImage} className="mt-2 shrink-0">Add Image</Button>
                 </div>
-              )}
+            ) : (
+              <div className="flex-grow flex flex-col min-h-0 space-y-4">
+                  <div>
+                      <div className="flex justify-between items-center mb-1">
+                          <h3 className="text-sm font-medium">Image URLs</h3>
+                          <Button variant="outline" size="sm" onClick={() => setIsImporting(true)}>Import</Button>
+                      </div>
+                      <ScrollArea className="border rounded-md p-2 h-40">
+                          <div className="space-y-2">
+                          {images.map((image, index) => (
+                              <div 
+                              key={index}
+                              draggable="true"
+                              onDragStart={(e) => handleImageDragStart(e, index)}
+                              onDragOver={handleImageDragOver}
+                              onDrop={(e) => handleImageDrop(e, index)}
+                              onDragEnd={handleImageDragEnd}
+                              className={cn(
+                                  "flex items-center gap-2 p-2 rounded-md bg-muted/50 group cursor-grab",
+                                  draggingImageIndex === index && "opacity-50 bg-primary/20"
+                              )}
+                              >
+                              <GripVertical className="h-5 w-5 text-muted-foreground shrink-0 opacity-50 group-hover:opacity-100" />
+                              <Input value={image} onChange={(e) => updateImage(index, e.target.value)} placeholder="https://..." />
+                              <Button variant="ghost" size="icon" onClick={() => removeImage(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                              </div>
+                          ))}
+                          {images.length === 0 && <p className="text-center text-xs text-muted-foreground py-4">No images yet. Add one below.</p>}
+                          </div>
+                      </ScrollArea>
+                      <Button variant="outline" size="sm" onClick={addImage} className="mt-2 w-full">Add Image</Button>
+                  </div>
+                  
+                  <Separator />
+
+                  <div>
+                      <Label htmlFor="autoplay-interval" className="text-sm font-medium">Autoplay Speed</Label>
+                      <p className="text-xs text-muted-foreground mb-2">Time before switching to the next image.</p>
+                      <Select value={String(autoplayInterval)} onValueChange={(val) => setAutoplayInterval(Number(val))}>
+                          <SelectTrigger id="autoplay-interval"><SelectValue placeholder="Select speed..." /></SelectTrigger>
+                          <SelectContent>
+                              <SelectItem value="3000">Fast (3s)</SelectItem>
+                              <SelectItem value="5000">Normal (5s)</SelectItem>
+                              <SelectItem value="8000">Slow (8s)</SelectItem>
+                              <SelectItem value="999999999">Off</SelectItem>
+                          </SelectContent>
+                      </Select>
+                  </div>
+                  <div>
+                      <Label className="text-sm font-medium">Aspect Ratio</Label>
+                      <p className="text-xs text-muted-foreground mb-2">Set the shape of the carousel.</p>
+                      <div className="grid grid-cols-3 gap-2">
+                          <Button type="button" variant={aspectRatio === '16/9' ? 'default' : 'outline'} onClick={() => setAspectRatio('16/9')}>16:9</Button>
+                          <Button type="button" variant={aspectRatio === '4/3' ? 'default' : 'outline'} onClick={() => setAspectRatio('4/3')}>4:3</Button>
+                          <Button type="button" variant={aspectRatio === '1/1' ? 'default' : 'outline'} onClick={() => setAspectRatio('1/1')}>1:1</Button>
+                      </div>
+                  </div>
+              </div>
+            )}
           </div>
           
           {/* Right Column: Preview */}
           <div className="flex flex-col">
             <h3 className="text-sm font-medium mb-2 shrink-0">Preview</h3>
-            <div className="border rounded-md p-2 bg-muted/30 aspect-video relative">
+            <div className={cn(
+                "border rounded-md p-2 bg-muted/30 relative flex-grow min-h-0",
+                aspectRatio === '16/9' && 'aspect-video',
+                aspectRatio === '4/3' && 'aspect-[4/3]',
+                aspectRatio === '1/1' && 'aspect-square',
+            )}>
                 {images.filter(img => img).length > 0 ? (
                     <Carousel itemsToShow={1} showArrows={images.filter(img => img).length > 1} autoplay>
                         {images.filter(img => img).map((src, i) => (
@@ -637,16 +691,21 @@ const ImageCarouselModal = ({ isOpen, onOpenChange, initialImages = [], onSave }
 const ImageCarouselComponent = (props: NodeViewProps) => {
   const { node, selected, editor, updateAttributes } = props;
   const images = node.attrs.images || [];
+  const aspectRatio = node.attrs.aspectRatio || '16/9';
+  const autoplayInterval = node.attrs.autoplayInterval || 5000;
   const containerRef = useRef<HTMLDivElement>(null);
   const float = node.attrs['data-float'];
   const width = node.attrs.width;
-  const height = node.attrs.height;
   const rotation = node.attrs.rotate || 0;
   
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleSaveCarousel = (newImages: string[]) => {
-    updateAttributes({ images: newImages });
+  const handleSaveCarousel = (config: { images: string[], aspectRatio: string, autoplayInterval: number }) => {
+    updateAttributes({ 
+      images: config.images,
+      aspectRatio: config.aspectRatio,
+      autoplayInterval: config.autoplayInterval,
+    });
   };
 
 
@@ -675,7 +734,10 @@ const ImageCarouselComponent = (props: NodeViewProps) => {
     const startY = e.clientY;
     const startWidth = container.offsetWidth;
     const startHeight = container.offsetHeight;
-    const aspectRatio = 16 / 9; // Lock carousel to 16:9
+    let effectiveAspectRatio = 16 / 9;
+    if(aspectRatio === '4/3') effectiveAspectRatio = 4 / 3;
+    if(aspectRatio === '1/1') effectiveAspectRatio = 1;
+
     const angleRad = rotation * (Math.PI / 180);
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
@@ -698,22 +760,22 @@ const ImageCarouselComponent = (props: NodeViewProps) => {
       const isCorner = direction.includes('-');
       if (isCorner) {
         if (Math.abs(dxRot) > Math.abs(dyRot)) {
-          newHeight = newWidth / aspectRatio;
+          newHeight = newWidth / effectiveAspectRatio;
         } else {
-          newWidth = newHeight * aspectRatio;
+          newWidth = newHeight * effectiveAspectRatio;
         }
       } else {
         if (direction.includes('left') || direction.includes('right')) {
-          newHeight = newWidth / aspectRatio;
+          newHeight = newWidth / effectiveAspectRatio;
         } else {
-          newWidth = newHeight * aspectRatio;
+          newWidth = newHeight * effectiveAspectRatio;
         }
       }
 
       newWidth = Math.max(200, newWidth);
       newHeight = Math.max(112.5, newHeight);
 
-      updateAttributes({ width: `${newWidth}px`, height: `${newHeight}px` });
+      updateAttributes({ width: `${newWidth}px` });
     };
 
     const handleMouseUp = () => {
@@ -767,16 +829,18 @@ const ImageCarouselComponent = (props: NodeViewProps) => {
         ref={containerRef}
         className={cn(
           "relative w-full",
-          selected && 'border-2 border-primary border-solid'
+          selected && 'border-2 border-primary border-solid',
+          aspectRatio === '16/9' && 'aspect-video',
+          aspectRatio === '4/3' && 'aspect-[4/3]',
+          aspectRatio === '1/1' && 'aspect-square',
         )}
         style={{
-            height: height || 'auto',
             transform: `rotate(${rotation}deg)`
         }}
       >
         <div className="w-full h-full bg-muted rounded-md overflow-hidden relative">
           {images.length > 0 ? (
-            <Carousel itemsToShow={1} showArrows={images.length > 1} autoplay={!selected}>
+            <Carousel itemsToShow={1} showArrows={images.length > 1} autoplay={!selected} autoplayInterval={autoplayInterval}>
               {images.map((src: string, i: number) => (
                 <CarouselItem key={i}>
                   <div className="relative w-full h-full">
@@ -840,6 +904,8 @@ const ImageCarouselComponent = (props: NodeViewProps) => {
             isOpen={isModalOpen}
             onOpenChange={setIsModalOpen}
             initialImages={images}
+            initialAspectRatio={aspectRatio}
+            initialAutoplayInterval={autoplayInterval}
             onSave={handleSaveCarousel}
         />,
         document.body
@@ -867,11 +933,6 @@ const ImageCarouselNode = Node.create({
         renderHTML: attributes => (attributes.width ? { style: `width: ${attributes.width}` } : {}),
         parseHTML: element => element.style.width || null,
       },
-      height: {
-        default: null,
-        renderHTML: attributes => (attributes.height ? { style: `height: ${attributes.height}` } : {}),
-        parseHTML: element => element.style.height || null,
-      },
       'data-float': {
         default: 'center',
         renderHTML: attributes => (attributes['data-float'] ? { 'data-float': attributes['data-float'] } : {}),
@@ -888,6 +949,16 @@ const ImageCarouselNode = Node.create({
           }
           return 0;
         },
+      },
+      autoplayInterval: {
+        default: 5000,
+        parseHTML: element => parseInt(element.getAttribute('data-autoplay-interval') || '5000', 10),
+        renderHTML: attributes => ({ 'data-autoplay-interval': attributes.autoplayInterval }),
+      },
+      aspectRatio: {
+        default: '16/9',
+        parseHTML: element => element.getAttribute('data-aspect-ratio') || '16/9',
+        renderHTML: attributes => ({ 'data-aspect-ratio': attributes.aspectRatio }),
       },
     };
   },
@@ -918,7 +989,7 @@ const ImageCarouselNode = Node.create({
   
   addCommands() {
     return {
-      setImageCarousel: (options) => ({ commands }) => {
+      setImageCarousel: (options: { images: string[], width?: string, aspectRatio?: string, autoplayInterval?: number }) => ({ commands }) => {
         return commands.insertContent({
           type: this.name,
           attrs: options,
@@ -1362,9 +1433,9 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
     setDebouncedUrl('');
   };
 
-  const handleSaveCarousel = (images: string[]) => {
-    if (images.length > 0) {
-        editor.chain().focus().setImageCarousel({ images }).run();
+  const handleSaveCarousel = (config: { images: string[], aspectRatio: string, autoplayInterval: number }) => {
+    if (config.images.length > 0) {
+        editor.chain().focus().setImageCarousel(config).run();
     }
   };
 

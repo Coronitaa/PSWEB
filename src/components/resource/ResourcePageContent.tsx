@@ -20,6 +20,7 @@ import { Carousel, CarouselItem } from '@/components/shared/Carousel';
 import { EditResourceButtonAndModal } from '@/components/resource/EditResourceButtonAndModal'; 
 import { getAvailableFilterTags } from '@/lib/data';
 import { getItemTypePlural } from '@/lib/utils';
+import parse, { Element } from 'html-react-parser';
 
 
 interface ResourcePageContentProps {
@@ -91,6 +92,21 @@ export function ResourcePageContent({ resource, relatedResources }: ResourcePage
       router.replace(`${pathname}?${current.toString()}`, { scroll: false });
     };
 
+    const parseOptions = {
+        replace: (domNode: any) => {
+            if (domNode instanceof Element && domNode.attribs && domNode.attribs['data-image-carousel'] !== undefined) {
+                try {
+                    const images = JSON.parse(domNode.attribs['data-images'] || '[]');
+                    if (Array.isArray(images) && images.length > 0) {
+                        return <div className="my-4"><ImageGalleryCarousel images={images} /></div>;
+                    }
+                } catch (e) {
+                    console.error("Failed to parse carousel images:", e);
+                }
+            }
+        }
+    };
+
   return (
     <div className="space-y-8">
       <Breadcrumb>
@@ -141,8 +157,9 @@ export function ResourcePageContent({ resource, relatedResources }: ResourcePage
                 <TabsContent value="overview">
                   <div
                     className="prose prose-sm sm:prose lg:prose-lg dark:prose-invert max-w-none prose-headings:text-primary prose-a:text-accent hover:prose-a:text-accent/80 leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: resource.detailedDescription || '' }}
-                  />
+                  >
+                    {parse(resource.detailedDescription || '', parseOptions)}
+                  </div>
                 </TabsContent>
                 <TabsContent value="files">
                   {resource.files && resource.files.length > 0 ? (
@@ -157,7 +174,7 @@ export function ResourcePageContent({ resource, relatedResources }: ResourcePage
                 </TabsContent>
                 <TabsContent value="requirements">
                   {resource.requirements ? (
-                     <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-line leading-relaxed" dangerouslySetInnerHTML={{ __html: resource.requirements.replace(/\n/g, '<br />') }}/>
+                     <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-line leading-relaxed" dangerouslySetInnerHTML={{ __html: resource.requirements.replace(/\\n/g, '<br />') }}/>
                   ) : (
                     <p className="text-muted-foreground p-4 text-center">No specific requirements listed for this resource.</p>
                   )}

@@ -158,7 +158,12 @@ export function ResourcePageContent({ resource, relatedResources }: ResourcePage
         <main className="lg:col-span-8 space-y-6">
           <Card className="overflow-hidden shadow-xl bg-card/70 backdrop-blur-sm border-border/30">
             {galleryImages.length > 0 ? (
-                <ImageGalleryCarousel images={galleryImages} className="w-full aspect-[16/9] rounded-t-md" />
+                <ImageGalleryCarousel 
+                    images={galleryImages} 
+                    className="w-full rounded-t-md" 
+                    aspectRatio={resource.galleryAspectRatio || '16/9'}
+                    autoplayInterval={resource.galleryAutoplayInterval}
+                />
             ) : (
                 <div className="relative aspect-[16/9] bg-muted rounded-t-md flex items-center justify-center">
                     <ImageIcon className="w-16 h-16 text-muted-foreground" />

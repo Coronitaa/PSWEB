@@ -556,7 +556,7 @@ const ImageCarouselModal = ({ isOpen, onOpenChange, initialImages = [], onSave }
           <DialogTitle>Configure Image Carousel</DialogTitle>
           <DialogDescription>Add, remove, and reorder images for your carousel.</DialogDescription>
         </DialogHeader>
-        <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-6 p-6 overflow-hidden">
+        <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-6 p-6 min-h-0">
           {/* Left Column: Editor */}
           <div className="flex flex-col overflow-hidden">
               <div className="flex justify-between items-center mb-2 shrink-0">
@@ -603,9 +603,9 @@ const ImageCarouselModal = ({ isOpen, onOpenChange, initialImages = [], onSave }
           </div>
           
           {/* Right Column: Preview */}
-          <div className="flex flex-col overflow-hidden">
+          <div className="flex flex-col">
             <h3 className="text-sm font-medium mb-2 shrink-0">Preview</h3>
-            <div className="border rounded-md p-2 bg-muted/30 aspect-video flex-grow relative">
+            <div className="border rounded-md p-2 bg-muted/30 aspect-video relative">
                 {images.filter(img => img).length > 0 ? (
                     <Carousel itemsToShow={1} showArrows={images.filter(img => img).length > 1} autoplay>
                         {images.filter(img => img).map((src, i) => (

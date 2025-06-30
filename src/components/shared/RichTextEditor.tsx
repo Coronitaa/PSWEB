@@ -1,7 +1,8 @@
+
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useEditor, EditorContent, BubbleMenu, type Editor, NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from '@tiptap/react';
+import { useEditor, EditorContent, BubbleMenu, type Editor, NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps, Node, mergeAttributes } from '@tiptap/react';
 import { Extension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -14,7 +15,7 @@ import TextStyle from '@tiptap/extension-text-style';
 import Underline from '@tiptap/extension-underline';
 import { 
   Bold, Italic, Link as LinkIcon, List, ListOrdered, Strikethrough, Underline as UnderlineIcon,
-  AlignLeft, AlignCenter, AlignRight, AlignJustify, Image as ImageIcon, Video, Palette, RotateCw, ImagePlus
+  AlignLeft, AlignCenter, AlignRight, AlignJustify, Image as ImageIcon, Video, Palette, RotateCw, ImagePlus, Box
 } from 'lucide-react';
 import { GradientPicker } from './GradientPicker';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,18 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { createPortal } from 'react-dom';
 
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'model-viewer': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement> & {
+        src?: string;
+        alt?: string;
+        'camera-controls'?: boolean;
+        'auto-rotate'?: boolean;
+      }, HTMLElement>;
+    }
+  }
+}
 
 export interface FontFamilyOptions {
   types: string[],
@@ -45,6 +58,9 @@ declare module '@tiptap/core' {
     fontSize: {
       setFontSize: (size: string) => ReturnType,
       unsetFontSize: () => ReturnType,
+    }
+    modelViewer: {
+      setModelViewer: (options: { src: string }) => ReturnType,
     }
   }
 }
@@ -222,6 +238,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
   const { node, updateAttributes, selected, editor } = props;
   const isImage = node.type.name === 'image';
   const isVideo = node.type.name === 'youtube';
+  const isModel = node.type.name === 'modelViewer';
   const href = node.attrs.href;
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -383,6 +400,26 @@ const MediaResizeComponent = (props: NodeViewProps) => {
                 frameBorder="0"
                 allowFullScreen
               />
+              {editor.isEditable && (
+                  <div 
+                      className={cn(
+                          "absolute inset-0 z-10",
+                          selected && "cursor-move"
+                      )} 
+                      aria-hidden="true" 
+                  />
+              )}
+          </div>
+        )}
+        {isModel && (
+          <div className="w-full h-full relative">
+              <model-viewer
+                src={node.attrs.src}
+                alt="A 3D model"
+                camera-controls
+                auto-rotate
+                class="w-full h-full rounded-md"
+              ></model-viewer>
               {editor.isEditable && (
                   <div 
                       className={cn(
@@ -585,11 +622,54 @@ const CustomYoutube = Youtube.extend({
     }
 });
 
+const CustomModelViewer = Node.create({
+  name: 'modelViewer',
+  group: 'block',
+  atom: true,
+  draggable: true,
+
+  addAttributes() {
+    return {
+      src: { default: null },
+      width: { default: '640px' },
+      height: { default: '480px' },
+      'data-float': { default: 'center' },
+      rotate: { default: 0 },
+    };
+  },
+  
+  parseHTML() {
+    return [{
+      tag: 'model-viewer[src]',
+    }];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ['model-viewer', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes)];
+  },
+  
+  addCommands() {
+    return {
+      setModelViewer: (options: { src: string }) => ({ commands }) => {
+        return commands.insertContent({
+          type: this.name,
+          attrs: options,
+        });
+      },
+    };
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(MediaResizeComponent);
+  },
+});
+
 
 const Toolbar = ({ editor }: { editor: Editor | null }) => {
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [isModelModalOpen, setIsModelModalOpen] = useState(false);
   const [url, setUrl] = useState('');
 
   if (!editor) {
@@ -652,6 +732,14 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
     setIsVideoModalOpen(false);
     setUrl('');
   };
+  
+  const addModelViewer = () => {
+    if (url) {
+      editor.chain().focus().setModelViewer({ src: url }).run();
+    }
+    setIsModelModalOpen(false);
+    setUrl('');
+  };
 
   const fontSizes = [
     { label: "Just a little peek", value: "12px" },
@@ -673,10 +761,11 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
     { label: "Cursive", value: "cursive" },
   ];
 
-  const handleMediaModalOpen = (type: 'image' | 'video') => {
+  const handleMediaModalOpen = (type: 'image' | 'video' | 'model') => {
     setUrl('');
     if (type === 'image') setIsImageModalOpen(true);
     if (type === 'video') setIsVideoModalOpen(true);
+    if (type === 'model') setIsModelModalOpen(true);
   };
 
   return (
@@ -803,6 +892,9 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
                 <DropdownMenuItem onClick={() => handleMediaModalOpen('video')}>
                     <Video className="h-4 w-4 mr-2" /> Embed YouTube Video
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleMediaModalOpen('model')}>
+                    <Box className="h-4 w-4 mr-2" /> Embed 3D Model
+                </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
 
@@ -856,6 +948,19 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <Dialog open={isModelModalOpen} onOpenChange={setIsModelModalOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Embed 3D Model</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="modelUrl">Model URL (.glb, .gltf)</Label>
+            <Input id="modelUrl" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://example.com/model.glb" />
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+            <Button type="button" onClick={addModelViewer}>Add Model</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
@@ -886,7 +991,8 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
         controls: false,
         nocookie: true,
       }),
-      TextAlign.configure({ types: ['paragraph', 'image', 'youtube'] }),
+      CustomModelViewer,
+      TextAlign.configure({ types: ['paragraph', 'image', 'youtube', 'modelViewer'] }),
       Color,
       Underline,
     ],
@@ -917,7 +1023,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
             const { from: selectionFrom, to: selectionTo } = editor.state.selection;
             let isMediaSelection = false;
             editor.state.doc.nodesBetween(selectionFrom, selectionTo, (node) => {
-              if (node.type.name === 'image' || node.type.name === 'youtube') {
+              if (node.type.name === 'image' || node.type.name === 'youtube' || node.type.name === 'modelViewer') {
                 isMediaSelection = true;
               }
             });

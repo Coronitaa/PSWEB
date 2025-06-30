@@ -7,6 +7,7 @@ import { Footer } from '@/components/layout/Footer';
 import { Toaster } from "@/components/ui/toaster";
 import { cn } from '@/lib/utils';
 import { createSupabaseClient } from '@/lib/supabase/client'; // For potential server-side session access
+import Script from 'next/script';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -49,7 +50,7 @@ export default async function RootLayout({
         "antialiased flex flex-col min-h-screen"
         // Conditional background for auth pages will be handled by AuthLayout itself
       )}>
-        <Header /> {/* Header is always rendered; its content changes based on auth state */}
+        <Header />
         <main className={cn(
           "flex-grow",
           // Apply container styles only if NOT an auth page,
@@ -61,8 +62,13 @@ export default async function RootLayout({
         )}>
           {children}
         </main>
-        <Footer /> {/* Footer is always rendered; its content might change based on auth state if needed */}
+        <Footer />
         <Toaster />
+        <Script
+          type="module"
+          src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"
+          strategy="lazyOnload"
+        />
       </body>
     </html>
   );

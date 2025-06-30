@@ -190,8 +190,14 @@ export const TextGradient = Extension.create<any>({
     },
     addCommands() {
         return {
-            setTextGradient: (gradient) => ({ chain }) => chain().setMark('textStyle', { textGradient: gradient }).run(),
-            unsetTextGradient: () => ({ chain }) => chain().setMark('textStyle', { textGradient: null }).removeEmptyTextStyle().run(),
+            setTextGradient: (gradient) => ({ chain }) => {
+              const { fontFamily, fontSize } = chain().getAttributes('textStyle');
+              return chain().setMark('textStyle', { textGradient: gradient, fontFamily, fontSize }).run();
+            },
+            unsetTextGradient: () => ({ chain }) => {
+              const { fontFamily, fontSize } = chain().getAttributes('textStyle');
+              return chain().setMark('textStyle', { textGradient: null, fontFamily, fontSize }).removeEmptyTextStyle().run()
+            },
         };
     },
 });
@@ -635,10 +641,33 @@ const CustomModelViewer = Node.create({
   addAttributes() {
     return {
       src: { default: null },
-      width: { default: '640px' },
-      height: { default: '480px' },
-      'data-float': { default: 'center' },
-      rotate: { default: 0 },
+      width: {
+        default: '640px',
+        renderHTML: attributes => ({ style: `width: ${attributes.width};` }),
+        parseHTML: element => element.style.width || null,
+      },
+      height: {
+        default: '480px',
+        renderHTML: attributes => ({ style: `height: ${attributes.height};` }),
+        parseHTML: element => element.style.height || null,
+      },
+      'data-float': {
+        default: 'center',
+        renderHTML: attributes => ({ 'data-float': attributes['data-float'] }),
+        parseHTML: element => element.getAttribute('data-float'),
+      },
+      rotate: {
+        default: 0,
+        renderHTML: attributes => ({ style: `transform: rotate(${attributes.rotate}deg)` }),
+        parseHTML: element => {
+          const transform = element.style.transform;
+          if (transform && transform.includes('rotate')) {
+            const match = transform.match(/rotate\(([^deg)]+)deg\)/);
+            return match ? parseFloat(match[1]) : 0;
+          }
+          return 0;
+        },
+      },
     };
   },
   
@@ -679,10 +708,33 @@ const CustomIframe = Node.create({
       src: { default: null },
       frameborder: { default: 0 },
       allowfullscreen: { default: true },
-      width: { default: '640px' },
-      height: { default: '480px' },
-      'data-float': { default: 'center' },
-      rotate: { default: 0 },
+      width: {
+        default: '640px',
+        renderHTML: attributes => ({ style: `width: ${attributes.width};` }),
+        parseHTML: element => element.style.width || null,
+      },
+      height: {
+        default: '480px',
+        renderHTML: attributes => ({ style: `height: ${attributes.height};` }),
+        parseHTML: element => element.style.height || null,
+      },
+      'data-float': {
+        default: 'center',
+        renderHTML: attributes => ({ 'data-float': attributes['data-float'] }),
+        parseHTML: element => element.getAttribute('data-float'),
+      },
+      rotate: {
+        default: 0,
+        renderHTML: attributes => ({ style: `transform: rotate(${attributes.rotate}deg)` }),
+        parseHTML: element => {
+          const transform = element.style.transform;
+          if (transform && transform.includes('rotate')) {
+            const match = transform.match(/rotate\(([^deg)]+)deg\)/);
+            return match ? parseFloat(match[1]) : 0;
+          }
+          return 0;
+        },
+      },
       class: { default: 'rich-text-media-node' },
     };
   },

@@ -551,15 +551,15 @@ const ImageCarouselModal = ({ isOpen, onOpenChange, initialImages = [], onSave }
   
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0">
+        <DialogHeader className="p-6 pb-2 border-b shrink-0">
           <DialogTitle>Configure Image Carousel</DialogTitle>
           <DialogDescription>Add, remove, and reorder images for your carousel.</DialogDescription>
         </DialogHeader>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4 max-h-[60vh]">
+        <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-6 p-6 overflow-hidden">
           {/* Left Column: Editor */}
           <div className="flex flex-col overflow-hidden">
-              <div className="flex justify-between items-center mb-2">
+              <div className="flex justify-between items-center mb-2 shrink-0">
                 <h3 className="text-sm font-medium">Image URLs</h3>
                 <Button variant="outline" size="sm" onClick={() => setIsImporting(true)}>Import from URLs</Button>
               </div>
@@ -573,38 +573,38 @@ const ImageCarouselModal = ({ isOpen, onOpenChange, initialImages = [], onSave }
                   </div>
                 </div>
               ) : (
-                <>
-                <ScrollArea className="border rounded-md p-2 flex-grow">
-                  <div className="space-y-2">
-                    {images.map((image, index) => (
-                      <div 
-                        key={index} // Not ideal, but URL can be duplicated.
-                        draggable="true"
-                        onDragStart={(e) => handleImageDragStart(e, index)}
-                        onDragOver={handleImageDragOver}
-                        onDrop={(e) => handleImageDrop(e, index)}
-                        onDragEnd={handleImageDragEnd}
-                        className={cn(
-                          "flex items-center gap-2 p-2 rounded-md bg-muted/50 group cursor-grab",
-                          draggingImageIndex === index && "opacity-50 bg-primary/20"
-                        )}
-                      >
-                        <GripVertical className="h-5 w-5 text-muted-foreground shrink-0 opacity-50 group-hover:opacity-100" />
-                        <Input value={image} onChange={(e) => updateImage(index, e.target.value)} placeholder="https://..." />
-                        <Button variant="ghost" size="icon" onClick={() => removeImage(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                      </div>
-                    ))}
-                    {images.length === 0 && <p className="text-center text-xs text-muted-foreground py-4">No images yet. Add one below.</p>}
-                  </div>
-                </ScrollArea>
-                <Button variant="outline" size="sm" onClick={addImage} className="mt-2">Add Image</Button>
-                </>
+                <div className="flex-grow flex flex-col min-h-0">
+                  <ScrollArea className="border rounded-md p-2 flex-grow">
+                    <div className="space-y-2">
+                      {images.map((image, index) => (
+                        <div 
+                          key={index}
+                          draggable="true"
+                          onDragStart={(e) => handleImageDragStart(e, index)}
+                          onDragOver={handleImageDragOver}
+                          onDrop={(e) => handleImageDrop(e, index)}
+                          onDragEnd={handleImageDragEnd}
+                          className={cn(
+                            "flex items-center gap-2 p-2 rounded-md bg-muted/50 group cursor-grab",
+                            draggingImageIndex === index && "opacity-50 bg-primary/20"
+                          )}
+                        >
+                          <GripVertical className="h-5 w-5 text-muted-foreground shrink-0 opacity-50 group-hover:opacity-100" />
+                          <Input value={image} onChange={(e) => updateImage(index, e.target.value)} placeholder="https://..." />
+                          <Button variant="ghost" size="icon" onClick={() => removeImage(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        </div>
+                      ))}
+                      {images.length === 0 && <p className="text-center text-xs text-muted-foreground py-4">No images yet. Add one below.</p>}
+                    </div>
+                  </ScrollArea>
+                  <Button variant="outline" size="sm" onClick={addImage} className="mt-2 shrink-0">Add Image</Button>
+                </div>
               )}
           </div>
           
           {/* Right Column: Preview */}
-          <div className="flex flex-col">
-            <h3 className="text-sm font-medium mb-2">Preview</h3>
+          <div className="flex flex-col overflow-hidden">
+            <h3 className="text-sm font-medium mb-2 shrink-0">Preview</h3>
             <div className="border rounded-md p-2 bg-muted/30 aspect-video flex-grow relative">
                 {images.filter(img => img).length > 0 ? (
                     <Carousel itemsToShow={1} showArrows={images.filter(img => img).length > 1} autoplay>
@@ -624,7 +624,7 @@ const ImageCarouselModal = ({ isOpen, onOpenChange, initialImages = [], onSave }
             </div>
           </div>
         </div>
-        <DialogFooter>
+        <DialogFooter className="p-6 pt-4 border-t shrink-0">
           <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
           <Button onClick={handleSave}>Save Carousel</Button>
         </DialogFooter>

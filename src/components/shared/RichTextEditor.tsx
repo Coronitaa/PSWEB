@@ -15,18 +15,21 @@ import TextStyle from '@tiptap/extension-text-style';
 import Underline from '@tiptap/extension-underline';
 import { 
   Bold, Italic, Link as LinkIcon, List, ListOrdered, Strikethrough, Underline as UnderlineIcon,
-  AlignLeft, AlignCenter, AlignRight, AlignJustify, Image as ImageIcon, Video, Palette, RotateCw, ImagePlus, Box
+  AlignLeft, AlignCenter, AlignRight, AlignJustify, Image as ImageIcon, Video, Palette, RotateCw, ImagePlus, Box, GalleryHorizontal, GripVertical, Trash2
 } from 'lucide-react';
 import { GradientPicker } from './GradientPicker';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { createPortal } from 'react-dom';
+import { Carousel, CarouselItem } from '@/components/shared/Carousel';
+import { Reorder, useDragControls } from 'framer-motion';
 
 declare global {
   namespace JSX {
@@ -64,6 +67,9 @@ declare module '@tiptap/core' {
     }
     iframe: {
       setIframe: (options: { src: string, width?: string, height?: string }) => ReturnType,
+    }
+    imageCarousel: {
+      setImageCarousel: (options: { images: string[] }) => ReturnType,
     }
   }
 }
@@ -353,7 +359,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
     const initialRotation = rotation;
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
-        const currentAngle = Math.atan2(moveEvent.clientY - centerY, moveEvent.clientX - centerX) * (180 / Math.PI);
+        const currentAngle = Math.atan2(moveEvent.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
         const newRotation = initialRotation + (currentAngle - startAngle);
         updateAttributes({ rotate: newRotation });
     };
@@ -479,6 +485,171 @@ const MediaResizeComponent = (props: NodeViewProps) => {
     </NodeViewWrapper>
   );
 };
+
+// --- Custom Image Carousel Node and Components ---
+const ImageCarouselModal = ({ isOpen, onOpenChange, initialImages = [], onSave }: { isOpen: boolean, onOpenChange: (open: boolean) => void, initialImages: string[], onSave: (images: string[]) => void }) => {
+  const [images, setImages] = useState(initialImages);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importText, setImportText] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      setImages(initialImages);
+      setIsImporting(false);
+      setImportText('');
+    }
+  }, [isOpen, initialImages]);
+
+  const addImage = () => {
+    setImages([...images, '']);
+  };
+
+  const removeImage = (index: number) => {
+    setImages(images.filter((_, i) => i !== index));
+  };
+
+  const updateImage = (index: number, url: string) => {
+    const newImages = [...images];
+    newImages[index] = url;
+    setImages(newImages);
+  };
+
+  const handleImport = () => {
+    const urls = importText.split('\n').map(url => url.trim()).filter(url => url);
+    setImages([...images, ...urls]);
+    setIsImporting(false);
+    setImportText('');
+  };
+
+  const handleSave = () => {
+    onSave(images.filter(url => url));
+    onOpenChange(false);
+  };
+  
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Configure Image Carousel</DialogTitle>
+          <DialogDescription>Add, remove, and reorder images for your carousel.</DialogDescription>
+        </DialogHeader>
+        <div className="py-4 max-h-[60vh] overflow-y-auto pr-4">
+          {isImporting ? (
+            <div className="space-y-2">
+              <Label htmlFor="import-urls">Paste Image URLs (one per line)</Label>
+              <Textarea id="import-urls" value={importText} onChange={e => setImportText(e.target.value)} rows={8} />
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" onClick={() => setIsImporting(false)}>Cancel</Button>
+                <Button onClick={handleImport}>Import URLs</Button>
+              </div>
+            </div>
+          ) : (
+            <Reorder.Group axis="y" values={images} onReorder={setImages} className="space-y-2">
+              {images.map((image, index) => (
+                <Reorder.Item key={index} value={image} className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
+                   <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
+                   <Input value={image} onChange={(e) => updateImage(index, e.target.value)} placeholder="https://..." />
+                   <Button variant="ghost" size="icon" onClick={() => removeImage(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                </Reorder.Item>
+              ))}
+            </Reorder.Group>
+          )}
+        </div>
+        <DialogFooter>
+          {!isImporting && (
+            <>
+              <Button variant="outline" onClick={addImage}>Add Image</Button>
+              <Button variant="outline" onClick={() => setIsImporting(true)}>Import from URLs</Button>
+            </>
+          )}
+          <div className="flex-grow" />
+          <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
+          <Button onClick={handleSave}>Save Carousel</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+
+const ImageCarouselComponent = (props: NodeViewProps) => {
+  const { node, selected, editor } = props;
+  const images = node.attrs.images || [];
+
+  return (
+    <NodeViewWrapper
+      className={cn(
+        "rich-text-media-node group clear-both relative my-4",
+        selected && 'border-2 border-primary border-solid rounded-lg p-1'
+      )}
+      draggable="true"
+      data-drag-handle
+    >
+      <div className="aspect-[16/9] w-full bg-muted rounded-md overflow-hidden relative">
+        {images.length > 0 ? (
+          <Carousel itemsToShow={1} showArrows={images.length > 1} autoplay={!selected}>
+            {images.map((src: string, i: number) => (
+              <CarouselItem key={i}>
+                <div className="relative w-full h-full">
+                  <img src={src} alt={`Carousel image ${i + 1}`} className="w-full h-full object-cover" />
+                </div>
+              </CarouselItem>
+            ))}
+          </Carousel>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+            <GalleryHorizontal className="w-12 h-12" />
+            <p className="mt-2 text-sm">Empty Carousel</p>
+          </div>
+        )}
+        {editor.isEditable && (
+          <div className="absolute inset-0 z-10 cursor-move" />
+        )}
+      </div>
+    </NodeViewWrapper>
+  );
+};
+
+const ImageCarouselNode = Node.create({
+  name: 'imageCarousel',
+  group: 'block',
+  atom: true,
+  draggable: true,
+
+  addAttributes() {
+    return {
+      images: {
+        default: [],
+        parseHTML: element => JSON.parse(element.getAttribute('data-images') || '[]'),
+        renderHTML: attributes => ({ 'data-images': JSON.stringify(attributes.images) }),
+      },
+    };
+  },
+
+  parseHTML() {
+    return [{ tag: 'div[data-image-carousel]' }];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ['div', { ...HTMLAttributes, 'data-image-carousel': '' }];
+  },
+  
+  addCommands() {
+    return {
+      setImageCarousel: (options) => ({ commands }) => {
+        return commands.insertContent({
+          type: this.name,
+          attrs: options,
+        });
+      },
+    };
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(ImageCarouselComponent);
+  },
+});
+
 
 const CustomImage = TiptapImage.extend({
   draggable: true,
@@ -771,11 +942,22 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [isModelModalOpen, setIsModelModalOpen] = useState(false);
+  const [isCarouselModalOpen, setIsCarouselModalOpen] = useState(false);
   const [url, setUrl] = useState('');
 
   if (!editor) {
     return null;
   }
+  
+  const openCarouselModal = () => {
+    const images = editor.isActive('imageCarousel') ? editor.getAttributes('imageCarousel').images : [];
+    setIsCarouselModalOpen(true);
+  };
+  
+  const handleSaveCarousel = (images: string[]) => {
+      editor.chain().focus().setImageCarousel({ images }).run();
+  };
+
 
   const isLinkActive = editor.isActive('link') || (editor.isActive('image') && !!editor.getAttributes('image').href);
 
@@ -876,11 +1058,12 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
     { label: "Cursive", value: "cursive" },
   ];
 
-  const handleMediaModalOpen = (type: 'image' | 'video' | 'model') => {
+  const handleMediaModalOpen = (type: 'image' | 'video' | 'model' | 'carousel') => {
     setUrl('');
     if (type === 'image') setIsImageModalOpen(true);
     if (type === 'video') setIsVideoModalOpen(true);
     if (type === 'model') setIsModelModalOpen(true);
+    if (type === 'carousel') openCarouselModal();
   };
 
   return (
@@ -1010,6 +1193,9 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
                 <DropdownMenuItem onClick={() => handleMediaModalOpen('model')}>
                     <Box className="h-4 w-4 mr-2" /> Embed 3D Model
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleMediaModalOpen('carousel')}>
+                    <GalleryHorizontal className="h-4 w-4 mr-2" /> Embed Image Carousel
+                </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
 
@@ -1076,6 +1262,12 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ImageCarouselModal
+        isOpen={isCarouselModalOpen}
+        onOpenChange={setIsCarouselModalOpen}
+        initialImages={editor.isActive('imageCarousel') ? editor.getAttributes('imageCarousel').images : []}
+        onSave={handleSaveCarousel}
+      />
     </>
   );
 };
@@ -1087,6 +1279,8 @@ interface RichTextEditorProps {
 
 export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps) => {
   const toolbarRef = useRef<HTMLDivElement>(null);
+  const [isCarouselModalOpen, setIsCarouselModalOpen] = useState(false);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ heading: false }),
@@ -1108,7 +1302,8 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
       }),
       CustomModelViewer,
       CustomIframe,
-      TextAlign.configure({ types: ['paragraph', 'image', 'youtube', 'modelViewer', 'iframe'] }),
+      ImageCarouselNode,
+      TextAlign.configure({ types: ['paragraph', 'image', 'youtube', 'modelViewer', 'iframe', 'imageCarousel'] }),
       Color,
       Underline,
     ],
@@ -1123,6 +1318,21 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
       },
     },
   });
+
+  const openCarouselEditModal = () => {
+    setIsCarouselModalOpen(true);
+  };
+  
+  const handleSaveCarousel = (images: string[]) => {
+      if (editor) {
+        if(editor.isActive('imageCarousel')) {
+          editor.chain().focus().updateAttributes('imageCarousel', { images }).run();
+        } else {
+          editor.chain().focus().setImageCarousel({ images }).run();
+        }
+      }
+  };
+
 
   return (
     <div className="w-full rounded-md border border-input bg-card ring-offset-background focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
@@ -1139,7 +1349,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
             const { from: selectionFrom, to: selectionTo } = editor.state.selection;
             let isMediaSelection = false;
             editor.state.doc.nodesBetween(selectionFrom, selectionTo, (node) => {
-              if (node.type.name === 'image' || node.type.name === 'youtube' || node.type.name === 'modelViewer' || node.type.name === 'iframe') {
+              if (['image', 'youtube', 'modelViewer', 'iframe', 'imageCarousel'].includes(node.type.name)) {
                 isMediaSelection = true;
               }
             });
@@ -1194,6 +1404,19 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
             />
         </BubbleMenu>
       )}
+
+      {editor && (
+        <BubbleMenu
+          editor={editor}
+          shouldShow={({ editor }) => editor.isActive('imageCarousel')}
+          tippyOptions={{ duration: 100 }}
+          className="bg-card p-1 rounded-lg shadow-lg border border-border"
+        >
+          <Button variant="ghost" size="sm" onClick={openCarouselEditModal}>
+            <ImageIcon className="h-4 w-4 mr-2" /> Edit Carousel
+          </Button>
+        </BubbleMenu>
+      )}
       
       <div ref={toolbarRef} className="sticky top-0 bg-card/95 backdrop-blur-sm z-10">
         <Toolbar editor={editor} />
@@ -1202,6 +1425,13 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
       <div className="min-h-[250px] overflow-y-auto overflow-x-hidden px-3 py-2">
         <EditorContent editor={editor} />
       </div>
+
+       <ImageCarouselModal
+        isOpen={isCarouselModalOpen}
+        onOpenChange={setIsCarouselModalOpen}
+        initialImages={editor?.isActive('imageCarousel') ? editor.getAttributes('imageCarousel').images : []}
+        onSave={handleSaveCarousel}
+      />
     </div>
   );
 };

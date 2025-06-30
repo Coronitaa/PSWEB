@@ -216,14 +216,10 @@ export function ResourceCard({ resource, compact = false, onHoverChange, onOverf
             "z-50"
           )}
           style={{transformOrigin: 'center center'}}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              window.location.href = resourcePath;
-            }
-          }}
+          onClick={() => { window.location.href = resourcePath; }}
         >
             <>
-              <div className="aspect-video overflow-hidden rounded-md mb-3 shadow-inner" onClick={(e) => e.stopPropagation()}>
+              <div className="aspect-video overflow-hidden rounded-md mb-3 shadow-inner">
                 {hasGalleryForOverlay ? (
                   <NestedCarousel
                     itemsToShow={1}

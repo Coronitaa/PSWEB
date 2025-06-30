@@ -104,7 +104,7 @@ export function Carousel({
             variant="outline"
             size="icon"
             className="absolute left-2 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover:opacity-100 transition-opacity bg-background/70 hover:bg-background/90"
-            onClick={goToPrevious}
+            onClick={(e) => { e.stopPropagation(); goToPrevious(); }}
           >
             <ChevronLeft className="h-6 w-6" />
             <span className="sr-only">Previous</span>
@@ -114,7 +114,7 @@ export function Carousel({
             variant="outline"
             size="icon"
             className="absolute right-2 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover:opacity-100 transition-opacity bg-background/70 hover:bg-background/90"
-            onClick={goToNext}
+            onClick={(e) => { e.stopPropagation(); goToNext(); }}
           >
             <ChevronRight className="h-6 w-6" />
             <span className="sr-only">Next</span>

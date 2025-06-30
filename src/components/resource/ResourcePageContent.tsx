@@ -20,7 +20,8 @@ import { Carousel, CarouselItem } from '@/components/shared/Carousel';
 import { EditResourceButtonAndModal } from '@/components/resource/EditResourceButtonAndModal'; 
 import { getAvailableFilterTags } from '@/lib/data';
 import { getItemTypePlural } from '@/lib/utils';
-import parse, { Element } from 'html-react-parser';
+import parse, { domToReact, Element } from 'html-react-parser';
+import { cn } from '@/lib/utils';
 
 
 interface ResourcePageContentProps {
@@ -96,10 +97,20 @@ export function ResourcePageContent({ resource, relatedResources }: ResourcePage
         replace: (domNode: any) => {
             if (domNode instanceof Element && domNode.attribs && domNode.attribs['data-image-carousel'] !== undefined) {
                 try {
-                    const images = JSON.parse(domNode.attribs['data-images'] || '[]');
-                    if (Array.isArray(images) && images.length > 0) {
-                        return <div className="my-4"><ImageGalleryCarousel images={images} /></div>;
-                    }
+                    const { 
+                        ['data-image-carousel']: _,
+                        ['data-images']: imagesJson,
+                        ...restAttribs 
+                    } = domNode.attribs;
+
+                    const images = JSON.parse(imagesJson || '[]');
+                    
+                    return (
+                        <div {...restAttribs}> 
+                            <ImageGalleryCarousel images={images} />
+                        </div>
+                    );
+
                 } catch (e) {
                     console.error("Failed to parse carousel images:", e);
                 }

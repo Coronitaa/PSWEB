@@ -783,22 +783,22 @@ const ImageCarouselNode = Node.create({
       },
       width: {
         default: '100%',
-        renderHTML: attributes => ({ style: `width: ${attributes.width};` }),
+        renderHTML: attributes => (attributes.width ? { style: `width: ${attributes.width}` } : {}),
         parseHTML: element => element.style.width || null,
       },
       height: {
         default: null,
-        renderHTML: attributes => ({ style: `height: ${attributes.height};` }),
+        renderHTML: attributes => (attributes.height ? { style: `height: ${attributes.height}` } : {}),
         parseHTML: element => element.style.height || null,
       },
       'data-float': {
         default: 'center',
-        renderHTML: attributes => ({ 'data-float': attributes['data-float'] }),
+        renderHTML: attributes => (attributes['data-float'] ? { 'data-float': attributes['data-float'] } : {}),
         parseHTML: element => element.getAttribute('data-float'),
       },
       rotate: {
         default: 0,
-        renderHTML: attributes => ({ style: `transform: rotate(${attributes.rotate}deg)` }),
+        renderHTML: attributes => (attributes.rotate ? { style: `transform: rotate(${attributes.rotate}deg)` } : {}),
         parseHTML: element => {
           const transform = element.style.transform;
           if (transform && transform.includes('rotate')) {
@@ -816,7 +816,21 @@ const ImageCarouselNode = Node.create({
   },
 
   renderHTML({ HTMLAttributes }) {
-    return ['div', { ...HTMLAttributes, 'data-image-carousel': '' }];
+    // Combine multiple style properties into a single style string
+    const styles: string[] = [];
+    if (HTMLAttributes.width) styles.push(`width: ${HTMLAttributes.width}`);
+    if (HTMLAttributes.height) styles.push(`height: ${HTMLAttributes.height}`);
+    if (HTMLAttributes.rotate) styles.push(`transform: rotate(${HTMLAttributes.rotate}deg)`);
+
+    const finalAttrs = { ...HTMLAttributes };
+    if (styles.length) {
+      finalAttrs.style = styles.join('; ');
+    }
+    delete finalAttrs.width;
+    delete finalAttrs.height;
+    delete finalAttrs.rotate;
+    
+    return ['div', { ...finalAttrs, 'data-image-carousel': '' }];
   },
   
   addCommands() {
@@ -1127,7 +1141,6 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [isModelModalOpen, setIsModelModalOpen] = useState(false);
-  const [isCarouselModalOpen, setIsCarouselModalOpen] = useState(false);
   const [url, setUrl] = useState('');
   const [debouncedUrl, setDebouncedUrl] = useState('');
 
@@ -1173,13 +1186,12 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
       return null;
   };
   
-  const openCarouselModal = () => {
-    const images = editor.isActive('imageCarousel') ? editor.getAttributes('imageCarousel').images : [];
-    setIsCarouselModalOpen(true);
-  };
-  
-  const handleSaveCarousel = (images: string[]) => {
-      editor.chain().focus().setImageCarousel({ images }).run();
+  const handleMediaModalOpen = (type: 'image' | 'video' | 'model') => {
+    setUrl('');
+    setDebouncedUrl('');
+    if (type === 'image') setIsImageModalOpen(true);
+    if (type === 'video') setIsVideoModalOpen(true);
+    if (type === 'model') setIsModelModalOpen(true);
   };
 
 
@@ -1284,16 +1296,7 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
     { label: "Trebuchet MS", value: "'Trebuchet MS', sans-serif" },
     { label: "Cursive", value: "cursive" },
   ];
-
-  const handleMediaModalOpen = (type: 'image' | 'video' | 'model' | 'carousel') => {
-    setUrl('');
-    setDebouncedUrl('');
-    if (type === 'image') setIsImageModalOpen(true);
-    if (type === 'video') setIsVideoModalOpen(true);
-    if (type === 'model') setIsModelModalOpen(true);
-    if (type === 'carousel') openCarouselModal();
-  };
-
+  
   return (
     <>
       <div className="flex flex-wrap items-center gap-1 p-1 border-b">
@@ -1421,7 +1424,7 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
                 <DropdownMenuItem onClick={() => handleMediaModalOpen('model')}>
                     <Box className="h-4 w-4 mr-2" /> Embed 3D Model
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleMediaModalOpen('carousel')}>
+                <DropdownMenuItem onClick={() => editor.isActive('imageCarousel') ? {} : editor.chain().focus().setImageCarousel({ images: [] }).run()}>
                     <GalleryHorizontal className="h-4 w-4 mr-2" /> Embed Image Carousel
                 </DropdownMenuItem>
             </DropdownMenuContent>
@@ -1522,12 +1525,6 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <ImageCarouselModal
-        isOpen={isCarouselModalOpen}
-        onOpenChange={setIsCarouselModalOpen}
-        initialImages={editor.isActive('imageCarousel') ? editor.getAttributes('imageCarousel').images : []}
-        onSave={handleSaveCarousel}
-      />
     </>
   );
 };

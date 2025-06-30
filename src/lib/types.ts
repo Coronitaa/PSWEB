@@ -1,4 +1,5 @@
 
+
 import type { Database } from './supabase/database.types';
 
 export type UserAppRole = Database['public']['Enums']['user_app_role_enum'];
@@ -262,6 +263,8 @@ export interface Resource {
   detailedDescription: string | null;
   imageUrl: string | null;
   imageGallery?: string[] | null;
+  galleryAspectRatio?: string | null;
+  galleryAutoplayInterval?: number | null;
   showMainImageInGallery?: boolean;
   downloads: number;
   followers: number; 
@@ -347,6 +350,8 @@ export interface ResourceFormData {
   detailedDescription?: string;
   imageUrl?: string;
   imageGallery?: string[]; 
+  galleryAspectRatio?: string;
+  galleryAutoplayInterval?: number;
   showMainImageInGallery?: boolean;
   requirements?: string;
   links?: ResourceLinks;

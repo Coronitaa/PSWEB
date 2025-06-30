@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useForm, Controller, useFieldArray, useWatch } from 'react-hook-form';
@@ -39,6 +40,9 @@ import Image from 'next/image';
 import { ImageGalleryCarousel } from '../shared/ImageGalleryCarousel';
 import { Checkbox } from '../ui/checkbox';
 import { RichTextEditor } from '../shared/RichTextEditor';
+import { Tooltip, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Slider } from '@/components/ui/slider';
+
 
 const CLEAR_SELECTION_VALUE = "__CLEAR_SELECTION__";
 
@@ -64,8 +68,10 @@ const resourceFormSchema = z.object({
   detailedDescription: z.string().optional(),
   imageUrl: z.string().url("Must be a valid URL for main image").optional().or(z.literal('')),
   imageGallery: z.array(z.object({
-    value: z.string().url({ message: "Please enter a valid URL." }).min(1, "URL cannot be empty.")
+    value: z.string().min(1, "URL cannot be empty.")
   })).optional(),
+  galleryAspectRatio: z.string().optional(),
+  galleryAutoplayInterval: z.number().optional(),
   showMainImageInGallery: z.boolean().default(true),
   requirements: z.string().optional(),
   status: z.custom<ProjectStatus>((val) => PROJECT_STATUSES_CONST.includes(val as ProjectStatus), "Invalid project status"),
@@ -124,6 +130,16 @@ const ImagePreview = ({ watchUrl, alt, fallbackText, className }: { watchUrl?: s
         </div>
     );
 };
+
+const AspectRatioIcon = ({ ratio, className }: { ratio: '16:9' | '4:3' | '1:1', className?: string }) => {
+      const viewBox = { '16:9': '0 0 16 9', '4:3': '0 0 16 12', '1:1': '0 0 16 16' }[ratio];
+      const rectProps = { '16:9': { width: 16, height: 9 }, '4:3': { width: 16, height: 12 }, '1:1': { width: 16, height: 16 } }[ratio];
+      return (
+          <svg viewBox={viewBox} className={cn("fill-current", className)} xmlns="http://www.w3.org/2000/svg">
+              <rect {...rectProps} rx="1" />
+          </svg>
+      );
+  };
 
 export function ResourceForm({
   initialData,
@@ -185,6 +201,8 @@ export function ResourceForm({
         detailedDescription: '',
         imageUrl: 'https://placehold.co/800x450.png',
         imageGallery: [],
+        galleryAspectRatio: '16/9',
+        galleryAutoplayInterval: 5000,
         showMainImageInGallery: true,
         requirements: '',
         status: 'published' as ProjectStatus,
@@ -229,6 +247,8 @@ export function ResourceForm({
       detailedDescription: initialData?.detailedDescription || '',
       imageUrl: initialData?.imageUrl || 'https://placehold.co/800x450.png',
       imageGallery: initialData?.imageGallery?.map(url => ({ value: url })) || [],
+      galleryAspectRatio: initialData?.galleryAspectRatio || '16/9',
+      galleryAutoplayInterval: initialData?.galleryAutoplayInterval ?? 5000,
       showMainImageInGallery: initialData?.showMainImageInGallery ?? true,
       requirements: initialData?.requirements || '',
       status: initialData?.status || 'draft',
@@ -269,9 +289,26 @@ export function ResourceForm({
   const watchedImageUrl = useWatch({ control: form.control, name: 'imageUrl' });
   const watchedGallery = useWatch({ control: form.control, name: 'imageGallery' });
   const watchedShowMainImage = useWatch({ control: form.control, name: 'showMainImageInGallery' });
+  const watchedGalleryAspectRatio = useWatch({ control: form.control, name: 'galleryAspectRatio' });
+  const watchedGalleryAutoplayInterval = useWatch({ control: form.control, name: 'galleryAutoplayInterval' });
+  
+  const [autoplaySeconds, setAutoplaySeconds] = useState(
+    (watchedGalleryAutoplayInterval ?? 5000) === 999999999 ? 0 : (watchedGalleryAutoplayInterval ?? 5000) / 1000
+  );
+
+  useEffect(() => {
+      const interval = watchedGalleryAutoplayInterval ?? 5000;
+      setAutoplaySeconds(interval === 999999999 ? 0 : interval / 1000);
+  }, [watchedGalleryAutoplayInterval]);
+
+  const handleSliderChange = (value: number[]) => {
+      const seconds = value[0];
+      setAutoplaySeconds(seconds);
+      form.setValue('galleryAutoplayInterval', seconds === 0 ? 999999999 : seconds * 1000, { shouldDirty: true });
+  };
 
   const galleryImagesForPreview = useMemo(() => {
-    const gallery = watchedGallery?.map(item => item.value).filter(url => url && url.startsWith('http')) || [];
+    const gallery = watchedGallery?.map(item => item.value).filter(url => url) || [];
     if (watchedShowMainImage && watchedImageUrl && !gallery.includes(watchedImageUrl)) {
       return [watchedImageUrl, ...gallery];
     }
@@ -299,6 +336,8 @@ export function ResourceForm({
         const resourceFormData: ResourceFormData = {
           ...data, 
           imageGallery: data.imageGallery?.map(item => item.value) || [],
+          galleryAspectRatio: data.galleryAspectRatio,
+          galleryAutoplayInterval: data.galleryAutoplayInterval,
           showMainImageInGallery: data.showMainImageInGallery,
           selectedDynamicTags: data.selectedDynamicTags || {},
           files: data.files.map(f => ({
@@ -553,7 +592,7 @@ export function ResourceForm({
                 <div className="space-y-4">
                   <Label>Main Image</Label>
                   <div className="grid grid-cols-12 gap-4">
-                      <div className="col-span-5 aspect-[3/2] shrink-0">
+                      <div className="col-span-5 aspect-[16/9] shrink-0">
                           <ImagePreview watchUrl={watchedImageUrl} alt="Main Image Preview" fallbackText="Main Image Preview" className="h-full w-full"/>
                       </div>
                       <div className="col-span-7">
@@ -565,7 +604,7 @@ export function ResourceForm({
 
                 <Separator />
               
-                <div className="space-y-2">
+                <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <Label>Image Gallery</Label>
                       <Controller
@@ -588,14 +627,50 @@ export function ResourceForm({
                           )}
                       />
                     </div>
+                    
+                    {/* Gallery Controls */}
+                    <div className="space-y-3 p-3 border rounded-md bg-muted/20">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 items-center">
+                        <div>
+                          <Label className="text-xs font-medium">Aspect Ratio</Label>
+                          <div className="flex justify-start gap-2 mt-1">
+                            <TooltipProvider>
+                              {(['16/9', '4/3', '1/1'] as const).map(ratio => (
+                                <Tooltip key={ratio}>
+                                  <TooltipTrigger asChild>
+                                    <Button type="button" variant={watchedGalleryAspectRatio === ratio ? 'default' : 'outline'} size="icon" onClick={() => form.setValue('galleryAspectRatio', ratio, { shouldDirty: true })}>
+                                      <AspectRatioIcon ratio={ratio as '16:9' | '4:3' | '1:1'} className="w-5 h-5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent><p>{ratio === '16/9' ? 'Widescreen' : ratio === '4/3' ? 'Standard' : 'Square'}</p></TooltipContent>
+                                </Tooltip>
+                              ))}
+                            </TooltipProvider>
+                          </div>
+                        </div>
+                        <div>
+                          <div className="flex justify-between items-center">
+                            <Label htmlFor="autoplay-slider" className="text-xs font-medium">Autoplay Speed</Label>
+                            <span className="text-xs text-muted-foreground w-16 text-right">
+                                {autoplaySeconds === 0 ? 'Off' : `${autoplaySeconds.toFixed(1)}s`}
+                            </span>
+                          </div>
+                          <Slider
+                              id="autoplay-slider"
+                              min={0} max={30} step={0.5}
+                              value={[autoplaySeconds]}
+                              onValueChange={handleSliderChange}
+                              className="mt-2"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+
+                    {/* Gallery List & Preview */}
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                         <div className="lg:col-span-7">
-                            <div className="mt-1 rounded-lg border bg-background/30 min-h-[220px] p-2">
-                                <ImageGalleryCarousel images={galleryImagesForPreview} />
-                            </div>
-                        </div>
-                        <div className="lg:col-span-5 space-y-2">
-                            <div className="border rounded-md bg-muted/30 p-2 space-y-2 h-[236px] overflow-y-auto custom-scrollbar">
+                            <div className="border rounded-md bg-muted/30 p-2 space-y-2 h-[250px] overflow-y-auto custom-scrollbar">
                               {galleryFields.map((field, index) => (
                                 <div 
                                   key={field.id}
@@ -616,10 +691,24 @@ export function ResourceForm({
                                   </div>
                                 </div>
                               ))}
+                               {galleryFields.length === 0 && <p className="text-center text-xs text-muted-foreground py-4">No media added to the gallery.</p>}
                             </div>
                             <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => appendGalleryField({ value: '' })}>
-                                <PlusCircle className="mr-2 h-4 w-4" /> Add Image
+                                <PlusCircle className="mr-2 h-4 w-4" /> Add Image/Video
                             </Button>
+                        </div>
+                        <div className={cn(
+                            "lg:col-span-5 border rounded-md bg-background/30 p-2",
+                            watchedGalleryAspectRatio === '16/9' && 'aspect-video',
+                            watchedGalleryAspectRatio === '4/3' && 'aspect-[4/3]',
+                            watchedGalleryAspectRatio === '1/1' && 'aspect-square',
+                            !watchedGalleryAspectRatio && 'aspect-video'
+                        )}>
+                            <ImageGalleryCarousel 
+                                images={galleryImagesForPreview}
+                                aspectRatio={watchedGalleryAspectRatio || '16/9'}
+                                autoplayInterval={watchedGalleryAutoplayInterval}
+                             />
                         </div>
                     </div>
                 </div>
@@ -655,7 +744,9 @@ export function ResourceForm({
                                           if (groupConfig && tagIdsInGroup) {
                                               tagIdsInGroup.forEach(tagId => {
                                                   const tagConfig = (groupConfig.tags || []).find(t => t.id === tagId);
-                                                  if (tagConfig) displayTags.push(mapConfigToTagInterface(tagConfig, groupConfig.displayName.toLowerCase().replace(/\s+/g, '-')));
+                                                  if (tagConfig) {
+                                                      fileDisplayTags.push(mapConfigToTagInterface(tagConfig, groupConfig.displayName.toLowerCase().replace(/\s+/g, '-')));
+                                                  }
                                               });
                                           }
                                       }

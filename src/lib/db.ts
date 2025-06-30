@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import sqlite3 from 'sqlite3';
@@ -102,6 +103,8 @@ async function initDbSchema(db: Database): Promise<void> {
     '  detailed_description TEXT, ' + 
     '  image_url TEXT, ' +
     '  image_gallery TEXT, ' + 
+    '  gallery_aspect_ratio TEXT, ' +
+    '  gallery_autoplay_interval INTEGER, ' +
     '  show_main_image_in_gallery BOOLEAN DEFAULT TRUE NOT NULL, ' +
     '  downloads INTEGER DEFAULT 0 NOT NULL,' +
     '  followers INTEGER DEFAULT 0 NOT NULL,' +
@@ -213,6 +216,8 @@ async function initDbSchema(db: Database): Promise<void> {
         if (!tableInfo.some(col => col.name === 'review_count')) { await db.exec('ALTER TABLE resources ADD COLUMN review_count INTEGER DEFAULT 0;'); }
         if (!tableInfo.some(col => col.name === 'positive_review_percentage')) { await db.exec('ALTER TABLE resources ADD COLUMN positive_review_percentage REAL;'); }
         if (!tableInfo.some(col => col.name === 'show_main_image_in_gallery')) { await db.exec('ALTER TABLE resources ADD COLUMN show_main_image_in_gallery BOOLEAN DEFAULT TRUE NOT NULL;'); }
+        if (!tableInfo.some(col => col.name === 'gallery_aspect_ratio')) { await db.exec('ALTER TABLE resources ADD COLUMN gallery_aspect_ratio TEXT;'); }
+        if (!tableInfo.some(col => col.name === 'gallery_autoplay_interval')) { await db.exec('ALTER TABLE resources ADD COLUMN gallery_autoplay_interval INTEGER;'); }
     }
     if (tableName === 'resource_files' && !tableInfo.some(col => col.name === 'downloads')) {
         await db.exec('ALTER TABLE resource_files ADD COLUMN downloads INTEGER DEFAULT 0 NOT NULL;');

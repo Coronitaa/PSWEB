@@ -359,9 +359,10 @@ export async function saveResourceAction(
       resourceId = 'res_' + resourceSlug.replace(/-/g, '_') + '_' + Date.now().toString(36); 
       
       await db.run(
-        'INSERT INTO resources (id, name, slug, parent_item_id, category_id, author_id, version, description, detailed_description, image_url, image_gallery, show_main_image_in_gallery, links, requirements, status, selected_dynamic_tags_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO resources (id, name, slug, parent_item_id, category_id, author_id, version, description, detailed_description, image_url, image_gallery, gallery_aspect_ratio, gallery_autoplay_interval, show_main_image_in_gallery, links, requirements, status, selected_dynamic_tags_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         resourceId, data.name, resourceSlug, parentItemId, categoryId, authUser.id, finalResourceVersion, data.description,
         data.detailedDescription || null, data.imageUrl || 'https://placehold.co/800x450.png', JSON.stringify(data.imageGallery || []),
+        data.galleryAspectRatio || '16/9', data.galleryAutoplayInterval ?? 5000,
         data.showMainImageInGallery ?? true,
         data.links ? JSON.stringify(data.links) : null, data.requirements || null, 
         (userRole === 'admin' || userRole === 'mod') ? data.status : 'published', 
@@ -453,10 +454,12 @@ export async function saveResourceAction(
       }
       
       await db.run(
-        'UPDATE resources SET name = ?, slug = ?, version = ?, description = ?, detailed_description = ?, image_url = ?, image_gallery = ?, show_main_image_in_gallery = ?, links = ?, requirements = ?, status = ?, selected_dynamic_tags_json = ?, updated_at = ? WHERE id = ?',
+        'UPDATE resources SET name = ?, slug = ?, version = ?, description = ?, detailed_description = ?, image_url = ?, image_gallery = ?, gallery_aspect_ratio = ?, gallery_autoplay_interval = ?, show_main_image_in_gallery = ?, links = ?, requirements = ?, status = ?, selected_dynamic_tags_json = ?, updated_at = ? WHERE id = ?',
         data.name ?? currentResource.name, resourceSlug, finalResourceVersion,
         data.description ?? currentResource.description, data.detailedDescription ?? currentResource.detailed_description,
         data.imageUrl ?? currentResource.image_url, JSON.stringify(data.imageGallery || JSON.parse(currentResource.image_gallery || '[]')),
+        data.galleryAspectRatio ?? currentResource.gallery_aspect_ratio,
+        data.galleryAutoplayInterval ?? currentResource.gallery_autoplay_interval,
         data.showMainImageInGallery ?? currentResource.show_main_image_in_gallery,
         data.links ? JSON.stringify(data.links) : currentResource.links, data.requirements ?? currentResource.requirements,
         finalStatus, data.selectedDynamicTags ? JSON.stringify(data.selectedDynamicTags) : currentResource.selected_dynamic_tags_json,

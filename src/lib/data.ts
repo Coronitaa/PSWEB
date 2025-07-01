@@ -516,7 +516,7 @@ export const getResourceForEdit = async (resourceSlugOrId: string, byId: boolean
                       parsedSelectedFileTags[groupConfig.id]?.forEach(tagId => {
                         const tagConfig = (groupConfig.tags || []).find(t => t.id === tagId);
                         if (tagConfig) {
-                          fileDisplayTags.push(mapConfigToTagInterface(tagConfig, groupConfig.displayName.toLowerCase().replace(/\s+/g, '-')));
+                          fileDisplayTags.push(mapConfigToTagInterface(tagConfig, groupConfig.groupDisplayName.toLowerCase().replace(/\s+/g, '-')));
                         }
                       });
                     }
@@ -557,7 +557,7 @@ export const getResourceForEdit = async (resourceSlugOrId: string, byId: boolean
                 selectedTagIdsInGroup.forEach(tagId => {
                     const tagConfig = (group.tags || []).find(t => t.id === tagId);
                     if (tagConfig) {
-                        resourceDisplayTags.push(mapConfigToTagInterface(tagConfig, group.displayName.toLowerCase().replace(/\s+/g, '-')));
+                        resourceDisplayTags.push(mapConfigToTagInterface(tagConfig, group.groupDisplayName.toLowerCase().replace(/\s+/g, '-')));
                     }
                 });
             }
@@ -692,7 +692,7 @@ export const getResources = async (params: GetResourcesParams): Promise<Paginate
             selectedTagIdsInGroup.forEach(tagId => {
               const tagConfig = (group.tags || []).find(t => t.id === tagId);
               if (tagConfig) {
-                resourceDisplayTags.push(mapConfigToTagInterface(tagConfig, group.displayName.toLowerCase().replace(/\s+/g, '-')));
+                resourceDisplayTags.push(mapConfigToTagInterface(tagConfig, group.groupDisplayName.toLowerCase().replace(/\s+/g, '-')));
               }
             });
           }
@@ -713,7 +713,7 @@ export const getResources = async (params: GetResourcesParams): Promise<Paginate
                             parsedSelectedFileTags[groupConfig.id]?.forEach(tagId => {
                                 const tagConfig = (groupConfig.tags || []).find(t => t.id === tagId);
                                 if (tagConfig) {
-                                fileDisplayTags.push(mapConfigToTagInterface(tagConfig, groupConfig.displayName.toLowerCase().replace(/\s+/g, '-')));
+                                fileDisplayTags.push(mapConfigToTagInterface(tagConfig, groupConfig.groupDisplayName.toLowerCase().replace(/\s+/g, '-')));
                                 }
                             });
                             }
@@ -791,7 +791,7 @@ export const getResourceBySlug = async (slug: string): Promise<Resource | undefi
          selectedTagIdsInGroup.forEach(tagId => {
             const tagConfig = (group.tags || []).find(t => t.id === tagId);
             if (tagConfig) {
-              resourceDisplayTags.push(mapConfigToTagInterface(tagConfig, group.displayName.toLowerCase().replace(/\s+/g, '-')));
+              resourceDisplayTags.push(mapConfigToTagInterface(tagConfig, group.groupDisplayName.toLowerCase().replace(/\s+/g, '-')));
             }
         });
       }
@@ -812,7 +812,7 @@ export const getResourceBySlug = async (slug: string): Promise<Resource | undefi
                       parsedSelectedFileTags[groupConfig.id]?.forEach(tagId => {
                         const tagConfig = (groupConfig.tags || []).find(t => t.id === tagId);
                         if (tagConfig) {
-                          fileDisplayTags.push(mapConfigToTagInterface(tagConfig, groupConfig.displayName.toLowerCase().replace(/\s+/g, '-')));
+                          fileDisplayTags.push(mapConfigToTagInterface(tagConfig, groupConfig.groupDisplayName.toLowerCase().replace(/\s+/g, '-')));
                         }
                       });
                     }
@@ -1043,7 +1043,7 @@ const hydrateResourceRows = async (rows: any[]): Promise<Resource[]> => {
           selectedTagIdsInGroup.forEach(tagId => {
             const tagConfig = (group.tags || []).find(t => t.id === tagId);
             if (tagConfig) {
-              resourceDisplayTags.push(mapConfigToTagInterface(tagConfig, group.displayName.toLowerCase().replace(/\s+/g, '-')));
+              resourceDisplayTags.push(mapConfigToTagInterface(tagConfig, group.groupDisplayName.toLowerCase().replace(/\s+/g, '-')));
             }
           });
         }
@@ -1065,7 +1065,7 @@ const hydrateResourceRows = async (rows: any[]): Promise<Resource[]> => {
                         parsedSelectedFileTags[groupConfig.id]?.forEach(tagId => {
                             const tagConfig = (groupConfig.tags || []).find(t => t.id === tagId);
                             if (tagConfig) {
-                            fileDisplayTags.push(mapConfigToTagInterface(tagConfig, groupConfig.displayName.toLowerCase().replace(/\s+/g, '-')));
+                            fileDisplayTags.push(mapConfigToTagInterface(tagConfig, groupConfig.groupDisplayName.toLowerCase().replace(/\s+/g, '-')));
                             }
                         });
                         }

@@ -87,7 +87,6 @@ export function ResourceImageEditor({ isOpen, onOpenChange, imageSrc: originalIm
               onCropComplete={onCropComplete}
               cropShape="rect"
               showGrid={false}
-              restrictPosition={false}
             />
           ) : (
             <div className="flex items-center justify-center h-full">

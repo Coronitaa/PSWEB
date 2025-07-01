@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useForm, Controller, useFieldArray, useWatch } from 'react-hook-form';
@@ -533,7 +532,7 @@ export function ResourceForm({
 
   const handleOpenMainImageEditor = () => {
     const url = form.getValues('imageUrl');
-    if (!url || !url.startsWith('http')) {
+    if (!url || !(url.startsWith('http') || url.startsWith('data:image'))) {
         toast({ title: "Invalid URL", description: "Please enter a valid image URL to edit it.", variant: "destructive" });
         return;
     }

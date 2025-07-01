@@ -216,36 +216,30 @@
           @apply text-foreground/80;
         }
       }
-      
-      /* --- FIX for invisible decorations on gradient text --- */
-      
-      /* Target any element with a gradient text style */
-      [style*="background-image: linear-gradient"][style*="-webkit-background-clip: text"] {
-
-        /* For underline (<u>), use border-bottom */
-        & u {
-          text-decoration: none; /* Disable the native transparent underline */
-          border-bottom: 1px solid hsl(var(--accent)); /* Use a visible border instead */
-        }
-        
-        /* For strikethrough (<s>), use a pseudo-element */
-        & s {
-          text-decoration: none; /* Disable the native transparent strikethrough */
-          position: relative; /* Needed for pseudo-element positioning */
-          
-          &::after {
-            content: '';
-            position: absolute;
-            left: 0;
-            right: 0;
-            top: 50%;
-            height: 1px;
-            background-color: hsl(var(--accent)); /* Use a visible color */
-            transform: translateY(-50%);
-          }
-        }
-      }
     }
+
+    /* --- FIX for invisible decorations on gradient text --- */
+      
+    /* Target any element with a gradient text style */
+    .dark .prose-invert [style*="background-image: linear-gradient"] u {
+        text-decoration: none;
+        box-shadow: inset 0 -1px 0 hsl(var(--accent));
+    }
+
+    .dark .prose-invert [style*="background-image: linear-gradient"] s {
+        text-decoration: none;
+        position: relative;
+    }
+
+    .dark .prose-invert [style*="background-image: linear-gradient"] s::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 50%;
+        border-top: 1px solid hsl(var(--accent));
+    }
+
 
   /* Sheen effect for Follow button (and other buttons if class is applied) */
   .button-follow-sheen {

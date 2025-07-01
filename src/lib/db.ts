@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import sqlite3 from 'sqlite3';
@@ -251,7 +252,9 @@ async function initDbSchema(db: Database): Promise<void> {
     }
     
     if (!tableInfo.some(col => col.name === 'updated_at')) { await db.exec('ALTER TABLE ' + tableName + ' ADD COLUMN updated_at TEXT;'); }
-    if (!tableInfo.some(col => col.name === 'created_at')) { await db.exec('ALTER TABLE ' + tableName + ' ADD COLUMN created_at TEXT DEFAULT CURRENT_TIMESTAMP;'); }
+    if (!tableInfo.some(col => col.name === 'created_at')) {
+      await db.exec('ALTER TABLE ' + tableName + ' ADD COLUMN created_at TEXT;');
+    }
     
     const triggerName = `update_${tableName}_updated_at`;
     await db.exec(`DROP TRIGGER IF EXISTS ${triggerName};`);

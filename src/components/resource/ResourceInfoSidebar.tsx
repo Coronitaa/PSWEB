@@ -131,7 +131,7 @@ const getAuthorLink = (author: ResourceAuthor) => {
 
 const AuthorItem = ({ author }: { author: ResourceAuthor }) => {
   const authorLink = getAuthorLink(author);
-  const CREATOR_BORDER_COLOR = '#FFC107';
+  const CREATOR_BORDER_COLOR = '#FFC107'; // Amber/Gold color
   const borderColor = author.isCreator ? CREATOR_BORDER_COLOR : (author.authorColor || 'hsl(var(--border))');
 
   return (
@@ -151,7 +151,10 @@ const AuthorItem = ({ author }: { author: ResourceAuthor }) => {
         <div>
           <Link href={authorLink} className="hover:text-primary transition-colors">
             <div className="flex items-center gap-1.5">
-              <p className="font-semibold text-foreground">{author.name}</p>
+              <p className={cn(
+                "font-semibold text-foreground",
+                author.isCreator && "text-amber-400"
+              )}>{author.name}</p>
               {author.isCreator && <Crown className="h-4 w-4 text-amber-500 fill-amber-400" />}
             </div>
           </Link>
@@ -379,5 +382,3 @@ export function ResourceInfoSidebar({ resource }: ResourceInfoSidebarProps) {
     </div>
   );
 }
-
-    

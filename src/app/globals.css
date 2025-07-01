@@ -223,11 +223,20 @@
     .dark .prose-invert [style*="background-image: linear-gradient"] u {
       text-decoration: underline;
       text-decoration-color: hsl(var(--accent));
+      text-decoration-thickness: 1px;
     }
     
     .dark .prose-invert [style*="background-image: linear-gradient"] s {
       text-decoration: line-through;
       text-decoration-color: hsl(var(--accent));
+      text-decoration-thickness: 1px;
+    }
+    
+    .dark .prose-invert [style*="background-image: linear-gradient"] strong u,
+    .dark .prose-invert [style*="background-image: linear-gradient"] b u,
+    .dark .prose-invert [style*="background-image: linear-gradient"] strong s,
+    .dark .prose-invert [style*="background-image: linear-gradient"] b s {
+      text-decoration-thickness: 2px;
     }
 
 

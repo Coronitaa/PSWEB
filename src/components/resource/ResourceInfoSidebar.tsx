@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Download, Tag as TagIcon, User, CalendarDays, Layers, Package, FileText, BarChart3, MessageSquare,
-  ExternalLink, AlertTriangle, ShieldQuestion, Star, Users, GitBranch, ListChecks, Binary, Palette, MusicIcon, Laptop, Heart, StarHalf, ThumbsUp, ThumbsDown
+  ExternalLink, AlertTriangle, ShieldQuestion, Star, Users, GitBranch, ListChecks, Binary, Palette, MusicIcon, Laptop, Heart, StarHalf, ThumbsUp, ThumbsDown, Crown
 } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
@@ -277,9 +277,12 @@ export function ResourceInfoSidebar({ resource }: ResourceInfoSidebarProps) {
                 </Link>
                 <div>
                   <Link href={getAuthorLink(creator)} className="hover:text-primary transition-colors">
-                    <p className="font-semibold text-foreground">{creator.name}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="font-semibold text-foreground">{creator.name}</p>
+                      <Crown className="h-4 w-4 text-amber-500 fill-amber-400" />
+                    </div>
                   </Link>
-                  <p className="text-xs text-amber-400">Creator</p>
+                  <p className="text-xs text-muted-foreground">Creator</p>
                 </div>
               </div>
               <Button variant="outline" size="sm" className="button-outline-glow button-follow-sheen ml-2">
@@ -292,19 +295,24 @@ export function ResourceInfoSidebar({ resource }: ResourceInfoSidebarProps) {
                 <Separator className="my-3 bg-border/30"/>
                 <div className="space-y-2">
                     {collaborators.map(collab => (
-                        <div key={collab.id} className="flex items-center space-x-3">
-                            <Link href={getAuthorLink(collab)}>
-                                <img src={collab.avatarUrl || `https://placehold.co/32x32/666666/FFFFFF?text=${collab.name ? collab.name.substring(0,1) : 'C'}`}
-                                alt={collab.name || ''}
-                                className="w-8 h-8 rounded-full border hover:opacity-80 transition-opacity"
-                                />
-                            </Link>
-                             <div>
-                                <Link href={getAuthorLink(collab)} className="hover:text-primary transition-colors">
-                                    <p className="font-medium text-foreground text-sm">{collab.name}</p>
+                        <div key={collab.id} className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                                <Link href={getAuthorLink(collab)}>
+                                    <img src={collab.avatarUrl || `https://placehold.co/32x32/666666/FFFFFF?text=${collab.name ? collab.name.substring(0,1) : 'C'}`}
+                                    alt={collab.name || ''}
+                                    className="w-8 h-8 rounded-full border hover:opacity-80 transition-opacity"
+                                    />
                                 </Link>
-                                <p className="text-xs text-muted-foreground">{collab.roleDescription || 'Collaborator'}</p>
-                             </div>
+                                <div>
+                                    <Link href={getAuthorLink(collab)} className="hover:text-primary transition-colors">
+                                        <p className="font-medium text-foreground text-sm">{collab.name}</p>
+                                    </Link>
+                                    <p className="text-xs text-muted-foreground">{collab.roleDescription || 'Collaborator'}</p>
+                                </div>
+                            </div>
+                            <Button variant="outline" size="sm" className="button-outline-glow button-follow-sheen ml-2">
+                                <Heart className="w-3.5 h-3.5 mr-1.5 fill-accent text-accent" /> Follow
+                            </Button>
                         </div>
                     ))}
                 </div>

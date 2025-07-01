@@ -132,6 +132,7 @@ const getAuthorLink = (author: ResourceAuthor) => {
 const AuthorItem = ({ author }: { author: ResourceAuthor }) => {
   const authorLink = getAuthorLink(author);
   const CREATOR_BORDER_COLOR = '#FFC107'; // Amber/Gold color
+  const CREATOR_TEXT_COLOR = '#FFC107'; // Amber/Gold color
   const borderColor = author.isCreator ? CREATOR_BORDER_COLOR : (author.authorColor || 'hsl(var(--border))');
 
   return (
@@ -151,16 +152,16 @@ const AuthorItem = ({ author }: { author: ResourceAuthor }) => {
         <div>
           <Link href={authorLink} className="hover:text-primary transition-colors">
             <div className="flex items-center gap-1.5">
-              <p className={cn(
-                "font-semibold text-foreground",
-                author.isCreator && "text-amber-400"
-              )}>{author.name}</p>
+              <p className="font-semibold text-foreground">{author.name}</p>
               {author.isCreator && <Crown className="h-4 w-4 text-amber-500 fill-amber-400" />}
             </div>
           </Link>
-          <p 
-            className="text-xs font-medium transition-colors"
-            style={{ color: !author.isCreator && author.authorColor ? author.authorColor : 'hsl(var(--muted-foreground))' }}
+          <p
+            className={cn(
+              "text-xs font-medium transition-colors text-muted-foreground",
+              author.isCreator && "text-amber-400"
+            )}
+            style={{ color: !author.isCreator ? author.authorColor || undefined : undefined }}
           >
             {author.isCreator ? 'Creator' : (author.roleDescription || 'Collaborator')}
           </p>

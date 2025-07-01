@@ -516,7 +516,7 @@ export const getResourceForEdit = async (resourceSlugOrId: string, byId: boolean
                       parsedSelectedFileTags[groupConfig.id]?.forEach(tagId => {
                         const tagConfig = (groupConfig.tags || []).find(t => t.id === tagId);
                         if (tagConfig) {
-                          fileDisplayTags.push(mapConfigToTagInterface(tagConfig, groupConfig.groupDisplayName.toLowerCase().replace(/\s+/g, '-')));
+                          fileDisplayTags.push(mapConfigToTagInterface(tagConfig, groupConfig.displayName.toLowerCase().replace(/\s+/g, '-')));
                         }
                       });
                     }
@@ -557,7 +557,7 @@ export const getResourceForEdit = async (resourceSlugOrId: string, byId: boolean
                 selectedTagIdsInGroup.forEach(tagId => {
                     const tagConfig = (group.tags || []).find(t => t.id === tagId);
                     if (tagConfig) {
-                        resourceDisplayTags.push(mapConfigToTagInterface(tagConfig, group.groupDisplayName.toLowerCase().replace(/\s+/g, '-')));
+                        resourceDisplayTags.push(mapConfigToTagInterface(tagConfig, group.displayName.toLowerCase().replace(/\s+/g, '-')));
                     }
                 });
             }
@@ -692,7 +692,7 @@ export const getResources = async (params: GetResourcesParams): Promise<Paginate
             selectedTagIdsInGroup.forEach(tagId => {
               const tagConfig = (group.tags || []).find(t => t.id === tagId);
               if (tagConfig) {
-                resourceDisplayTags.push(mapConfigToTagInterface(tagConfig, group.groupDisplayName.toLowerCase().replace(/\s+/g, '-')));
+                resourceDisplayTags.push(mapConfigToTagInterface(tagConfig, group.displayName.toLowerCase().replace(/\s+/g, '-')));
               }
             });
           }
@@ -713,7 +713,7 @@ export const getResources = async (params: GetResourcesParams): Promise<Paginate
                             parsedSelectedFileTags[groupConfig.id]?.forEach(tagId => {
                                 const tagConfig = (groupConfig.tags || []).find(t => t.id === tagId);
                                 if (tagConfig) {
-                                fileDisplayTags.push(mapConfigToTagInterface(tagConfig, groupConfig.groupDisplayName.toLowerCase().replace(/\s+/g, '-')));
+                                fileDisplayTags.push(mapConfigToTagInterface(tagConfig, groupConfig.displayName.toLowerCase().replace(/\s+/g, '-')));
                                 }
                             });
                             }
@@ -791,7 +791,7 @@ export const getResourceBySlug = async (slug: string): Promise<Resource | undefi
          selectedTagIdsInGroup.forEach(tagId => {
             const tagConfig = (group.tags || []).find(t => t.id === tagId);
             if (tagConfig) {
-              resourceDisplayTags.push(mapConfigToTagInterface(tagConfig, group.groupDisplayName.toLowerCase().replace(/\s+/g, '-')));
+              resourceDisplayTags.push(mapConfigToTagInterface(tagConfig, group.displayName.toLowerCase().replace(/\s+/g, '-')));
             }
         });
       }
@@ -812,7 +812,7 @@ export const getResourceBySlug = async (slug: string): Promise<Resource | undefi
                       parsedSelectedFileTags[groupConfig.id]?.forEach(tagId => {
                         const tagConfig = (groupConfig.tags || []).find(t => t.id === tagId);
                         if (tagConfig) {
-                          fileDisplayTags.push(mapConfigToTagInterface(tagConfig, groupConfig.groupDisplayName.toLowerCase().replace(/\s+/g, '-')));
+                          fileDisplayTags.push(mapConfigToTagInterface(tagConfig, groupConfig.displayName.toLowerCase().replace(/\s+/g, '-')));
                         }
                       });
                     }
@@ -1043,7 +1043,7 @@ const hydrateResourceRows = async (rows: any[]): Promise<Resource[]> => {
           selectedTagIdsInGroup.forEach(tagId => {
             const tagConfig = (group.tags || []).find(t => t.id === tagId);
             if (tagConfig) {
-              resourceDisplayTags.push(mapConfigToTagInterface(tagConfig, group.groupDisplayName.toLowerCase().replace(/\s+/g, '-')));
+              resourceDisplayTags.push(mapConfigToTagInterface(tagConfig, group.displayName.toLowerCase().replace(/\s+/g, '-')));
             }
           });
         }
@@ -1065,7 +1065,7 @@ const hydrateResourceRows = async (rows: any[]): Promise<Resource[]> => {
                         parsedSelectedFileTags[groupConfig.id]?.forEach(tagId => {
                             const tagConfig = (groupConfig.tags || []).find(t => t.id === tagId);
                             if (tagConfig) {
-                            fileDisplayTags.push(mapConfigToTagInterface(tagConfig, groupConfig.groupDisplayName.toLowerCase().replace(/\s+/g, '-')));
+                            fileDisplayTags.push(mapConfigToTagInterface(tagConfig, groupConfig.displayName.toLowerCase().replace(/\s+/g, '-')));
                             }
                         });
                         }
@@ -1149,7 +1149,7 @@ export async function getAuthorPublishedResources(
   const db = await getDb();
   const { limit = 12, sortBy = 'created_at', order = 'DESC', excludeIds = [], itemType, parentItemId, categoryId, page = 1, searchQuery } = options;
 
-  let baseQuery = `
+  const baseSelect = `
     SELECT r.*,
            pi.name as parent_item_name, pi.slug as parent_item_slug, pi.item_type as parent_item_type,
            c.name as category_name, c.slug as category_slug
@@ -1185,16 +1185,16 @@ export async function getAuthorPublishedResources(
   }
 
   const whereString = whereClauses.join(' AND ');
-  baseQuery += ' WHERE ' + whereString;
   
   const countQuery = `SELECT COUNT(DISTINCT r.id) as total FROM resources r JOIN resource_authors ra ON r.id = ra.resource_id JOIN items pi ON r.parent_item_id = pi.id JOIN categories c ON r.category_id = c.id WHERE ${whereString}`;
   const totalRow = await db.get(countQuery, ...whereQueryParams);
   const total = totalRow?.total || 0;
-  
+
+  let query = baseSelect + ' WHERE ' + whereString + ' GROUP BY r.id';
   let fullQueryParams = [...whereQueryParams];
   
   if (searchQuery && sortBy === 'relevance') {
-    baseQuery += ` ORDER BY CASE WHEN LOWER(r.name) = LOWER(?) THEN 0 ELSE 1 END, CASE WHEN LOWER(r.name) LIKE LOWER(?) THEN 1 ELSE 2 END, r.downloads DESC`;
+    query += ` ORDER BY CASE WHEN LOWER(r.name) = LOWER(?) THEN 0 ELSE 1 END, CASE WHEN LOWER(r.name) LIKE LOWER(?) THEN 1 ELSE 2 END, r.downloads DESC`;
     fullQueryParams.push(searchQuery.toLowerCase(), `${searchQuery}%`);
   } else {
     let orderByField = 'r.created_at';
@@ -1205,16 +1205,14 @@ export async function getAuthorPublishedResources(
     
     const orderDirection = order === 'ASC' ? 'ASC' : 'DESC';
     
-    baseQuery += ` ORDER BY ${orderByField} ${orderDirection}, r.id DESC`;
+    query += ` ORDER BY ${orderByField} ${orderDirection}, r.id DESC`;
   }
 
-  baseQuery += ' GROUP BY r.id';
-
   const offset = (page - 1) * limit;
-  baseQuery += ` LIMIT ? OFFSET ?`;
+  query += ` LIMIT ? OFFSET ?`;
   fullQueryParams.push(limit, offset);
   
-  const resourceRows = await db.all(baseQuery, ...fullQueryParams);
+  const resourceRows = await db.all(query, ...fullQueryParams);
   const hasMore = page * limit < total;
   
   if (!resourceRows) return { resources: [], total: 0, hasMore: false };
@@ -1222,6 +1220,7 @@ export async function getAuthorPublishedResources(
   const resources = await hydrateResourceRows(resourceRows);
   return { resources, total, hasMore };
 }
+
 
 export const getProjectsForUser = async (userId: string): Promise<{ [key in ItemType]?: ItemWithDetails[] }> => {
   const db = await getDb();

@@ -217,33 +217,24 @@
         }
       }
       /* Ensure decorations are visible on gradient text */
-      [style*="background-image: linear-gradient"] {
+      [style*="background-image: linear-gradient"][style*="background-clip: text"] {
+        /* Underline */
         u {
-          text-decoration: none;
-          position: relative;
+          text-decoration: none; /* Disable default underline */
+          background-image: inherit; /* Inherit the gradient from the parent span */
+          background-size: 100% 2px; /* Line thickness */
+          background-position: 0 95%; /* Position at the bottom. 95% is better than 100% for some fonts */
+          background-repeat: no-repeat;
+          /* Crucially, we DO NOT clip this background to the text */
         }
-        u::after {
-          content: '';
-          position: absolute;
-          left: 0;
-          right: 0;
-          bottom: 1px;
-          height: 1px;
-          background: inherit; /* This will be the gradient */
-        }
+
+        /* Strikethrough */
         s {
-          text-decoration: none;
-          position: relative;
-        }
-        s::after {
-          content: '';
-          position: absolute;
-          left: 0;
-          right: 0;
-          top: 50%;
-          height: 1px;
-          background: inherit; /* This will be the gradient */
-          transform: translateY(-50%);
+          text-decoration: none; /* Disable default strikethrough */
+          background-image: inherit;
+          background-size: 100% 2px;
+          background-position: 0 50%; /* Position in the middle */
+          background-repeat: no-repeat;
         }
       }
     }

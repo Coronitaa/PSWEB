@@ -148,7 +148,7 @@ export async function getAuthorsForResource(resourceId: string): Promise<Resourc
     const authorRows = await db.all(`
         SELECT p.id, p.name, p.usertag, p.avatar_url, p.role, ra.is_creator, ra.role_description, ra.sort_order
         FROM resource_authors ra
-        JOIN profiles p ON ra.user_id = p.id
+        JOIN profiles p ON ra.author_id = p.id
         WHERE ra.resource_id = ?
         ORDER BY ra.is_creator DESC, ra.sort_order ASC, p.name ASC
     `, resourceId);
@@ -181,7 +181,7 @@ export const searchProfiles = async (query: string): Promise<Author[]> => {
 export const addAuthorToResource = async (resourceId: string, userIdToAdd: string, roleDescription?: string): Promise<ResourceAuthor[]> => {
   const db = await getDb();
   await db.run(
-    'INSERT OR IGNORE INTO resource_authors (resource_id, user_id, role_description, is_creator) VALUES (?, ?, ?, ?)',
+    'INSERT OR IGNORE INTO resource_authors (resource_id, author_id, role_description, is_creator) VALUES (?, ?, ?, ?)',
     resourceId, userIdToAdd, roleDescription || 'Collaborator', false
   );
   return getAuthorsForResource(resourceId);
@@ -189,26 +189,26 @@ export const addAuthorToResource = async (resourceId: string, userIdToAdd: strin
 
 export const removeAuthorFromResource = async (resourceId: string, userIdToRemove: string): Promise<ResourceAuthor[]> => {
   const db = await getDb();
-  await db.run('DELETE FROM resource_authors WHERE resource_id = ? AND user_id = ? AND is_creator = 0', resourceId, userIdToRemove);
+  await db.run('DELETE FROM resource_authors WHERE resource_id = ? AND author_id = ? AND is_creator = 0', resourceId, userIdToRemove);
   return getAuthorsForResource(resourceId);
 };
 
 export const updateAuthorRoleInDb = async (resourceId: string, userIdToUpdate: string, newRoleDescription: string): Promise<ResourceAuthor[]> => {
   const db = await getDb();
-  await db.run('UPDATE resource_authors SET role_description = ? WHERE resource_id = ? AND user_id = ?', newRoleDescription, resourceId, userIdToUpdate);
+  await db.run('UPDATE resource_authors SET role_description = ? WHERE resource_id = ? AND author_id = ?', newRoleDescription, resourceId, userIdToUpdate);
   return getAuthorsForResource(resourceId);
 };
 
 export const transferResourceOwnershipInDb = async (resourceId: string, newCreatorId: string): Promise<ResourceAuthor[]> => {
   const db = await getDb();
-  const currentCreator = await db.get('SELECT user_id FROM resource_authors WHERE resource_id = ? AND is_creator = 1', resourceId);
+  const currentCreator = await db.get('SELECT author_id FROM resource_authors WHERE resource_id = ? AND is_creator = 1', resourceId);
 
   if (currentCreator) {
     await db.exec('BEGIN TRANSACTION');
     // Demote current creator to a regular author
-    await db.run('UPDATE resource_authors SET is_creator = 0, role_description = ? WHERE resource_id = ? AND user_id = ?', 'Collaborator', resourceId, currentCreator.user_id);
+    await db.run('UPDATE resource_authors SET is_creator = 0, role_description = ? WHERE resource_id = ? AND author_id = ?', 'Collaborator', resourceId, currentCreator.author_id);
     // Promote new user to creator
-    await db.run('UPDATE resource_authors SET is_creator = 1, role_description = ? WHERE resource_id = ? AND user_id = ?', 'Creator', resourceId, newCreatorId);
+    await db.run('UPDATE resource_authors SET is_creator = 1, role_description = ? WHERE resource_id = ? AND author_id = ?', 'Creator', resourceId, newCreatorId);
     await db.exec('COMMIT');
   }
 
@@ -994,7 +994,7 @@ export const getUserStats = async (userId: string): Promise<UserStats> => {
   const db = await getDb();
 
   const resourcesPublishedResult = await db.get(
-    "SELECT COUNT(DISTINCT r.id) as count FROM resources r JOIN resource_authors ra ON r.id = ra.resource_id WHERE ra.user_id = ? AND r.status = 'published'",
+    "SELECT COUNT(DISTINCT r.id) as count FROM resources r JOIN resource_authors ra ON r.id = ra.resource_id WHERE ra.author_id = ? AND r.status = 'published'",
     userId
   );
   const resourcesPublishedCount = resourcesPublishedResult?.count || 0;
@@ -1006,7 +1006,7 @@ export const getUserStats = async (userId: string): Promise<UserStats> => {
   const reviewsPublishedCount = reviewsPublishedResult?.count || 0;
 
   const userPublishedResources = await db.all(
-    "SELECT r.rating, r.review_count FROM resources r JOIN resource_authors ra ON r.id = ra.resource_id WHERE ra.user_id = ? AND r.status = 'published' AND r.rating IS NOT NULL AND r.review_count > 0",
+    "SELECT r.rating, r.review_count FROM resources r JOIN resource_authors ra ON r.id = ra.resource_id WHERE ra.author_id = ? AND r.status = 'published' AND r.rating IS NOT NULL AND r.review_count > 0",
     userId
   );
 
@@ -1122,7 +1122,7 @@ export const getTopUserResources = async (userId: string, count: number = 3): Pr
     JOIN resource_authors ra ON r.id = ra.resource_id
     JOIN items pi ON r.parent_item_id = pi.id
     JOIN categories c ON r.category_id = c.id
-    WHERE ra.user_id = ? AND r.status = 'published'
+    WHERE ra.author_id = ? AND r.status = 'published'
     ORDER BY r.downloads DESC, r.rating DESC, r.updated_at DESC
     LIMIT ?
   `, userId, count);
@@ -1159,7 +1159,7 @@ export async function getAuthorPublishedResources(
     JOIN categories c ON r.category_id = c.id
   `;
   
-  const whereClauses: string[] = ["ra.user_id = ?", "r.status = 'published'"];
+  const whereClauses: string[] = ["ra.author_id = ?", "r.status = 'published'"];
   const whereQueryParams: any[] = [userId];
 
   if (excludeIds && excludeIds.length > 0) {
@@ -1229,7 +1229,7 @@ export const getProjectsForUser = async (userId: string): Promise<{ [key in Item
     `SELECT DISTINCT i.* FROM items i
      JOIN resources r ON i.id = r.parent_item_id
      JOIN resource_authors ra ON r.id = ra.resource_id
-     WHERE ra.user_id = ? AND i.status = 'published'
+     WHERE ra.author_id = ? AND i.status = 'published'
      ORDER BY i.item_type, i.name ASC`,
     userId
   );

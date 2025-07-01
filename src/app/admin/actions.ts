@@ -101,9 +101,9 @@ async function verifyResourceCreatorPermission(
     }
 
     const db = await getDb();
-    const creator = await db.get('SELECT user_id FROM resource_authors WHERE resource_id = ? AND is_creator = 1', resourceId);
+    const creator = await db.get('SELECT author_id FROM resource_authors WHERE resource_id = ? AND is_creator = 1', resourceId);
 
-    if (creator && creator.user_id === user.id) {
+    if (creator && creator.author_id === user.id) {
         return { user, isCreator: true };
     }
 
@@ -380,7 +380,7 @@ export async function saveResourceAction(
       resourceId = 'res_' + resourceSlug.replace(/-/g, '_') + '_' + Date.now().toString(36); 
       
       await db.run(
-        'INSERT INTO resources (id, name, slug, parent_item_id, category_id, version, description, detailed_description, image_url, image_gallery, gallery_aspect_ratio, gallery_autoplay_interval, show_main_image_in_gallery, links, requirements, status, selected_dynamic_tags_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO resources (id, name, slug, parent_item_id, category_id, version, description, detailed_description, image_url, image_gallery, gallery_aspect_ratio, gallery_autoplay_interval, show_main_image_in_gallery, links, requirements, status, selected_dynamic_tags_json, created_at, updated_at, author_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         resourceId, data.name, resourceSlug, parentItemId, categoryId, finalResourceVersion, data.description,
         data.detailedDescription || null, data.imageUrl || 'https://placehold.co/800x450.png', JSON.stringify(data.imageGallery || []),
         data.galleryAspectRatio || '16/9', data.galleryAutoplayInterval ?? 5000,
@@ -389,11 +389,12 @@ export async function saveResourceAction(
         (userRole === 'admin' || userRole === 'mod') ? data.status : 'published', 
         data.selectedDynamicTags ? JSON.stringify(data.selectedDynamicTags) : null,
         overallOperationTimestamp, 
-        overallOperationTimestamp 
+        overallOperationTimestamp,
+        authUser.id // Insert current user as legacy author_id
       );
       
       // Assign the user as the creator
-      await db.run('INSERT INTO resource_authors (resource_id, user_id, is_creator, role_description) VALUES (?, ?, ?, ?)', resourceId, authUser.id, true, 'Creator');
+      await db.run('INSERT INTO resource_authors (resource_id, author_id, is_creator, role_description) VALUES (?, ?, ?, ?)', resourceId, authUser.id, true, 'Creator');
 
     } else if (!resourceId) {
       throw new Error("Resource ID is missing for an update operation.");
@@ -460,9 +461,9 @@ export async function saveResourceAction(
       const currentResource = await db.get("SELECT * FROM resources WHERE id = ?", resourceId);
       if (!currentResource) throw new Error("Resource not found for update.");
 
-      const creator = await db.get("SELECT user_id FROM resource_authors WHERE resource_id = ? AND is_creator = 1", resourceId);
+      const creator = await db.get("SELECT author_id FROM resource_authors WHERE resource_id = ? AND is_creator = 1", resourceId);
 
-      if (userRole !== 'admin' && userRole !== 'mod' && creator.user_id !== authUser.id) {
+      if (userRole !== 'admin' && userRole !== 'mod' && creator.author_id !== authUser.id) {
         await db.exec('ROLLBACK');
         return { success: false, error: "Permission denied: You are not the author or an administrator.", errorCode: 'PERMISSION_DENIED' };
       }

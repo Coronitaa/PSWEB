@@ -125,13 +125,13 @@ async function initDbSchema(db: Database): Promise<void> {
     
     'CREATE TABLE IF NOT EXISTS resource_authors (' +
     '  resource_id TEXT NOT NULL,' +
-    '  user_id TEXT NOT NULL,' +
+    '  author_id TEXT NOT NULL,' +
     '  role_description TEXT,' +
     '  is_creator BOOLEAN DEFAULT FALSE NOT NULL,' +
     '  sort_order INTEGER DEFAULT 0 NOT NULL,' +
-    '  PRIMARY KEY (resource_id, user_id),' +
+    '  PRIMARY KEY (resource_id, author_id),' +
     '  FOREIGN KEY (resource_id) REFERENCES resources(id) ON DELETE CASCADE,' +
-    '  FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE' +
+    '  FOREIGN KEY (author_id) REFERENCES profiles(id) ON DELETE CASCADE' +
     ');' +
 
     'CREATE TABLE IF NOT EXISTS resource_files (' +
@@ -231,7 +231,7 @@ async function initDbSchema(db: Database): Promise<void> {
         if (tableInfo.some(col => col.name === 'author_id')) { // Check if old author_id exists
           const resourcesWithAuthor = await db.all('SELECT id, author_id FROM resources WHERE author_id IS NOT NULL');
           for (const res of resourcesWithAuthor) {
-            await db.run('INSERT OR IGNORE INTO resource_authors (resource_id, user_id, is_creator, role_description) VALUES (?, ?, ?, ?)', res.id, res.author_id, true, 'Creator');
+            await db.run('INSERT OR IGNORE INTO resource_authors (resource_id, author_id, is_creator, role_description) VALUES (?, ?, ?, ?)', res.id, res.author_id, true, 'Creator');
           }
         }
     }

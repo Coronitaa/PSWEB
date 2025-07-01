@@ -178,6 +178,7 @@ const AuthorItem = ({ author }: { author: ResourceAuthor }) => {
 
 export function ResourceInfoSidebar({ resource }: ResourceInfoSidebarProps) {
   const { toast } = useToast();
+  
   const latestFile: ResourceFile | undefined = resource.files && resource.files.length > 0
     ? resource.files.sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime())[0]
     : undefined;
@@ -185,9 +186,11 @@ export function ResourceInfoSidebar({ resource }: ResourceInfoSidebarProps) {
   const [displayDateFormatted, setDisplayDateFormatted] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    const dateToFormat = latestFile?.updatedAt || latestFile?.createdAt || resource.createdAt;
-    setDisplayDateFormatted(formatTimeAgo(dateToFormat));
-  }, [resource.createdAt, latestFile]);
+    const dateToFormat = latestFile?.updatedAt || latestFile?.createdAt;
+    if (dateToFormat) {
+      setDisplayDateFormatted(formatTimeAgo(dateToFormat));
+    }
+  }, [latestFile]);
 
 
   const handleDownloadClick = async () => {
@@ -310,7 +313,7 @@ export function ResourceInfoSidebar({ resource }: ResourceInfoSidebarProps) {
         <InfoItem label="Downloads" value={formatNumberWithSuffix(resource.downloads)} icon={BarChart3} />
         <InfoItem label="Followers" value={formatNumberWithSuffix(resource.followers)} icon={Heart} />
         <InfoItem label="Created" value={format(new Date(resource.createdAt), 'MMM d, yyyy')} icon={CalendarDays} />
-        <InfoItem label="Updated" value={displayDateFormatted || 'Loading...'} icon={CalendarDays} suppressHydrationWarning={true} />
+        <InfoItem label="Updated" value={latestFile ? (displayDateFormatted || 'Loading...') : 'N/A'} icon={CalendarDays} suppressHydrationWarning={true} />
       </SidebarCard>
 
       {Object.entries(tagGroups).length > 0 && (

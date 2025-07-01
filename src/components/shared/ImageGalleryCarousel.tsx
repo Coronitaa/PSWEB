@@ -120,11 +120,9 @@ export const ImageGalleryCarousel: React.FC<ImageGalleryCarouselProps> = ({
     <>
       <div className={cn(
         "relative overflow-hidden bg-card/50 w-full rounded-lg shadow-inner group",
-        {
-          'aspect-[16/9]': aspectRatio === '16/9',
-          'aspect-[4/3]': aspectRatio === '4/3',
-          'aspect-square': aspectRatio === '1/1',
-        },
+        aspectRatio === '16/9' && 'aspect-[16/9]',
+        aspectRatio === '4/3' && 'aspect-[4/3]',
+        aspectRatio === '1/1' && 'aspect-square',
         className
       )}>
         <motion.div

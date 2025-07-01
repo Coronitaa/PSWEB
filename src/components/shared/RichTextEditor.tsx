@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
@@ -703,7 +702,7 @@ const ImageCarouselModal = ({
                           <div className="flex justify-start gap-2">
                               <Tooltip>
                                   <TooltipTrigger asChild>
-                                      <Button type="button" variant={aspectRatio === '16:9' ? 'default' : 'outline'} size="icon" onClick={() => setAspectRatio('16:9')}>
+                                      <Button type="button" variant={aspectRatio === '16/9' ? 'default' : 'outline'} size="icon" onClick={() => setAspectRatio('16/9')}>
                                           <AspectRatioIcon ratio="16:9" className="w-5 h-5" />
                                       </Button>
                                   </TooltipTrigger>
@@ -711,7 +710,7 @@ const ImageCarouselModal = ({
                               </Tooltip>
                               <Tooltip>
                                   <TooltipTrigger asChild>
-                                      <Button type="button" variant={aspectRatio === '4:3' ? 'default' : 'outline'} size="icon" onClick={() => setAspectRatio('4/3')}>
+                                      <Button type="button" variant={aspectRatio === '4/3' ? 'default' : 'outline'} size="icon" onClick={() => setAspectRatio('4/3')}>
                                           <AspectRatioIcon ratio="4:3" className="w-5 h-5" />
                                       </Button>
                                   </TooltipTrigger>
@@ -737,7 +736,7 @@ const ImageCarouselModal = ({
             <h3 className="text-sm font-medium mb-2 shrink-0">Preview</h3>
             <div className={cn(
                 "border rounded-md p-2 bg-muted/30 relative w-full",
-                aspectRatio === '16:9' && 'aspect-video',
+                aspectRatio === '16/9' && 'aspect-[16/9]',
                 aspectRatio === '4/3' && 'aspect-[4/3]',
                 aspectRatio === '1/1' && 'aspect-square',
             )}>
@@ -946,7 +945,7 @@ const ImageCarouselComponent = (props: NodeViewProps) => {
         className={cn(
           "relative w-full",
           selected && 'border-2 border-primary border-solid',
-          aspectRatio === '16/9' && 'aspect-video',
+          aspectRatio === '16/9' && 'aspect-[16/9]',
           aspectRatio === '4/3' && 'aspect-[4/3]',
           aspectRatio === '1/1' && 'aspect-square',
         )}

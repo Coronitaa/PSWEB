@@ -9,20 +9,24 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export const mapConfigToTagInterface = (config: TagInGroupConfig, slugPrefix: string = 'tag'): Tag => ({
-  id: config.id,
-  name: config.name,
-  slug: slugPrefix + '-' + config.name.toLowerCase().replace(/\s+/g, '-') + '-' + config.id.substring(0,4),
-  description: undefined,
-  color: config.color,
-  text_color: config.text_color,
-  border_color: config.border_color,
-  hover_bg_color: config.hover_bg_color,
-  hover_text_color: config.hover_text_color,
-  hover_border_color: config.hover_border_color,
-  icon_svg: config.icon_svg,
-  type: 'misc', // Default type, can be overridden if group info is available
-});
+export function mapConfigToTagInterface(config: TagInGroupConfig, group: { id: string; displayName: string }): Tag {
+    return {
+        id: config.id,
+        name: config.name,
+        slug: group.displayName.toLowerCase().replace(/\s+/g, '-') + '-' + config.name.toLowerCase().replace(/\s+/g, '-') + '-' + config.id.substring(0,4),
+        description: undefined,
+        color: config.color,
+        text_color: config.text_color,
+        border_color: config.border_color,
+        hover_bg_color: config.hover_bg_color,
+        hover_text_color: config.hover_text_color,
+        hover_border_color: config.hover_border_color,
+        icon_svg: config.icon_svg,
+        type: 'misc', // Default type, can be overridden if group info is available
+        groupId: group.id,
+        groupName: group.displayName,
+    };
+}
 
 export function getItemTypePlural(itemType: ItemType): string {
     if (itemType === 'art-music') return 'art-music';

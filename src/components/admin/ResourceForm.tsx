@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useForm, Controller, useFieldArray, useWatch } from 'react-hook-form';
@@ -879,7 +880,7 @@ export function ResourceForm({
                                               tagIdsInGroup.forEach(tagId => {
                                                   const tagConfig = (groupConfig.tags || []).find(t => t.id === tagId);
                                                   if (tagConfig) {
-                                                      displayTags.push(mapConfigToTagInterface(tagConfig, groupConfig.displayName.toLowerCase().replace(/\s+/g, '-')));
+                                                      displayTags.push(mapConfigToTagInterface(tagConfig, groupConfig));
                                                   }
                                               });
                                           }

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from 'react';
@@ -210,29 +211,13 @@ export function ResourceInfoSidebar({ resource }: ResourceInfoSidebarProps) {
   };
 
   const tagGroups = resource.tags.reduce((acc, tag) => {
-    const type = tag.type.charAt(0).toUpperCase() + tag.type.slice(1);
-    if (!acc[type]) acc[type] = [];
-    acc[type].push(tag);
+    const groupName = tag.groupName || 'Misc';
+    if (!acc[groupName]) {
+      acc[groupName] = [];
+    }
+    acc[groupName].push(tag);
     return acc;
   }, {} as Record<string, Tag[]>);
-
-  const getFilterQueryParamForTagType = (tagType: Tag['type']): string | null => {
-    switch (tagType) {
-      case 'version': return 'versions';
-      case 'loader': return 'loaders';
-      case 'genre': return 'genres';
-      case 'platform': return 'platforms';
-      case 'misc': return 'misc';
-      case 'channel': return 'channels';
-      case 'framework': return 'frameworks';
-      case 'language': return 'languages';
-      case 'tooling': return 'tooling';
-      case 'app-category': return 'appCategories';
-      case 'art-style': return 'artStyles';
-      case 'music-genre': return 'musicGenres';
-      default: return null;
-    }
-  };
 
   const parentItemPath = `/${resource.parentItemType === 'art-music' ? 'art-music' : resource.parentItemType + 's'}/${resource.parentItemSlug}`;
   
@@ -331,13 +316,13 @@ export function ResourceInfoSidebar({ resource }: ResourceInfoSidebarProps) {
       {Object.entries(tagGroups).length > 0 && (
         <SidebarCard title="Tags" icon={TagIcon}>
           <div className="space-y-3">
-            {Object.entries(tagGroups).map(([type, tagsInGroup]) => (
+            {Object.entries(tagGroups).map(([groupName, tagsInGroup]) => (
               tagsInGroup.length > 0 && (
-                <div key={type}>
-                  <h5 className="text-xs font-semibold text-muted-foreground mb-1.5">{type}</h5>
+                <div key={groupName}>
+                  <h5 className="text-xs font-semibold text-muted-foreground mb-1.5">{groupName}</h5>
                   <div className="flex flex-wrap gap-1.5">
                     {tagsInGroup.map(tag => {
-                      const queryParam = getFilterQueryParamForTagType(tag.type);
+                      const queryParam = tag.groupId;
                       const categoryPath = `${parentItemPath}/${resource.categorySlug}`;
                       if (queryParam) { 
                         return (

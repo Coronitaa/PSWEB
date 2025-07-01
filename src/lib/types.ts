@@ -83,6 +83,8 @@ export interface Tag {
   hover_border_color?: string | null;
   icon_svg?: string | null;
   type: 'version' | 'loader' | 'genre' | 'platform' | 'misc' | 'channel' | 'framework' | 'language' | 'tooling' | 'app-category' | 'art-style' | 'music-genre' | 'medium' | 'section';
+  groupName?: string;
+  groupId?: string;
 }
 
 export interface TagInGroupConfig {
@@ -433,3 +435,4 @@ export interface UserSentimentForReview {
   sentiment: 'helpful' | 'unhelpful' | null;
   isFunny: boolean;
 }
+

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
+import Image from 'next/image';
 import { TagBadge } from '../shared/TagBadge';
 import { Separator } from '@/components/ui/separator';
 import { formatTimeAgo, formatNumberWithSuffix } from '@/lib/utils';
@@ -128,6 +129,43 @@ const getItemTypeIcon = (itemType: ItemType) => {
 const getAuthorLink = (author: ResourceAuthor) => {
     return author.usertag ? `/users/${author.usertag.startsWith('@') ? author.usertag.substring(1) : author.usertag}` : '#';
 };
+
+const AuthorItem = ({ author }: { author: ResourceAuthor }) => {
+  const authorLink = getAuthorLink(author);
+  const CREATOR_BORDER_COLOR = '#FFC107';
+  const borderColor = author.isCreator ? CREATOR_BORDER_COLOR : (author.authorColor || 'hsl(var(--border))');
+
+  return (
+    <div className="flex items-center justify-between">
+      <div className="flex items-center space-x-3">
+        <Link href={authorLink}>
+          <Image
+            src={author.avatarUrl || `https://placehold.co/40x40/888888/FFFFFF?text=${author.name ? author.name.substring(0,1) : 'A'}`}
+            alt={author.name || 'Author Avatar'}
+            width={40}
+            height={40}
+            className="w-10 h-10 rounded-full border-2 hover:opacity-80 transition-opacity object-cover"
+            style={{ borderColor }}
+            data-ai-hint="user avatar"
+          />
+        </Link>
+        <div>
+          <Link href={authorLink} className="hover:text-primary transition-colors">
+            <div className="flex items-center gap-1.5">
+              <p className="font-semibold text-foreground">{author.name}</p>
+              {author.isCreator && <Crown className="h-4 w-4 text-amber-500 fill-amber-400" />}
+            </div>
+          </Link>
+          <p className="text-xs text-muted-foreground">{author.isCreator ? 'Creator' : (author.roleDescription || 'Collaborator')}</p>
+        </div>
+      </div>
+      <Button variant="outline" size="sm" className="button-outline-glow button-follow-sheen ml-2">
+        <Heart className="w-3.5 h-3.5 mr-1.5 fill-accent text-accent" /> Follow
+      </Button>
+    </div>
+  );
+};
+
 
 export function ResourceInfoSidebar({ resource }: ResourceInfoSidebarProps) {
   const { toast } = useToast();
@@ -263,62 +301,14 @@ export function ResourceInfoSidebar({ resource }: ResourceInfoSidebarProps) {
           </Button>
       </SidebarCard>
 
-      <SidebarCard title="Authors" icon={User}>
-        {creator && (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Link href={getAuthorLink(creator)}>
-                  <img
-                    src={creator.avatarUrl || `https://placehold.co/40x40/888888/FFFFFF?text=${creator.name ? creator.name.substring(0,1) : 'A'}`}
-                    alt={creator.name || ''}
-                    className="w-10 h-10 rounded-full border-2 border-amber-400 hover:opacity-80 transition-opacity"
-                    data-ai-hint="user avatar"
-                  />
-                </Link>
-                <div>
-                  <Link href={getAuthorLink(creator)} className="hover:text-primary transition-colors">
-                    <div className="flex items-center gap-1.5">
-                      <p className="font-semibold text-foreground">{creator.name}</p>
-                      <Crown className="h-4 w-4 text-amber-500 fill-amber-400" />
-                    </div>
-                  </Link>
-                  <p className="text-xs text-muted-foreground">Creator</p>
-                </div>
-              </div>
-              <Button variant="outline" size="sm" className="button-outline-glow button-follow-sheen ml-2">
-                <Heart className="w-3.5 h-3.5 mr-1.5 fill-accent text-accent" /> Follow
-              </Button>
-            </div>
-        )}
-        {collaborators.length > 0 && (
-            <>
-                <Separator className="my-3 bg-border/30"/>
-                <div className="space-y-2">
-                    {collaborators.map(collab => (
-                        <div key={collab.id} className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
-                                <Link href={getAuthorLink(collab)}>
-                                    <img src={collab.avatarUrl || `https://placehold.co/32x32/666666/FFFFFF?text=${collab.name ? collab.name.substring(0,1) : 'C'}`}
-                                    alt={collab.name || ''}
-                                    className="w-8 h-8 rounded-full border hover:opacity-80 transition-opacity"
-                                    />
-                                </Link>
-                                <div>
-                                    <Link href={getAuthorLink(collab)} className="hover:text-primary transition-colors">
-                                        <p className="font-medium text-foreground text-sm">{collab.name}</p>
-                                    </Link>
-                                    <p className="text-xs text-muted-foreground">{collab.roleDescription || 'Collaborator'}</p>
-                                </div>
-                            </div>
-                            <Button variant="outline" size="sm" className="button-outline-glow button-follow-sheen ml-2">
-                                <Heart className="w-3.5 h-3.5 mr-1.5 fill-accent text-accent" /> Follow
-                            </Button>
-                        </div>
-                    ))}
-                </div>
-            </>
-        )}
+      <SidebarCard title="Authors" icon={Users}>
+        <div className="space-y-3">
+          {creator && <AuthorItem author={creator} />}
+          {collaborators.length > 0 && creator && <Separator className="my-2 bg-border/30" />}
+          {collaborators.map(collab => <AuthorItem key={collab.id} author={collab} />)}
+        </div>
       </SidebarCard>
+
 
       <SidebarCard title="Details" icon={ListChecks}>
         <InfoItem label="Version" value={resource.version} icon={GitBranch} />

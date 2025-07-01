@@ -191,7 +191,7 @@
 
    /* Prose styles for markdown content */
     .prose {
-     @apply overflow-x-hidden;
+     @apply overflow-x-hidden break-words;
      h1, h2, h3, h4, h5, h6 { @apply text-primary; }
       a { @apply text-accent hover:text-accent/80; } 
      code { @apply bg-muted text-accent px-1 py-0.5 rounded-sm text-sm; }
@@ -218,10 +218,10 @@
       }
     }
     
-    /* --- Robust FIX for invisible decorations on gradient text --- */
     .dark .prose-invert .has-text-gradient u,
     .dark .prose-invert .has-text-gradient s {
         text-decoration-color: hsl(var(--accent));
+        text-decoration-thickness: 1px;
     }
 
     .dark .prose-invert .has-text-gradient strong u,

@@ -401,60 +401,98 @@ export async function saveResourceAction(
       throw new Error("Resource ID is missing for an update operation.");
     }
 
+    // Smart file update logic
     const submittedFileIds = new Set(data.files.map(f => f.id).filter(id => id));
-    const existingDbFilesResult = resourceId ? await db.all("SELECT id FROM resource_files WHERE resource_id = ?", resourceId) : [];
-    
-    if (!isNewResource && resourceId) {
-        for (const existingFile of existingDbFilesResult) {
-          if (!submittedFileIds.has(existingFile.id)) {
-            await db.run("DELETE FROM changelog_entries WHERE resource_file_id = ?", existingFile.id);
-            await db.run("DELETE FROM resource_files WHERE id = ?", existingFile.id);
-          }
-        }
+    const existingDbFilesResult = resourceId 
+      ? await db.all("SELECT rf.*, ce.notes as changelog_notes FROM resource_files rf LEFT JOIN changelog_entries ce ON rf.id = ce.resource_file_id WHERE rf.resource_id = ?", resourceId) 
+      : [];
+    const existingDbFilesMap = new Map(existingDbFilesResult.map(f => [f.id, f]));
+
+    // Delete files that are no longer in the form submission
+    for (const existingFile of existingDbFilesResult) {
+      if (!submittedFileIds.has(existingFile.id)) {
+        await db.run("DELETE FROM changelog_entries WHERE resource_file_id = ?", existingFile.id);
+        await db.run("DELETE FROM resource_files WHERE id = ?", existingFile.id);
+      }
     }
 
     for (const fileData of data.files) {
+      const isNewFileInSubmission = !fileData.id || !existingDbFilesMap.has(fileData.id);
       const fileId = fileData.id || 'rfile_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 7);
       const fileTagsJson = JSON.stringify(fileData.selectedFileTags || {});
-      const fileCreationTimestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
-      const isNewFileForThisSubmission = !fileData.id || !existingDbFilesResult.find(f => f.id === fileData.id);
 
-      if (isNewFileForThisSubmission && (!fileData.channelId || fileData.channelId === 'release') && fileData.versionName) {
-        finalResourceVersion = fileData.versionName; 
-      }
-
-      if (fileData.id && !isNewFileForThisSubmission) { 
-        await db.run(
-          "UPDATE resource_files SET name = ?, url = ?, version_name = ?, size = ?, channel_id = ?, selected_file_tags_json = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND resource_id = ?",
-          fileData.name, fileData.url, fileData.versionName, fileData.size || null, fileData.channelId || null, fileTagsJson, fileData.id, resourceId
-        );
-      } else { 
-        if (!resourceId) throw new Error("Cannot add file, resourceId is undefined.");
+      if (isNewFileInSubmission) {
+        // This is a new file, insert it
+        if ((!fileData.channelId || fileData.channelId === 'release') && fileData.versionName) {
+          finalResourceVersion = fileData.versionName; 
+        }
+        const fileCreationTimestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
         await db.run(
           "INSERT INTO resource_files (id, resource_id, name, url, version_name, size, channel_id, selected_file_tags_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
           fileId, resourceId, fileData.name, fileData.url, fileData.versionName, fileData.size || null, fileData.channelId || null, fileTagsJson, 
           fileCreationTimestamp, fileCreationTimestamp  
         );
-      }
-      
-      const changelogDate = new Date().toISOString().split('T')[0]; 
-      if (fileData.changelogNotes && fileData.changelogNotes.trim() !== '') {
-        const existingChangelog = await db.get("SELECT id FROM changelog_entries WHERE resource_file_id = ?", fileId);
-        if (existingChangelog) {
-          await db.run(
-            "UPDATE changelog_entries SET version_name = ?, notes = ?, date = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-            fileData.versionName, fileData.changelogNotes, changelogDate, existingChangelog.id
-          );
-        } else {
-          if (!resourceId) throw new Error("Cannot add changelog, resourceId is undefined.");
-          const changelogId = 'clog_' + fileId.substring(6) + '_' + Date.now().toString(36);
-          await db.run(
-            "INSERT INTO changelog_entries (id, resource_id, resource_file_id, version_name, date, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-            changelogId, resourceId, fileId, fileData.versionName, changelogDate, fileData.changelogNotes
-          );
+        // And its changelog if it exists
+        if (fileData.changelogNotes && fileData.changelogNotes.trim() !== '') {
+            const changelogId = 'clog_' + fileId.substring(6) + '_' + Date.now().toString(36);
+            await db.run(
+              "INSERT INTO changelog_entries (id, resource_id, resource_file_id, version_name, date, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+              changelogId, resourceId, fileId, fileData.versionName, new Date().toISOString().split('T')[0], fileData.changelogNotes.trim()
+            );
         }
+
       } else {
-        await db.run("DELETE FROM changelog_entries WHERE resource_file_id = ?", fileId);
+        // This is an existing file, check for changes before updating
+        const dbFile = existingDbFilesMap.get(fileData.id!);
+        if (!dbFile) continue;
+
+        const sortedStringify = (obj: any) => {
+            if (!obj) return '{}';
+            const sorted = Object.keys(obj).sort().reduce((acc: Record<string, any>, key) => {
+                if (Array.isArray(obj[key])) {
+                  acc[key] = [...obj[key]].sort();
+                } else {
+                  acc[key] = obj[key];
+                }
+                return acc;
+            }, {});
+            return JSON.stringify(sorted);
+        };
+
+        const dbFileTags = dbFile.selected_file_tags_json ? JSON.parse(dbFile.selected_file_tags_json) : {};
+        const formFileTags = fileData.selectedFileTags || {};
+        const tagsAreEqual = sortedStringify(formFileTags) === sortedStringify(dbFileTags);
+
+        const hasChanged = 
+            fileData.name !== dbFile.name ||
+            fileData.url !== dbFile.url ||
+            fileData.versionName !== dbFile.version_name ||
+            (fileData.size || null) !== dbFile.size ||
+            (fileData.channelId || null) !== dbFile.channel_id ||
+            !tagsAreEqual ||
+            (fileData.changelogNotes || '').trim() !== (dbFile.changelog_notes || '').trim();
+
+        if (hasChanged) {
+          await db.run(
+            "UPDATE resource_files SET name = ?, url = ?, version_name = ?, size = ?, channel_id = ?, selected_file_tags_json = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND resource_id = ?",
+            fileData.name, fileData.url, fileData.versionName, fileData.size || null, fileData.channelId || null, fileTagsJson, fileData.id, resourceId
+          );
+
+          // Update changelog since data has changed
+          const newNotes = (fileData.changelogNotes || '').trim();
+          const changelogDate = new Date().toISOString().split('T')[0];
+          if (newNotes) {
+            const existingChangelog = await db.get("SELECT id FROM changelog_entries WHERE resource_file_id = ?", fileId);
+            if (existingChangelog) {
+              await db.run("UPDATE changelog_entries SET version_name = ?, notes = ?, date = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", fileData.versionName, newNotes, changelogDate, existingChangelog.id);
+            } else {
+              const changelogId = 'clog_' + fileId.substring(6) + '_' + Date.now().toString(36);
+              await db.run("INSERT INTO changelog_entries (id, resource_id, resource_file_id, version_name, date, notes) VALUES (?, ?, ?, ?, ?, ?)", changelogId, resourceId!, fileId, fileData.versionName, changelogDate, newNotes);
+            }
+          } else {
+            await db.run("DELETE FROM changelog_entries WHERE resource_file_id = ?", fileId);
+          }
+        }
       }
     }
 
@@ -643,3 +681,5 @@ export async function updateAuthorColorAction(resourceId: string, authorId: stri
     return { success: false, error: e.message, errorCode: 'DB_ERROR' };
   }
 }
+
+    

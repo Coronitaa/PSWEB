@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import sqlite3 from 'sqlite3';
@@ -237,6 +236,10 @@ async function initDbSchema(db: Database): Promise<void> {
     }
     if (tableName === 'resource_files' && !tableInfo.some(col => col.name === 'downloads')) {
         await db.exec('ALTER TABLE resource_files ADD COLUMN downloads INTEGER DEFAULT 0 NOT NULL;');
+    }
+    
+    if (tableName === 'resource_authors' && !tableInfo.some(col => col.name === 'sort_order')) {
+      await db.exec('ALTER TABLE resource_authors ADD COLUMN sort_order INTEGER DEFAULT 0 NOT NULL;');
     }
     
     if (!tableInfo.some(col => col.name === 'updated_at')) { await db.exec('ALTER TABLE ' + tableName + ' ADD COLUMN updated_at TEXT;'); }

@@ -218,16 +218,16 @@
       }
     }
     
-    .dark .prose-invert .has-text-gradient u,
-    .dark .prose-invert .has-text-gradient s {
+    .dark .prose-invert .has-text-gradient[style*="background-image"] u,
+    .dark .prose-invert .has-text-gradient[style*="background-image"] s {
         text-decoration-color: hsl(var(--accent));
         text-decoration-thickness: 1px;
     }
 
-    .dark .prose-invert .has-text-gradient strong u,
-    .dark .prose-invert .has-text-gradient b u,
-    .dark .prose-invert .has-text-gradient strong s,
-    .dark .prose-invert .has-text-gradient b s {
+    .dark .prose-invert .has-text-gradient[style*="background-image"] strong u,
+    .dark .prose-invert .has-text-gradient[style*="background-image"] b u,
+    .dark .prose-invert .has-text-gradient[style*="background-image"] strong s,
+    .dark .prose-invert .has-text-gradient[style*="background-image"] b s {
         text-decoration-thickness: 2px;
     }
 

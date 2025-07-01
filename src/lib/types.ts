@@ -262,6 +262,8 @@ export interface Resource {
   categoryName: string;
   categorySlug: string;
   authors: ResourceAuthor[];
+  authorId?: string | null; // Keep for legacy access, but prefer authors array
+  author: ResourceAuthor; // The primary creator
   version: string | null;
   description: string;
   detailedDescription: string | null;

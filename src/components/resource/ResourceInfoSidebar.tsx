@@ -179,8 +179,22 @@ const AuthorItem = ({ author }: { author: ResourceAuthor }) => {
 export function ResourceInfoSidebar({ resource }: ResourceInfoSidebarProps) {
   const { toast } = useToast();
   
+  const getChannelPriority = (channelId: string | null | undefined): number => {
+    if (channelId === 'release' || !channelId) return 0;
+    if (channelId === 'beta') return 1;
+    if (channelId === 'alpha') return 2;
+    return 3;
+  };
+
   const latestFile: ResourceFile | undefined = resource.files && resource.files.length > 0
-    ? resource.files.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())[0]
+    ? [...resource.files].sort((a, b) => {
+        const priorityA = getChannelPriority(a.channelId);
+        const priorityB = getChannelPriority(b.channelId);
+        if (priorityA !== priorityB) {
+            return priorityA - priorityB;
+        }
+        return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+    })[0]
     : undefined;
 
   const [displayDateFormatted, setDisplayDateFormatted] = React.useState<string | null>(null);

@@ -191,7 +191,8 @@ export const TextGradient = Extension.create<any>({
                     parseHTML: element => element.style.backgroundImage,
                     renderHTML: attributes => {
                         if (!attributes.textGradient) return {};
-                        return { 
+                        return {
+                            class: 'has-text-gradient', // Add a class
                             style: `background-image: ${attributes.textGradient}; color: transparent; -webkit-background-clip: text; background-clip: text;`,
                         };
                     },

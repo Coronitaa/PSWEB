@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { getDb } from './db';
@@ -929,8 +928,7 @@ export const getAvailableFilterTags = async (parentItemSlug: string, parentItemT
           text_color: tag.text_color,
           border_color: tag.border_color,
           hover_bg_color: tag.hover_bg_color,
-          hover_text_color: tag.hover_text_color,
-          hover_border_color: tag.hover_border_color,
+          hover_text_color: tag.hover_border_color,
           icon_svg: tag.icon_svg,
       })),
       appliesToFiles: groupConfig.appliesToFiles || false,

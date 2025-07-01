@@ -21,6 +21,7 @@ import {
     removeAuthorFromResource,
     updateAuthorRoleInDb,
     transferResourceOwnershipInDb,
+    updateAuthorColorInDb,
 } from '@/lib/data';
 import type { ProjectFormData, CategoryFormData, GenericListItem, Category, ItemType, UserAppRole, CategoryTagGroupConfig, ProjectCategoryTagConfigurations, ResourceFormData, Resource, SectionTagFormData, Tag, Author, ResourceAuthor } from '@/lib/types';
 import { ITEM_TYPES_CONST, USER_APP_ROLES_CONST } from '@/lib/types';
@@ -623,6 +624,19 @@ export async function transferOwnershipAction(resourceId: string, newCreatorId: 
   
   try {
     const updatedAuthors = await transferResourceOwnershipInDb(resourceId, newCreatorId);
+    revalidatePath(`/admin/projects/.*/.*/categories/.*/resources/${resourceId}/edit`);
+    return { success: true, data: { authors: updatedAuthors } };
+  } catch (e: any) {
+    return { success: false, error: e.message, errorCode: 'DB_ERROR' };
+  }
+}
+
+export async function updateAuthorColorAction(resourceId: string, authorId: string, color: string | null, clientMockUserId?: string): Promise<ActionResult<{ authors: ResourceAuthor[] }>> {
+  const permCheck = await verifyResourceCreatorPermission(resourceId, clientMockUserId);
+  if ('error' in permCheck) return permCheck;
+
+  try {
+    const updatedAuthors = await updateAuthorColorInDb(resourceId, authorId, color);
     revalidatePath(`/admin/projects/.*/.*/categories/.*/resources/${resourceId}/edit`);
     return { success: true, data: { authors: updatedAuthors } };
   } catch (e: any) {

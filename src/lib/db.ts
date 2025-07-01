@@ -129,6 +129,7 @@ async function initDbSchema(db: Database): Promise<void> {
     '  resource_id TEXT NOT NULL,' +
     '  author_id TEXT NOT NULL,' +
     '  role_description TEXT,' +
+    '  author_color TEXT,' +
     '  is_creator BOOLEAN DEFAULT FALSE NOT NULL,' +
     '  sort_order INTEGER DEFAULT 0 NOT NULL,' +
     '  PRIMARY KEY (resource_id, author_id),' +
@@ -244,6 +245,9 @@ async function initDbSchema(db: Database): Promise<void> {
     
     if (tableName === 'resource_authors' && !tableInfo.some(col => col.name === 'sort_order')) {
       await db.exec('ALTER TABLE resource_authors ADD COLUMN sort_order INTEGER DEFAULT 0 NOT NULL;');
+    }
+    if (tableName === 'resource_authors' && !tableInfo.some(col => col.name === 'author_color')) {
+      await db.exec('ALTER TABLE resource_authors ADD COLUMN author_color TEXT;');
     }
     
     if (!tableInfo.some(col => col.name === 'updated_at')) { await db.exec('ALTER TABLE ' + tableName + ' ADD COLUMN updated_at TEXT;'); }

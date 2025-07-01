@@ -4,15 +4,15 @@
 import React, { useState, useEffect, useMemo, useTransition } from 'react';
 import type { Author, ResourceAuthor, UserAppRole } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Crown, UserPlus, Trash2, Edit, Save, Search, X, Check, UserCircle } from 'lucide-react';
-import { searchUsers, addAuthor, removeAuthor, updateAuthorRole, transferOwnership } from '@/app/actions/clientWrappers';
+import { Loader2, Crown, UserPlus, Trash2, Edit, Save, Search, X, Check, UserCircle, Palette } from 'lucide-react';
+import { searchUsers, addAuthor, removeAuthor, updateAuthorRole, transferOwnership, updateAuthorColor } from '@/app/actions/clientWrappers';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 
@@ -26,6 +26,19 @@ interface MockUser {
     id: string;
     role: UserAppRole;
 }
+
+const AUTHOR_COLOR_PALETTE = [
+    { name: 'Default', value: null },
+    { name: 'Blue', value: '#3b82f6' },   // blue-500
+    { name: 'Green', value: '#22c55e' },  // green-500
+    { name: 'Purple', value: '#8b5cf6' }, // violet-500
+    { name: 'Orange', value: '#f97316' }, // orange-500
+    { name: 'Pink', value: '#ec4899' },   // pink-500
+    { name: 'Teal', value: '#14b8a6' },   // teal-500
+];
+
+const CREATOR_BORDER_COLOR = 'hsl(48, 95%, 55%)'; // Amber/Gold color
+
 
 export function ResourceAuthorsManager({ resourceId, initialAuthors, onAuthorsUpdate }: ResourceAuthorsManagerProps) {
   const [authors, setAuthors] = useState<ResourceAuthor[]>(initialAuthors);
@@ -42,6 +55,9 @@ export function ResourceAuthorsManager({ resourceId, initialAuthors, onAuthorsUp
   
   const [isTransferDialogOpen, setIsTransferDialogOpen] = useState(false);
   const [transferTarget, setTransferTarget] = useState<ResourceAuthor | null>(null);
+
+  const [isColorPopoverOpen, setIsColorPopoverOpen] = useState<string | null>(null);
+  const [isUpdatingColor, setIsUpdatingColor] = useState<string | null>(null);
 
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<UserAppRole>('usuario');
@@ -145,6 +161,22 @@ export function ResourceAuthorsManager({ resourceId, initialAuthors, onAuthorsUp
     });
   };
 
+  const handleUpdateColor = (authorId: string, color: string | null) => {
+    setIsUpdatingColor(authorId);
+    startProcessingTransition(async () => {
+        const result = await updateAuthorColor(resourceId, authorId, color);
+        if (result.success && result.data) {
+            handleAuthorsUpdate(result.data.authors);
+            toast({ title: 'Color Updated', description: 'The author\'s representative color has been updated.' });
+        } else {
+            toast({ title: 'Error', description: result.error || 'Failed to update color.', variant: 'destructive' });
+        }
+        setIsUpdatingColor(null);
+        setIsColorPopoverOpen(null);
+    });
+  };
+
+
   const creator = useMemo(() => authors.find(a => a.isCreator), [authors]);
   const collaborators = useMemo(() => authors.filter(a => !a.isCreator), [authors]);
   const canManage = useMemo(() => currentUserRole === 'admin' || currentUserRole === 'mod' || (creator && creator.id === currentUserId), [currentUserRole, currentUserId, creator]);
@@ -197,13 +229,19 @@ export function ResourceAuthorsManager({ resourceId, initialAuthors, onAuthorsUp
         )}
         <div className="space-y-3">
             {authors.map((author) => (
-                <div key={author.id} className={cn("p-3 border rounded-md bg-card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3", author.isCreator && "border-amber-400/50 bg-amber-400/5")}>
+                <div
+                    key={author.id}
+                    className={cn("p-3 border-l-4 rounded-md bg-card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 transition-all",
+                        author.isCreator ? "bg-amber-400/5" : "bg-card"
+                    )}
+                    style={{ borderColor: author.isCreator ? CREATOR_BORDER_COLOR : author.authorColor || 'hsl(var(--border))' }}
+                >
                      <div className="flex items-center gap-3 flex-grow">
                         <Avatar className="h-12 w-12">
                             <AvatarImage src={author.avatarUrl || undefined} />
                             <AvatarFallback><UserCircle className="w-6 h-6"/></AvatarFallback>
                         </Avatar>
-                        <div className="flex-grow">
+                        <div className="flex-grow min-w-0">
                             <div className="flex items-center gap-2">
                                 <p className="font-semibold">{author.name}</p>
                                 {author.isCreator && <Crown className="h-4 w-4 text-amber-500 fill-amber-400" />}
@@ -220,12 +258,46 @@ export function ResourceAuthorsManager({ resourceId, initialAuthors, onAuthorsUp
                                     <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => setEditingAuthor(null)}><X className="w-4 h-4" /></Button>
                                 </div>
                             ) : (
-                                <p className="text-sm text-muted-foreground">{author.roleDescription || (author.isCreator ? 'Creator of this resource' : 'Collaborator')}</p>
+                                <p className="text-sm text-muted-foreground truncate">{author.roleDescription || (author.isCreator ? 'Creator of this resource' : 'Collaborator')}</p>
                             )}
                         </div>
                     </div>
                     {canManage && (
                         <div className="flex items-center gap-1 shrink-0 self-start sm:self-center">
+                            {!author.isCreator && (
+                                <Popover open={isColorPopoverOpen === author.id} onOpenChange={(open) => setIsColorPopoverOpen(open ? author.id : null)}>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 shrink-0"
+                                            title="Assign color"
+                                            disabled={isUpdatingColor === author.id}
+                                        >
+                                            {isUpdatingColor === author.id ? <Loader2 className="w-4 h-4 animate-spin"/> : <Palette className="w-4 h-4"/>}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-2">
+                                        <div className="grid grid-cols-4 gap-2">
+                                            {AUTHOR_COLOR_PALETTE.map(color => (
+                                                <button
+                                                    key={color.name}
+                                                    title={color.name}
+                                                    className={cn(
+                                                        "h-6 w-6 rounded-full border transition-transform hover:scale-110 active:scale-95",
+                                                        (author.authorColor === color.value || (!author.authorColor && color.value === null)) && "ring-2 ring-offset-1 ring-offset-background ring-primary"
+                                                    )}
+                                                    style={{ backgroundColor: color.value || 'hsl(var(--muted))' }}
+                                                    onClick={() => handleUpdateColor(author.id, color.value)}
+                                                >
+                                                   {color.value === null && <X className="w-4 h-4 mx-auto text-muted-foreground"/>}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
+                            )}
+
                             {!author.isCreator && (
                                 <>
                                     <Button variant="ghost" size="sm" onClick={() => handleStartEditRole(author)} disabled={isProcessing}><Edit className="h-4 w-4 mr-1"/>Role</Button>

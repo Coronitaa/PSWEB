@@ -67,6 +67,7 @@ export interface ResourceAuthor extends Author {
   isCreator: boolean;
   roleDescription: string | null;
   sortOrder: number;
+  authorColor?: string | null;
 }
 
 export interface Tag {

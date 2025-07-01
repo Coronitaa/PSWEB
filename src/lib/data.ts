@@ -146,7 +146,7 @@ export const generateSlugLocal = async (
 export async function getAuthorsForResource(resourceId: string): Promise<ResourceAuthor[]> {
     const db = await getDb();
     const authorRows = await db.all(`
-        SELECT p.id, p.name, p.usertag, p.avatar_url, p.role, ra.is_creator, ra.role_description, ra.sort_order
+        SELECT p.id, p.name, p.usertag, p.avatar_url, p.role, ra.is_creator, ra.role_description, ra.sort_order, ra.author_color
         FROM resource_authors ra
         JOIN profiles p ON ra.author_id = p.id
         WHERE ra.resource_id = ?
@@ -161,6 +161,7 @@ export async function getAuthorsForResource(resourceId: string): Promise<Resourc
         isCreator: Boolean(row.is_creator),
         roleDescription: row.role_description,
         sortOrder: row.sort_order,
+        authorColor: row.author_color,
         role: row.role as UserAppRole,
     }));
 }
@@ -196,6 +197,12 @@ export const removeAuthorFromResource = async (resourceId: string, userIdToRemov
 export const updateAuthorRoleInDb = async (resourceId: string, userIdToUpdate: string, newRoleDescription: string): Promise<ResourceAuthor[]> => {
   const db = await getDb();
   await db.run('UPDATE resource_authors SET role_description = ? WHERE resource_id = ? AND author_id = ?', newRoleDescription, resourceId, userIdToUpdate);
+  return getAuthorsForResource(resourceId);
+};
+
+export const updateAuthorColorInDb = async (resourceId: string, authorId: string, color: string | null): Promise<ResourceAuthor[]> => {
+  const db = await getDb();
+  await db.run('UPDATE resource_authors SET author_color = ? WHERE resource_id = ? AND author_id = ?', color, resourceId, authorId);
   return getAuthorsForResource(resourceId);
 };
 

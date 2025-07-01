@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Author as UserProfile } from '@/lib/types';
@@ -19,7 +20,7 @@ const socialIconMap: { [key: string]: React.ElementType } = {
 
 const socialNameMap: { [key: string]: string } = {
     github: 'GitHub',
-    twitter: 'Twitter',
+    twitter: 'X / Twitter',
     linkedin: 'LinkedIn',
     website: 'Website',
     discord: 'Discord',

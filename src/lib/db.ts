@@ -39,6 +39,9 @@ export async function getDb(): Promise<Database> {
     driver: sqlite3.Database,
   });
 
+  // Enable WAL mode for better concurrency and to prevent locking issues.
+  await dbInstance.exec('PRAGMA journal_mode = WAL;');
+
   await initDbSchema(dbInstance);
   return dbInstance;
 }

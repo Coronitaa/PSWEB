@@ -219,18 +219,11 @@
     }
     
     /* --- Robust FIX for invisible decorations on gradient text --- */
-    .dark .prose-invert .has-text-gradient u {
-        text-decoration: underline;
+    .dark .prose-invert .has-text-gradient u,
+    .dark .prose-invert .has-text-gradient s {
         text-decoration-color: hsl(var(--accent));
-        text-decoration-thickness: 1px;
     }
 
-    .dark .prose-invert .has-text-gradient s {
-        text-decoration: line-through;
-        text-decoration-color: hsl(var(--accent));
-        text-decoration-thickness: 1px;
-    }
-    
     .dark .prose-invert .has-text-gradient strong u,
     .dark .prose-invert .has-text-gradient b u,
     .dark .prose-invert .has-text-gradient strong s,

@@ -216,15 +216,34 @@
           @apply text-foreground/80;
         }
       }
-      /* Ensure decorations are visible on gradient text */
-      [style*="background-image: linear-gradient"][style*="background-clip: text"] u,
-      [style*="background-image: linear-gradient"][style*="background-clip: text"] s {
-        /*
-          A pure CSS gradient on decorations isn't feasible here due to CSS limitations.
-          This approach makes the decoration visible with a solid color from the theme.
-        */
-        text-decoration-color: hsl(var(--accent));
-        -webkit-text-decoration-color: hsl(var(--accent));
+      
+      /* --- FIX for invisible decorations on gradient text --- */
+      
+      /* Target any element with a gradient text style */
+      [style*="background-image: linear-gradient"][style*="-webkit-background-clip: text"] {
+
+        /* For underline (<u>), use border-bottom */
+        & u {
+          text-decoration: none; /* Disable the native transparent underline */
+          border-bottom: 1px solid hsl(var(--accent)); /* Use a visible border instead */
+        }
+        
+        /* For strikethrough (<s>), use a pseudo-element */
+        & s {
+          text-decoration: none; /* Disable the native transparent strikethrough */
+          position: relative; /* Needed for pseudo-element positioning */
+          
+          &::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            height: 1px;
+            background-color: hsl(var(--accent)); /* Use a visible color */
+            transform: translateY(-50%);
+          }
+        }
       }
     }
 

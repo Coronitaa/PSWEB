@@ -213,7 +213,8 @@ async function initDbSchema(db: Database): Promise<void> {
   
   const tablesWithUpdatedAtTrigger = ['items', 'categories', 'profiles', 'resources', 'reviews', 'changelog_entries', 'section_tags', 'project_section_tags', 'user_review_sentiments', 'resource_files', 'resource_authors'];
   for (const tableName of tablesWithUpdatedAtTrigger) {
-    const tableInfo = await db.all('PRAGMA table_info(' + tableName + ');');
+    const tableInfo = await db.all(`PRAGMA table_info(${tableName});`);
+    const pkColumns = tableInfo.filter(col => col.pk > 0).map(col => col.name);
     
     if (tableName === 'items' && !tableInfo.some(col => col.name === 'followers_count')) {
       await db.exec('ALTER TABLE items ADD COLUMN followers_count INTEGER DEFAULT 0 NOT NULL;');
@@ -245,17 +246,23 @@ async function initDbSchema(db: Database): Promise<void> {
     if (!tableInfo.some(col => col.name === 'updated_at')) { await db.exec('ALTER TABLE ' + tableName + ' ADD COLUMN updated_at TEXT;'); }
     if (!tableInfo.some(col => col.name === 'created_at')) { await db.exec('ALTER TABLE ' + tableName + ' ADD COLUMN created_at TEXT DEFAULT CURRENT_TIMESTAMP;'); }
     
-    const triggerName = 'update_' + tableName + '_updated_at';
-    await db.exec('DROP TRIGGER IF EXISTS ' + triggerName + ';');
-    await db.exec(
-      'CREATE TRIGGER ' + triggerName +
-      ' AFTER UPDATE ON ' + tableName +
-      ' FOR EACH ROW' +
-      ' WHEN OLD.updated_at = NEW.updated_at OR OLD.updated_at IS NULL' +
-      ' BEGIN' +
-      '    UPDATE ' + tableName + ' SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;' +
-      ' END;'
-    );
+    const triggerName = `update_${tableName}_updated_at`;
+    await db.exec(`DROP TRIGGER IF EXISTS ${triggerName};`);
+
+    if (pkColumns.length > 0) {
+      const whereClause = pkColumns.map(pk => `${pk} = OLD.${pk}`).join(' AND ');
+      await db.exec(
+        `CREATE TRIGGER ${triggerName}
+         AFTER UPDATE ON ${tableName}
+         FOR EACH ROW
+         WHEN OLD.updated_at = NEW.updated_at OR OLD.updated_at IS NULL
+         BEGIN
+            UPDATE ${tableName} SET updated_at = CURRENT_TIMESTAMP WHERE ${whereClause};
+         END;`
+      );
+    } else {
+      console.warn(`Could not create update trigger for table ${tableName} as it has no primary key defined.`);
+    }
   }
   
   // Ensure mock profiles exist with social links

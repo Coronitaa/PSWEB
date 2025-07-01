@@ -737,7 +737,7 @@ const ImageCarouselModal = ({
             <h3 className="text-sm font-medium mb-2 shrink-0">Preview</h3>
             <div className={cn(
                 "border rounded-md p-2 bg-muted/30 relative w-full",
-                aspectRatio === '16/9' && 'aspect-video',
+                aspectRatio === '16:9' && 'aspect-video',
                 aspectRatio === '4/3' && 'aspect-[4/3]',
                 aspectRatio === '1/1' && 'aspect-square',
             )}>
@@ -1890,7 +1890,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
   });
 
   return (
-    <div className="w-full rounded-md border border-input bg-card ring-offset-background focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+    <div className="w-full rounded-md border border-input bg-background ring-offset-background focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
       {editor && (
          <BubbleMenu 
           editor={editor}

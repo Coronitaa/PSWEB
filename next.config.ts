@@ -3,22 +3,16 @@ import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   /* config options here */
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   allowedDevOrigins: ['*.cloudworkstations.dev'],
   images: {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**', // Permite cualquier hostname bajo HTTPS
+        hostname: 'placehold.co',
       },
       {
-        protocol: 'http',
-        hostname: '**', // Permite cualquier hostname bajo HTTP
+        protocol: 'https',
+        hostname: '**',
       },
     ],
   },

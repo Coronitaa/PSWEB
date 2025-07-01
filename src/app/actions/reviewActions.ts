@@ -1,9 +1,10 @@
 
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
 import { getDb } from '@/lib/db';
-import type { ReviewFormData, UserAppRole, ReviewInteractionCounts, Review } from '@/lib/types';
+import type { ReviewFormData, UserAppRole, ReviewInteractionCounts, Review, UpdateReviewInteractionResult, UserSentimentForReview } from '@/lib/types';
 import { USER_APP_ROLES_CONST } from '@/lib/types';
 import { getItemTypePlural } from '@/lib/utils';
 
@@ -12,12 +13,6 @@ interface ActionResult<T = null> {
   data?: T;
   error?: string;
   errorCode?: 'AUTH_REQUIRED' | 'NOT_AUTHOR' | 'ALREADY_REVIEWED' | 'DB_ERROR' | 'VALIDATION_ERROR' | 'UNKNOWN_ERROR' | 'NOT_FOUND' | 'FORBIDDEN';
-}
-
-interface UpdateReviewInteractionResult {
-  updatedCounts: ReviewInteractionCounts;
-  currentUserSentiment: 'helpful' | 'unhelpful' | null;
-  currentUserIsFunny: boolean;
 }
 
 async function verifyUserAndGetId(
@@ -322,7 +317,7 @@ export async function updateReviewInteractionAction(
 export async function getUserSentimentForReviewAction(
   reviewId: string,
   clientMockUserId?: string
-): Promise<ActionResult<{ sentiment: 'helpful' | 'unhelpful' | null; isFunny: boolean }>> {
+): Promise<ActionResult<UserSentimentForReview>> {
   if (!clientMockUserId) {
       // If no client-provided ID, assume anonymous user for this specific read-only action
       return { success: true, data: { sentiment: null, isFunny: false } };

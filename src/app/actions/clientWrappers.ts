@@ -28,7 +28,13 @@ import {
     updateReviewInteractionAction as serverUpdateReviewInteractionAction,
     getUserSentimentForReviewAction as serverGetUserSentimentForReviewAction
 } from './reviewActions';
-import type { ReviewFormData, ActionResult, ReviewInteractionCounts, Resource, ProfileUpdateFormData, Author as ProfileAuthor, ResourceAuthor } from '@/lib/types'; // Added Resource, ProfileUpdateFormData, ProfileAuthor
+import type { 
+    ActionResult, 
+    ReviewFormData, 
+    UpdateReviewInteractionResult,
+    UserSentimentForReview 
+} from '@/lib/types';
+
 
 export async function addReview(resourceId: string, data: ReviewFormData): Promise<ActionResult<{ reviewId: string }>> {
   const clientMockUserId = getMockUserIdFromStorage();
@@ -48,19 +54,14 @@ export async function deleteReview(reviewId: string): Promise<ActionResult> {
 export async function updateReviewInteraction(
   reviewId: string,
   interactionType: 'helpful' | 'unhelpful' | 'funny'
-): Promise<ActionResult<UpdateReviewInteractionResult>> { // UpdateReviewInteractionResult was missing, added
+): Promise<ActionResult<UpdateReviewInteractionResult>> {
   const clientMockUserId = getMockUserIdFromStorage();
   return serverUpdateReviewInteractionAction(reviewId, interactionType, clientMockUserId);
-}
-interface UpdateReviewInteractionResult { // Definition for the above
-  updatedCounts: ReviewInteractionCounts;
-  currentUserSentiment: 'helpful' | 'unhelpful' | null;
-  currentUserIsFunny: boolean;
 }
 
 export async function getUserSentimentForReview(
   reviewId: string
-): Promise<ActionResult<{ sentiment: 'helpful' | 'unhelpful' | null; isFunny: boolean }>> {
+): Promise<ActionResult<UserSentimentForReview>> {
   const clientMockUserId = getMockUserIdFromStorage();
   return serverGetUserSentimentForReviewAction(reviewId, clientMockUserId);
 }
@@ -89,7 +90,8 @@ import { deleteResourceAction as serverAdminDeleteResourceAction } from '@/app/a
 
 import type { 
     ProjectFormData, GenericListItem, ItemType, Tag, CategoryFormData, Category, 
-    ProjectCategoryTagConfigurations, ResourceFormData
+    ProjectCategoryTagConfigurations, ResourceFormData, Resource,
+    ProfileUpdateFormData, Author as ProfileAuthor, ResourceAuthor
 } from '@/lib/types';
 
 export async function saveProject(

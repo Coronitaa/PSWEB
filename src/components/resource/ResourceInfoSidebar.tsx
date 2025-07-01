@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import * as React from 'react';
@@ -156,7 +155,12 @@ const AuthorItem = ({ author }: { author: ResourceAuthor }) => {
               {author.isCreator && <Crown className="h-4 w-4 text-amber-500 fill-amber-400" />}
             </div>
           </Link>
-          <p className="text-xs text-muted-foreground">{author.isCreator ? 'Creator' : (author.roleDescription || 'Collaborator')}</p>
+          <p 
+            className="text-xs font-medium transition-colors"
+            style={{ color: !author.isCreator && author.authorColor ? author.authorColor : 'hsl(var(--muted-foreground))' }}
+          >
+            {author.isCreator ? 'Creator' : (author.roleDescription || 'Collaborator')}
+          </p>
         </div>
       </div>
       <Button variant="outline" size="sm" className="button-outline-glow button-follow-sheen ml-2">
@@ -375,3 +379,5 @@ export function ResourceInfoSidebar({ resource }: ResourceInfoSidebarProps) {
     </div>
   );
 }
+
+    

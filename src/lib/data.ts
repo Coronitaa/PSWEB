@@ -509,7 +509,7 @@ export const getResourceForEdit = async (resourceSlugOrId: string, byId: boolean
     const creator = authors.find(a => a.isCreator);
     const categoryForResource = await getCategoryDetails(row.parent_item_slug, row.parent_item_type as ItemType, row.category_slug);
 
-    const filesDb = await db.all("SELECT rf.*, ce.notes as changelog_notes FROM resource_files rf LEFT JOIN changelog_entries ce ON ce.resource_file_id = rf.id WHERE rf.resource_id = ? ORDER BY rf.updated_at DESC, rf.created_at DESC", row.id);
+    const filesDb = await db.all("SELECT rf.*, ce.notes as changelog_notes FROM resource_files rf LEFT JOIN changelog_entries ce ON ce.resource_file_id = rf.id WHERE rf.resource_id = ? ORDER BY rf.created_at DESC", row.id);
     const files: ResourceFile[] = [];
     for (const fileRow of filesDb) {
         let parsedSelectedFileTags: DynamicTagSelection = {};
@@ -539,12 +539,11 @@ export const getResourceForEdit = async (resourceSlugOrId: string, byId: boolean
             name: fileRow.name,
             url: fileRow.url,
             versionName: fileRow.version_name,
-            size: fileRow.size,
+            size: (typeof fileRow.size === 'string' && fileRow.size.trim() !== '') ? fileRow.size.trim() : undefined,
             channelId: fileRow.channel_id,
             channel: await mapFileChannelToTagInterface(fileRow.channel_id),
             downloads: fileRow.downloads || 0,
             createdAt: fileRow.created_at,
-            updatedAt: fileRow.updated_at,
             changelogNotes: fileRow.changelog_notes || undefined,
             supportedVersions: [],
             supportedLoaders: [],
@@ -706,7 +705,7 @@ export const getResources = async (params: GetResourcesParams): Promise<Paginate
         });
       }
 
-      const filesDb = await db.all("SELECT rf.*, ce.notes as changelog_notes FROM resource_files rf LEFT JOIN changelog_entries ce ON ce.resource_file_id = rf.id WHERE rf.resource_id = ? ORDER BY rf.updated_at DESC, rf.created_at DESC", row.id);
+      const filesDb = await db.all("SELECT rf.*, ce.notes as changelog_notes FROM resource_files rf LEFT JOIN changelog_entries ce ON ce.resource_file_id = rf.id WHERE rf.resource_id = ? ORDER BY rf.created_at DESC", row.id);
       const files: ResourceFile[] = [];
         for (const fileRow of filesDb) {
             let parsedSelectedFileTags: DynamicTagSelection = {};
@@ -734,7 +733,7 @@ export const getResources = async (params: GetResourcesParams): Promise<Paginate
                 id: fileRow.id, resourceId: fileRow.resource_id, name: fileRow.name, url: fileRow.url,
                 versionName: fileRow.version_name, size: fileRow.size, channelId: fileRow.channel_id,
                 channel: await mapFileChannelToTagInterface(fileRow.channel_id),
-                downloads: fileRow.downloads || 0, createdAt: fileRow.created_at, updatedAt: fileRow.updated_at,
+                downloads: fileRow.downloads || 0, createdAt: fileRow.created_at,
                 changelogNotes: fileRow.changelog_notes || undefined,
                 supportedVersions: [], supportedLoaders: [],
                 selectedFileTags: parsedSelectedFileTags,
@@ -805,7 +804,7 @@ export const getResourceBySlug = async (slug: string): Promise<Resource | undefi
     });
   }
 
-  const filesDb = await db.all("SELECT rf.*, ce.notes as changelog_notes FROM resource_files rf LEFT JOIN changelog_entries ce ON ce.resource_file_id = rf.id WHERE rf.resource_id = ? ORDER BY rf.updated_at DESC, rf.created_at DESC", row.id);
+  const filesDb = await db.all("SELECT rf.*, ce.notes as changelog_notes FROM resource_files rf LEFT JOIN changelog_entries ce ON ce.resource_file_id = rf.id WHERE rf.resource_id = ? ORDER BY rf.created_at DESC", row.id);
   const files: ResourceFile[] = [];
     for (const fileRow of filesDb) {
         let parsedSelectedFileTags: DynamicTagSelection = {};
@@ -833,7 +832,7 @@ export const getResourceBySlug = async (slug: string): Promise<Resource | undefi
             id: fileRow.id, resourceId: fileRow.resource_id, name: fileRow.name, url: fileRow.url,
             versionName: fileRow.version_name, size: fileRow.size, channelId: fileRow.channel_id,
             channel: await mapFileChannelToTagInterface(fileRow.channel_id),
-            downloads: fileRow.downloads || 0, createdAt: fileRow.created_at, updatedAt: fileRow.updated_at,
+            downloads: fileRow.downloads || 0, createdAt: fileRow.created_at,
             changelogNotes: fileRow.changelog_notes || undefined,
             supportedVersions: [], supportedLoaders: [],
             selectedFileTags: parsedSelectedFileTags,
@@ -1058,7 +1057,7 @@ const hydrateResourceRows = async (rows: any[]): Promise<Resource[]> => {
     }
     
     const db = await getDb();
-    const filesDb = await db.all("SELECT rf.*, ce.notes as changelog_notes FROM resource_files rf LEFT JOIN changelog_entries ce ON ce.resource_file_id = rf.id WHERE rf.resource_id = ? ORDER BY rf.updated_at DESC, rf.created_at DESC", row.id);
+    const filesDb = await db.all("SELECT rf.*, ce.notes as changelog_notes FROM resource_files rf LEFT JOIN changelog_entries ce ON ce.resource_file_id = rf.id WHERE rf.resource_id = ? ORDER BY rf.created_at DESC", row.id);
     const files: ResourceFile[] = [];
       for (const fileRow of filesDb) {
           let parsedSelectedFileTags: DynamicTagSelection = {};
@@ -1084,7 +1083,7 @@ const hydrateResourceRows = async (rows: any[]): Promise<Resource[]> => {
               id: fileRow.id, resourceId: fileRow.resource_id, name: fileRow.name, url: fileRow.url,
               versionName: fileRow.version_name, size: fileRow.size, channelId: fileRow.channel_id,
               channel: await mapFileChannelToTagInterface(fileRow.channel_id),
-              downloads: fileRow.downloads || 0, createdAt: fileRow.created_at, updatedAt: fileRow.updated_at,
+              downloads: fileRow.downloads || 0, createdAt: fileRow.created_at,
               changelogNotes: fileRow.changelog_notes || undefined,
               supportedVersions: [], supportedLoaders: [],
               selectedFileTags: parsedSelectedFileTags,
@@ -1430,6 +1429,6 @@ export const incrementResourceDownloadCount = async (resourceId: string): Promis
 
 export const incrementResourceFileDownloadCount = async (fileId: string): Promise<boolean> => {
   const db = await getDb();
-  const result = await db.run('UPDATE resource_files SET downloads = downloads + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?', fileId);
+  const result = await db.run('UPDATE resource_files SET downloads = downloads + 1 WHERE id = ?', fileId);
   return (result.changes ?? 0) > 0;
 };

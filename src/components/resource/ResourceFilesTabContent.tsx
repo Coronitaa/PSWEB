@@ -98,7 +98,7 @@ export function ResourceFilesTabContent({ files, resourceId, dynamicAvailableFil
       });
 
       return channelMatch && fileTagMatch;
-    }).sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime()); // Ensure chronological order
+    }).sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()); // Ensure chronological order
   }, [files, selectedChannelId, selectedFileTagFilters]);
   
   const hasActiveFilters = selectedChannelId || Object.values(selectedFileTagFilters).some(v => v !== undefined);
@@ -227,7 +227,7 @@ export function ResourceFilesTabContent({ files, resourceId, dynamicAvailableFil
         <ul className="space-y-4">
           {filteredFiles.map(file => {
             const channelClasses = getChannelSpecificClasses(file.channel);
-            const fileDate = file.updatedAt || file.createdAt;
+            const fileDate = file.createdAt;
 
             return (
             <li
@@ -286,7 +286,7 @@ export function ResourceFilesTabContent({ files, resourceId, dynamicAvailableFil
                             <DialogHeader>
                             <DialogTitle className="text-primary">Notes for: {selectedFileForModal.name} (v{selectedFileForModal.versionName})</DialogTitle>
                             <DialogDescription className="text-xs text-muted-foreground">
-                                Uploaded {selectedFileForModal.updatedAt ? formatTimeAgo(selectedFileForModal.updatedAt) : 'N/A'}
+                                Uploaded {selectedFileForModal.createdAt ? formatTimeAgo(selectedFileForModal.createdAt) : 'N/A'}
                             </DialogDescription>
                             </DialogHeader>
                             <div className="mt-4 max-h-[60vh] overflow-y-auto pr-2">

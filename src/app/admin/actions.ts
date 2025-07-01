@@ -428,9 +428,9 @@ export async function saveResourceAction(
         }
         const fileCreationTimestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
         await db.run(
-          "INSERT INTO resource_files (id, resource_id, name, url, version_name, size, channel_id, selected_file_tags_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "INSERT INTO resource_files (id, resource_id, name, url, version_name, size, channel_id, selected_file_tags_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
           fileId, resourceId, fileData.name, fileData.url, fileData.versionName, fileData.size || null, fileData.channelId || null, fileTagsJson, 
-          fileCreationTimestamp, fileCreationTimestamp  
+          fileCreationTimestamp  
         );
         // And its changelog if it exists
         if (fileData.changelogNotes && fileData.changelogNotes.trim() !== '') {
@@ -474,7 +474,7 @@ export async function saveResourceAction(
 
         if (hasChanged) {
           await db.run(
-            "UPDATE resource_files SET name = ?, url = ?, version_name = ?, size = ?, channel_id = ?, selected_file_tags_json = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND resource_id = ?",
+            "UPDATE resource_files SET name = ?, url = ?, version_name = ?, size = ?, channel_id = ?, selected_file_tags_json = ? WHERE id = ? AND resource_id = ?",
             fileData.name, fileData.url, fileData.versionName, fileData.size || null, fileData.channelId || null, fileTagsJson, fileData.id, resourceId
           );
 

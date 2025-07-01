@@ -180,13 +180,13 @@ export function ResourceInfoSidebar({ resource }: ResourceInfoSidebarProps) {
   const { toast } = useToast();
   
   const latestFile: ResourceFile | undefined = resource.files && resource.files.length > 0
-    ? resource.files.sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime())[0]
+    ? resource.files.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())[0]
     : undefined;
 
   const [displayDateFormatted, setDisplayDateFormatted] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    const dateToFormat = latestFile?.updatedAt || latestFile?.createdAt;
+    const dateToFormat = latestFile?.createdAt;
     if (dateToFormat) {
       setDisplayDateFormatted(formatTimeAgo(dateToFormat));
     }

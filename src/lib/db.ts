@@ -149,7 +149,6 @@ async function initDbSchema(db: Database): Promise<void> {
     '    selected_file_tags_json TEXT, ' + 
     '    downloads INTEGER DEFAULT 0 NOT NULL, ' +
     '    created_at TEXT DEFAULT CURRENT_TIMESTAMP,' +
-    '    updated_at TEXT,' + 
     '    FOREIGN KEY (resource_id) REFERENCES resources(id) ON DELETE CASCADE' +
     ');' +
 
@@ -216,7 +215,7 @@ async function initDbSchema(db: Database): Promise<void> {
     ');'
   );
   
-  const tablesWithUpdatedAtTrigger = ['items', 'categories', 'profiles', 'resources', 'reviews', 'changelog_entries', 'section_tags', 'project_section_tags', 'user_review_sentiments', 'resource_files', 'resource_authors'];
+  const tablesWithUpdatedAtTrigger = ['items', 'categories', 'profiles', 'resources', 'reviews', 'changelog_entries', 'section_tags', 'project_section_tags', 'user_review_sentiments', 'resource_authors'];
   for (const tableName of tablesWithUpdatedAtTrigger) {
     const tableInfo = await db.all(`PRAGMA table_info(${tableName});`);
     const pkColumns = tableInfo.filter(col => col.pk > 0).map(col => col.name);

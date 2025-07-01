@@ -118,8 +118,7 @@ export interface ResourceFileFormData {
   channelId?: FileChannelId | string | null;
   changelogNotes?: string;
   selectedFileTags?: DynamicTagSelection;
-  createdAt?: string; // Added for edit scenario
-  updatedAt?: string; // Added for edit scenario
+  createdAt?: string;
 }
 
 export interface ResourceFile {
@@ -134,7 +133,6 @@ export interface ResourceFile {
   downloads?: number;
   date?: string | null; 
   createdAt?: string;
-  updatedAt?: string;
   changelogNotes?: string | null;
   supportedVersions: Tag[]; 
   supportedLoaders: Tag[];  
@@ -435,4 +433,5 @@ export interface UserSentimentForReview {
   sentiment: 'helpful' | 'unhelpful' | null;
   isFunny: boolean;
 }
+
 

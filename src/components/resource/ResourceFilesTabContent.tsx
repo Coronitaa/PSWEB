@@ -41,30 +41,16 @@ const SimpleMarkdown: React.FC<{ text: string }> = ({ text }) => {
 
 // New component to handle client-side relative time rendering safely
 const ClientRelativeTime: React.FC<{ dateString: string }> = ({ dateString }) => {
-  const getInitialFormat = (dateStr: string): string => {
-    try {
-      let processedDateString = dateStr;
-      if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d{1,3})?$/.test(dateStr)) {
-        processedDateString = dateStr.replace(' ', 'T') + 'Z';
-      } else if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?$/.test(dateStr) && !dateStr.endsWith('Z')) {
-        processedDateString = dateStr + 'Z';
-      }
-      const parsedDate = parseISO(processedDateString);
-      if (isValid(parsedDate)) {
-        return format(parsedDate, 'MMM d, yyyy HH:mm');
-      }
-    } catch (e) { /* ignore */ }
-    return dateStr;
-  };
-
-  // Set the initial state to match the server-rendered value
-  const [formattedDate, setFormattedDate] = useState(() => getInitialFormat(dateString));
+  const [formattedDate, setFormattedDate] = useState<string | null>(null);
 
   useEffect(() => {
-    // After hydration, update to the client-side relative time
+    // This effect runs only on the client, after hydration.
     setFormattedDate(formatTimeAgo(dateString));
   }, [dateString]);
 
+  // During SSR and initial client render, formattedDate is null.
+  // Return null to ensure server and client render the same thing initially.
+  // The actual date will be rendered on the client after the component mounts.
   return <>{formattedDate}</>;
 };
 
@@ -317,3 +303,4 @@ export function ResourceFilesTabContent({ files, resourceId, dynamicAvailableFil
     </div>
   );
 }
+    

@@ -204,7 +204,7 @@ export function ResourceForm({
         detailedDescription: '',
         imageUrl: 'https://placehold.co/800x450.png',
         imageGallery: [],
-        galleryAspectRatio: '4/3',
+        galleryAspectRatio: '16/9',
         galleryAutoplayInterval: 5000,
         showMainImageInGallery: true,
         requirements: '',
@@ -250,7 +250,7 @@ export function ResourceForm({
       detailedDescription: initialData?.detailedDescription || '',
       imageUrl: initialData?.imageUrl || 'https://placehold.co/800x450.png',
       imageGallery: initialData?.imageGallery?.map(url => ({ value: url })) || [],
-      galleryAspectRatio: initialData?.galleryAspectRatio || '4/3',
+      galleryAspectRatio: initialData?.galleryAspectRatio || '16/9',
       galleryAutoplayInterval: initialData?.galleryAutoplayInterval ?? 5000,
       showMainImageInGallery: initialData?.showMainImageInGallery ?? true,
       requirements: initialData?.requirements || '',
@@ -512,19 +512,19 @@ export function ResourceForm({
         <Tabs defaultValue="general" className="w-full">
           <div className="overflow-x-auto whitespace-nowrap px-6 pt-4">
             <TabsList className="grid w-full grid-cols-4 sm:grid-cols-7 mb-4 bg-card-foreground/5 rounded-lg shrink-0">
-              <TabsTrigger value="general">General</TabsTrigger>
-              <TabsTrigger value="authors">Authors</TabsTrigger>
-              <TabsTrigger value="details">Details</TabsTrigger>
-              <TabsTrigger value="visuals">Visuals</TabsTrigger>
-              <TabsTrigger value="files">Files</TabsTrigger>
-              <TabsTrigger value="tags">Tags</TabsTrigger>
-              <TabsTrigger value="links">Links</TabsTrigger>
+              <TabsTrigger value="general"><Sparkles className="w-4 h-4 mr-1 sm:mr-2" />General</TabsTrigger>
+              <TabsTrigger value="authors"><Users className="w-4 h-4 mr-1 sm:mr-2" />Authors</TabsTrigger>
+              <TabsTrigger value="details"><ListChecks className="w-4 h-4 mr-1 sm:mr-2" />Details</TabsTrigger>
+              <TabsTrigger value="visuals"><ImageIcon className="w-4 h-4 mr-1 sm:mr-2" />Visuals</TabsTrigger>
+              <TabsTrigger value="files"><Archive className="w-4 h-4 mr-1 sm:mr-2" />Files</TabsTrigger>
+              <TabsTrigger value="tags"><Tags className="w-4 h-4 mr-1 sm:mr-2" />Tags</TabsTrigger>
+              <TabsTrigger value="links"><LinkIconLucide className="w-4 h-4 mr-1 sm:mr-2" />Links</TabsTrigger>
             </TabsList>
           </div>
   
           <div className="space-y-6 p-6 pt-2">
               <TabsContent value="general" className="space-y-6 m-0">
-                <CardTitle className="text-xl mb-4">Basic Information</CardTitle>
+                <CardTitle className="text-xl mb-4 flex items-center"><Sparkles className="w-5 h-5 mr-2 text-primary" />Basic Information</CardTitle>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
                     <Label htmlFor="name">Resource Name</Label>
@@ -586,7 +586,7 @@ export function ResourceForm({
               </TabsContent>
   
               <TabsContent value="details" className="space-y-6 m-0">
-                <CardTitle className="text-xl mb-4">Detailed Information</CardTitle>
+                <CardTitle className="text-xl mb-4 flex items-center"><ListChecks className="w-5 h-5 mr-2 text-primary" />Detailed Information</CardTitle>
                 <div>
                   <Label htmlFor="detailedDescription">Detailed Description (Overview)</Label>
                   <Controller
@@ -738,7 +738,7 @@ export function ResourceForm({
                           watchedGalleryAspectRatio === '16/9' && 'aspect-video',
                           watchedGalleryAspectRatio === '4/3' && 'aspect-[4/3]',
                           watchedGalleryAspectRatio === '1/1' && 'aspect-square',
-                          !watchedGalleryAspectRatio && 'aspect-[4/3]'
+                          !watchedGalleryAspectRatio && 'aspect-video'
                         )}>
                             {galleryImagesForPreview.length > 0 ? (
                               <Carousel 
@@ -754,7 +754,7 @@ export function ResourceForm({
                                       <div className="relative w-full h-full bg-black rounded-md overflow-hidden">
                                         {media?.type === 'video' ? (
                                           <iframe
-                                            src={media.src}
+                                            src={`${media.src}?autoplay=${i === 0 ? 1 : 0}&mute=1&controls=0&loop=1&playlist=${media.videoId}&rel=0&iv_load_policy=3`}
                                             title={`Preview ${i + 1}`}
                                             className="w-full h-full"
                                             frameBorder="0"
@@ -850,7 +850,7 @@ export function ResourceForm({
               </TabsContent>
   
               <TabsContent value="tags" className="space-y-6 m-0">
-                <CardTitle className="text-xl mb-4 flex items-center"><Sparkles className="w-5 h-5 mr-2 text-primary" />Resource Tags</CardTitle>
+                <CardTitle className="text-xl mb-4 flex items-center"><Tags className="w-5 h-5 mr-2 text-primary" />Resource Tags</CardTitle>
                 {form.formState.errors.selectedDynamicTags?.root && <p className="text-sm text-destructive mb-2 bg-destructive/10 p-2 rounded-md flex items-center"><Info className="w-4 h-4 mr-2"/>{form.formState.errors.selectedDynamicTags.root.message}</p>}
                 {dynamicTagGroups.length > 0 ? (
                   <div className="p-4 border rounded-md bg-muted/30 space-y-4">

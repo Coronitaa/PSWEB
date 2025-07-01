@@ -39,19 +39,7 @@ export default async function getCroppedImg(
     pixelCrop.height
   );
 
-  // As a blob
-  return new Promise((resolve, reject) => {
-    canvas.toBlob((file) => {
-      if (file) {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onloadend = () => {
-          resolve(reader.result as string);
-        };
-        reader.onerror = reject;
-      }
-    }, 'image/png');
-  });
+  return canvas.toDataURL('image/png');
 }
 
 export { getCroppedImg };

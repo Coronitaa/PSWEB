@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { saveResource, deleteResource } from '@/app/actions/clientWrappers';
-import { useState, useTransition, useEffect, useMemo } from 'react';
+import { useState, useTransition, useEffect, useMemo, useRef } from 'react';
 import { Loader2, Save, Trash2, Link as LinkIconLucide, PlusCircle, Image as ImageIcon, ListChecks, FileText, Info, ExternalLink, Sparkles, X, Check, Archive, FileUp, Tags, Edit, GripVertical, CalendarDays, ChevronUp, ChevronDown, Users, Crop, Palette, Gamepad2, Code, TabletSmartphone, Music } from 'lucide-react';
 import {
   AlertDialog,
@@ -191,6 +191,8 @@ export function ResourceForm({
 
   const [isMainImageEditorOpen, setIsMainImageEditorOpen] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  
+  const originalImageUrlRef = useRef(initialData?.imageUrl);
 
   const defaultNewFileModalValues: ResourceFileFormData = useMemo(() => ({
     name: 'New File',
@@ -309,19 +311,31 @@ export function ResourceForm({
     name: "imageGallery",
   });
 
-  const stringifiedDefaultValues = JSON.stringify(defaultValues);
-  useEffect(() => {
-    form.reset(defaultValues);
-    if(initialData?.authors) {
-      setCurrentAuthors(initialData.authors);
-    }
-  }, [stringifiedDefaultValues, form, initialData]);
-
   const watchedImageUrl = useWatch({ control: form.control, name: 'imageUrl' });
   const watchedGallery = useWatch({ control: form.control, name: 'imageGallery' });
   const watchedShowMainImage = useWatch({ control: form.control, name: 'showMainImageInGallery' });
   const watchedGalleryAspectRatio = useWatch({ control: form.control, name: 'galleryAspectRatio' });
   const watchedGalleryAutoplayInterval = useWatch({ control: form.control, name: 'galleryAutoplayInterval' });
+
+  useEffect(() => {
+    // When the URL from the form is NOT a data URL, it's a user-provided original URL.
+    if (watchedImageUrl && !watchedImageUrl.startsWith('data:')) {
+      originalImageUrlRef.current = watchedImageUrl;
+    }
+  }, [watchedImageUrl]);
+
+  useEffect(() => {
+    // When the component loads with new initial data, reset the ref.
+    if (initialData?.imageUrl) {
+        originalImageUrlRef.current = initialData.imageUrl;
+    }
+    // Also reset the form itself
+    form.reset(defaultValues);
+    if(initialData?.authors) {
+      setCurrentAuthors(initialData.authors);
+    }
+  }, [initialData, defaultValues, form]);
+
 
   const isMainImageGif = useMemo(() => watchedImageUrl?.toLowerCase().endsWith('.gif') || false, [watchedImageUrl]);
   
@@ -531,8 +545,8 @@ export function ResourceForm({
   };
 
   const handleOpenMainImageEditor = () => {
-    const url = form.getValues('imageUrl');
-    if (!url || !(url.startsWith('http') || url.startsWith('data:image'))) {
+    const urlToEdit = originalImageUrlRef.current;
+    if (!urlToEdit || !(urlToEdit.startsWith('http') || urlToEdit.startsWith('data:image'))) {
         toast({ title: "Invalid URL", description: "Please enter a valid image URL to edit it.", variant: "destructive" });
         return;
     }
@@ -540,7 +554,7 @@ export function ResourceForm({
         toast({ title: "Info", description: "Animated GIFs cannot be cropped." });
         return;
     }
-    setImageToCrop(url);
+    setImageToCrop(urlToEdit);
     setIsMainImageEditorOpen(true);
   };
 

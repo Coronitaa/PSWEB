@@ -668,8 +668,9 @@ export function ResourceForm({
                       </div>
                       <div className="col-span-7 space-y-2">
                            <div className="flex items-center gap-2">
-                              <Input id="imageUrl" {...form.register('imageUrl')} placeholder="https://..." />
-                               <Button type="button" variant="outline" size="sm" onClick={handleOpenMainImageEditor} disabled={isSaving || !watchedImageUrl || isMainImageGif} title="Edit Image">
+                              <Input id="imageUrl" {...form.register('imageUrl')} placeholder="https://..." disabled={isSaving} />
+                              <Button type="button" variant="outline" size="sm" onClick={handleOpenMainImageEditor} disabled={isSaving || !watchedImageUrl || isMainImageGif} title="Edit Image" className="shrink-0">
+                                  <Edit className="h-4 w-4 mr-2" />
                                   Edit
                               </Button>
                           </div>

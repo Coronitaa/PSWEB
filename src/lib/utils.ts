@@ -9,11 +9,13 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function mapConfigToTagInterface(config: TagInGroupConfig, group: { id: string; displayName: string }): Tag {
+export function mapConfigToTagInterface(config: TagInGroupConfig, group: { id: string; groupDisplayName: string }): Tag {
+    const groupName = group.groupDisplayName || '';
+    const tagName = config.name || '';
     return {
         id: config.id,
         name: config.name,
-        slug: group.displayName.toLowerCase().replace(/\s+/g, '-') + '-' + config.name.toLowerCase().replace(/\s+/g, '-') + '-' + config.id.substring(0,4),
+        slug: groupName.toLowerCase().replace(/\s+/g, '-') + '-' + tagName.toLowerCase().replace(/\s+/g, '-') + '-' + config.id.substring(0,4),
         description: undefined,
         color: config.color,
         text_color: config.text_color,
@@ -24,7 +26,7 @@ export function mapConfigToTagInterface(config: TagInGroupConfig, group: { id: s
         icon_svg: config.icon_svg,
         type: 'misc', // Default type, can be overridden if group info is available
         groupId: group.id,
-        groupName: group.displayName,
+        groupName: group.groupDisplayName,
     };
 }
 

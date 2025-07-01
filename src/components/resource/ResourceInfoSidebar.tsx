@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import * as React from 'react';
@@ -321,7 +320,7 @@ export function ResourceInfoSidebar({ resource }: ResourceInfoSidebarProps) {
 
 
       <SidebarCard title="Details" icon={ListChecks}>
-        <InfoItem label="Version" value={resource.version} icon={GitBranch} />
+        <InfoItem label="Version" value={latestFile?.versionName || resource.version || 'N/A'} icon={GitBranch} />
         <InfoItem label="Project" value={<Link href={parentItemPath} className="hover:text-primary transition-colors">{resource.parentItemName}</Link>} icon={getItemTypeIcon(resource.parentItemType)} />
         <InfoItem label="Category" value={<Link href={`${parentItemPath}/${resource.categorySlug}`} className="hover:text-primary transition-colors">{resource.categoryName}</Link>} icon={Layers} />
         <InfoItem label="Downloads" value={formatNumberWithSuffix(resource.downloads)} icon={BarChart3} />

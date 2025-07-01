@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { saveResource, deleteResource } from '@/app/actions/clientWrappers';
 import { useState, useTransition, useEffect, useMemo } from 'react';
-import { Loader2, Save, Trash2, Link as LinkIconLucide, PlusCircle, Image as ImageIcon, ListChecks, FileText, Info, ExternalLink, Sparkles, X, Check, Archive, FileUp, Tags, Edit, GripVertical, CalendarDays, ChevronUp, ChevronDown, Users, Crop } from 'lucide-react';
+import { Loader2, Save, Trash2, Link as LinkIconLucide, PlusCircle, Image as ImageIcon, ListChecks, FileText, Info, ExternalLink, Sparkles, X, Check, Archive, FileUp, Tags, Edit, GripVertical, CalendarDays, ChevronUp, ChevronDown, Users, Crop, Palette, Gamepad2, Code, TabletSmartphone, Music } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -157,6 +157,13 @@ const AspectRatioIcon = ({ ratio, className }: { ratio: '16:9' | '4:3' | '1:1', 
           </svg>
       );
   };
+
+const itemTypeIcons: Record<ItemType, React.ElementType> = {
+  game: Gamepad2,
+  web: Code,
+  app: TabletSmartphone,
+  'art-music': Music,
+};
 
 export function ResourceForm({
   initialData,
@@ -545,6 +552,7 @@ export function ResourceForm({
 
 
   const fileApplicableTagGroups = dynamicTagGroups.filter(group => group.appliesToFiles);
+  const IconForType = itemTypeIcons[itemType] || Sparkles;
 
   return (
     <>
@@ -553,7 +561,7 @@ export function ResourceForm({
         <Tabs defaultValue="general" className="w-full">
           <div className="overflow-x-auto whitespace-nowrap px-6 pt-4">
             <TabsList className="grid w-full grid-cols-4 sm:grid-cols-7 mb-4 bg-card-foreground/5 rounded-lg shrink-0">
-              <TabsTrigger value="general"><Sparkles className="w-4 h-4 mr-1 sm:mr-2" />General</TabsTrigger>
+              <TabsTrigger value="general"><IconForType className="w-4 h-4 mr-1 sm:mr-2" />General</TabsTrigger>
               <TabsTrigger value="authors"><Users className="w-4 h-4 mr-1 sm:mr-2" />Authors</TabsTrigger>
               <TabsTrigger value="details"><ListChecks className="w-4 h-4 mr-1 sm:mr-2" />Details</TabsTrigger>
               <TabsTrigger value="visuals"><ImageIcon className="w-4 h-4 mr-1 sm:mr-2" />Visuals</TabsTrigger>
@@ -565,7 +573,7 @@ export function ResourceForm({
   
           <div className="space-y-6 p-6 pt-2">
               <TabsContent value="general" className="space-y-6 m-0">
-                <CardTitle className="text-xl mb-4 flex items-center"><Sparkles className="w-5 h-5 mr-2 text-primary" />Basic Information</CardTitle>
+                <CardTitle className="text-xl mb-4 flex items-center"><IconForType className="w-5 h-5 mr-2 text-primary" />Basic Information</CardTitle>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
                     <Label htmlFor="name">Resource Name</Label>
@@ -659,10 +667,12 @@ export function ResourceForm({
                           <ImagePreview watchUrl={watchedImageUrl} alt="Main Image Preview" fallbackText="Main Image Preview" className="h-full w-full"/>
                       </div>
                       <div className="col-span-7 space-y-2">
-                          <Input id="imageUrl" {...form.register('imageUrl')} placeholder="https://..." />
-                           <Button type="button" variant="outline" className="w-full" onClick={handleOpenMainImageEditor} disabled={!watchedImageUrl || isMainImageGif}>
-                              <Crop className="w-4 h-4 mr-2" /> Adjust Image (16:9)
-                          </Button>
+                           <div className="flex items-center gap-2">
+                              <Input id="imageUrl" {...form.register('imageUrl')} placeholder="https://..." />
+                               <Button type="button" variant="outline" size="sm" onClick={handleOpenMainImageEditor} disabled={isSaving || !watchedImageUrl || isMainImageGif} title="Edit Image">
+                                  Edit
+                              </Button>
+                          </div>
                           {isMainImageGif && <p className="text-xs text-muted-foreground">Animated GIFs cannot be cropped.</p>}
                           {form.formState.errors.imageUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageUrl.message}</p>}
                       </div>
@@ -708,7 +718,7 @@ export function ResourceForm({
                                     <AspectRatioIcon ratio="16:9" className="w-5 h-5" />
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent><p>Widescreen</p></TooltipContent>
+                                <TooltipContent><p>Widescreen (16:9)</p></TooltipContent>
                               </Tooltip>
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -716,7 +726,7 @@ export function ResourceForm({
                                     <AspectRatioIcon ratio="4:3" className="w-5 h-5" />
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent><p>Standard</p></TooltipContent>
+                                <TooltipContent><p>Standard (4:3)</p></TooltipContent>
                               </Tooltip>
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -724,7 +734,7 @@ export function ResourceForm({
                                     <AspectRatioIcon ratio="1:1" className="w-5 h-5" />
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent><p>Square</p></TooltipContent>
+                                <TooltipContent><p>Square (1:1)</p></TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
                           </div>

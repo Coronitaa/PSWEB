@@ -75,7 +75,7 @@ export function ResourceImageEditor({ isOpen, onOpenChange, imageSrc: originalIm
         <DialogHeader className="p-6 pb-2">
           <DialogTitle>Edit Main Image</DialogTitle>
         </DialogHeader>
-        <div className="relative h-64 w-full bg-muted">
+        <div className="relative w-full bg-muted aspect-[16/9]">
           {proxiedImageSrc ? (
             <Cropper
               image={proxiedImageSrc}

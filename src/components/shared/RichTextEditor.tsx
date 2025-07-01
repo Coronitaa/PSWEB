@@ -191,9 +191,15 @@ export const TextGradient = Extension.create<any>({
                     parseHTML: element => element.style.backgroundImage,
                     renderHTML: attributes => {
                         if (!attributes.textGradient) return {};
+                        
+                        // Regular expression to find the first color (hex, rgb, rgba, hsl, hsla)
+                        const regex = /(?:#[\da-f]{3,8}|(?:rgb|hsl)a?\([^)]+\))/i;
+                        const matches = attributes.textGradient.match(regex);
+                        const firstColor = matches ? matches[0] : 'hsl(var(--accent))'; // Fallback to accent color
+
                         return {
                             class: 'has-text-gradient', // Add a class
-                            style: `background-image: ${attributes.textGradient}; color: transparent; -webkit-background-clip: text; background-clip: text;`,
+                            style: `background-image: ${attributes.textGradient}; --first-gradient-color: ${firstColor}; color: transparent; -webkit-background-clip: text; background-clip: text;`,
                         };
                     },
                 },
@@ -697,7 +703,7 @@ const ImageCarouselModal = ({
                           <div className="flex justify-start gap-2">
                               <Tooltip>
                                   <TooltipTrigger asChild>
-                                      <Button type="button" variant={aspectRatio === '16:9' ? 'default' : 'outline'} size="icon" onClick={() => setAspectRatio('16/9')}>
+                                      <Button type="button" variant={aspectRatio === '16:9' ? 'default' : 'outline'} size="icon" onClick={() => setAspectRatio('16:9')}>
                                           <AspectRatioIcon ratio="16:9" className="w-5 h-5" />
                                       </Button>
                                   </TooltipTrigger>
@@ -705,7 +711,7 @@ const ImageCarouselModal = ({
                               </Tooltip>
                               <Tooltip>
                                   <TooltipTrigger asChild>
-                                      <Button type="button" variant={aspectRatio === '4/3' ? 'default' : 'outline'} size="icon" onClick={() => setAspectRatio('4/3')}>
+                                      <Button type="button" variant={aspectRatio === '4:3' ? 'default' : 'outline'} size="icon" onClick={() => setAspectRatio('4/3')}>
                                           <AspectRatioIcon ratio="4:3" className="w-5 h-5" />
                                       </Button>
                                   </TooltipTrigger>

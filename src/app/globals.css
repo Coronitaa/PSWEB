@@ -220,7 +220,7 @@
     
     .dark .prose-invert .has-text-gradient[style*="background-image"] u,
     .dark .prose-invert .has-text-gradient[style*="background-image"] s {
-        text-decoration-color: hsl(var(--accent));
+        text-decoration-color: var(--first-gradient-color, hsl(var(--accent)));
         text-decoration-thickness: 1px;
     }
 

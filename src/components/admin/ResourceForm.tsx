@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { saveResource, deleteResource } from '@/app/actions/clientWrappers';
 import { useState, useTransition, useEffect, useMemo } from 'react';
-import { Loader2, Save, Trash2, Link as LinkIconLucide, PlusCircle, Image as ImageIcon, ListChecks, FileText, Info, ExternalLink, Sparkles, X, Check, Archive, FileUp, Tags, Edit2, GripVertical, CalendarDays, ChevronUp, ChevronDown, Users } from 'lucide-react';
+import { Loader2, Save, Trash2, Link as LinkIconLucide, PlusCircle, Image as ImageIcon, ListChecks, FileText, Info, ExternalLink, Sparkles, X, Check, Archive, FileUp, Tags, Edit, GripVertical, CalendarDays, ChevronUp, ChevronDown, Users, Crop } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,6 +43,7 @@ import { RichTextEditor } from '../shared/RichTextEditor';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Slider } from '@/components/ui/slider';
 import { ResourceAuthorsManager } from './ResourceAuthorsManager';
+import { ResourceImageEditor } from './ResourceImageEditor';
 
 
 const CLEAR_SELECTION_VALUE = "__CLEAR_SELECTION__";
@@ -109,25 +110,40 @@ interface MockUserForRole {
 
 const ImagePreview = ({ watchUrl, alt, fallbackText, className }: { watchUrl?: string; alt: string; fallbackText: string; className?: string }) => {
     const [isValidImage, setIsValidImage] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
+        setIsLoading(true);
         if (watchUrl && watchUrl.startsWith('http')) {
+            const proxiedUrl = `/api/image-proxy?imageUrl=${encodeURIComponent(watchUrl)}`;
             const img = new window.Image();
-            img.src = watchUrl;
-            img.onload = () => setIsValidImage(true);
-            img.onerror = () => setIsValidImage(false);
+            img.src = proxiedUrl;
+            img.onload = () => {
+                setIsValidImage(true);
+                setIsLoading(false);
+            };
+            img.onerror = () => {
+                setIsValidImage(false);
+                setIsLoading(false);
+            };
+        } else if (watchUrl && watchUrl.startsWith('data:image')) {
+            setIsValidImage(true);
+            setIsLoading(false);
         } else {
             setIsValidImage(false);
+            setIsLoading(false);
         }
     }, [watchUrl]);
 
     return (
         <div className={cn("relative flex items-center justify-center rounded-md border border-dashed bg-muted/50 text-muted-foreground", className)}>
-            {isValidImage && watchUrl ? (
-                <Image src={watchUrl} alt={alt} fill style={{ objectFit: 'cover' }} className="rounded-md" onDragStart={(e) => e.preventDefault()} />
-            ) : (
+            {isLoading && <Loader2 className="h-6 w-6 animate-spin text-primary" />}
+            {!isLoading && isValidImage && watchUrl ? (
+                <Image src={watchUrl.startsWith('http') ? `/api/image-proxy?imageUrl=${encodeURIComponent(watchUrl)}` : watchUrl} alt={alt} fill style={{ objectFit: 'cover' }} className="rounded-md" onDragStart={(e) => e.preventDefault()} />
+            ) : null}
+            {!isLoading && !isValidImage ? (
                 <span className="p-4 text-xs text-center">{fallbackText}</span>
-            )}
+            ) : null}
         </div>
     );
 };
@@ -166,6 +182,9 @@ export function ResourceForm({
   const [draggingImageIndex, setDraggingImageIndex] = useState<number | null>(null);
 
   const [currentAuthors, setCurrentAuthors] = useState<ResourceAuthor[]>(initialData?.authors || []);
+
+  const [isMainImageEditorOpen, setIsMainImageEditorOpen] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
 
   const defaultNewFileModalValues: ResourceFileFormData = useMemo(() => ({
     name: 'New File',
@@ -297,6 +316,8 @@ export function ResourceForm({
   const watchedShowMainImage = useWatch({ control: form.control, name: 'showMainImageInGallery' });
   const watchedGalleryAspectRatio = useWatch({ control: form.control, name: 'galleryAspectRatio' });
   const watchedGalleryAutoplayInterval = useWatch({ control: form.control, name: 'galleryAutoplayInterval' });
+
+  const isMainImageGif = useMemo(() => watchedImageUrl?.toLowerCase().endsWith('.gif') || false, [watchedImageUrl]);
   
   const [autoplaySeconds, setAutoplaySeconds] = useState(
     (watchedGalleryAutoplayInterval ?? 5000) === 999999999 ? 0 : (watchedGalleryAutoplayInterval ?? 5000) / 1000
@@ -503,10 +524,30 @@ export function ResourceForm({
     setDraggingImageIndex(null);
   };
 
+  const handleOpenMainImageEditor = () => {
+    const url = form.getValues('imageUrl');
+    if (!url || !url.startsWith('http')) {
+        toast({ title: "Invalid URL", description: "Please enter a valid image URL to edit it.", variant: "destructive" });
+        return;
+    }
+    if (isMainImageGif) {
+        toast({ title: "Info", description: "Animated GIFs cannot be cropped." });
+        return;
+    }
+    setImageToCrop(url);
+    setIsMainImageEditorOpen(true);
+  };
+
+  const handleMainImageSave = (croppedImage: string) => {
+    form.setValue('imageUrl', croppedImage, { shouldDirty: true });
+    setIsMainImageEditorOpen(false);
+  };
+
 
   const fileApplicableTagGroups = dynamicTagGroups.filter(group => group.appliesToFiles);
 
   return (
+    <>
     <form onSubmit={form.handleSubmit(onSubmit, (errors) => console.error("Form validation errors:", JSON.stringify(errors, null, 2)))} className="space-y-6">
       <Card className="bg-card/80 backdrop-blur-sm shadow-lg border-none">
         <Tabs defaultValue="general" className="w-full">
@@ -617,8 +658,12 @@ export function ResourceForm({
                       <div className="col-span-5 aspect-[16/9] shrink-0">
                           <ImagePreview watchUrl={watchedImageUrl} alt="Main Image Preview" fallbackText="Main Image Preview" className="h-full w-full"/>
                       </div>
-                      <div className="col-span-7">
+                      <div className="col-span-7 space-y-2">
                           <Input id="imageUrl" {...form.register('imageUrl')} placeholder="https://..." />
+                           <Button type="button" variant="outline" className="w-full" onClick={handleOpenMainImageEditor} disabled={!watchedImageUrl || isMainImageGif}>
+                              <Crop className="w-4 h-4 mr-2" /> Adjust Image (16:9)
+                          </Button>
+                          {isMainImageGif && <p className="text-xs text-muted-foreground">Animated GIFs cannot be cropped.</p>}
                           {form.formState.errors.imageUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageUrl.message}</p>}
                       </div>
                   </div>
@@ -838,7 +883,7 @@ export function ResourceForm({
                                       )}
                                   </div>
                                   <div className="flex gap-1.5 shrink-0 ml-2">
-                                      <Button type="button" variant="ghost" size="icon" onClick={() => openEditFileDialog(index)} className="h-7 w-7 text-blue-500 hover:text-blue-400" title="Edit File"><Edit2 className="h-4 w-4" /></Button>
+                                      <Button type="button" variant="ghost" size="icon" onClick={() => openEditFileDialog(index)} className="h-7 w-7 text-blue-500 hover:text-blue-400" title="Edit File"><Edit className="h-4 w-4" /></Button>
                                       <Button type="button" variant="ghost" size="icon" onClick={() => removeFile(index)} className="h-7 w-7 text-destructive/70 hover:text-destructive" title="Remove File"><Trash2 className="h-4 w-4" /></Button>
                                   </div>
                                   </div>
@@ -989,5 +1034,14 @@ export function ResourceForm({
         </DialogContent>
       </Dialog>
     </form>
+    {imageToCrop && (
+        <ResourceImageEditor
+            isOpen={isMainImageEditorOpen}
+            onOpenChange={setIsMainImageEditorOpen}
+            imageSrc={imageToCrop}
+            onSave={handleMainImageSave}
+        />
+    )}
+    </>
   );
 }

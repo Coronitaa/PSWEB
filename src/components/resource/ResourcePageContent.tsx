@@ -140,7 +140,8 @@ export function ResourcePageContent({ resource, relatedResources }: ResourcePage
             // Exclude code blocks from prose styling
             if (domNode instanceof Element && domNode.attribs && domNode.attribs['data-code-block'] === 'true') {
                  // The CodeBlockClient component will handle hydration. We just render the structure.
-                 return <div {...domNode.attribs}>{domToReact(domNode.children, parseOptions)}</div>;
+                 const { class: className, ...rest } = domNode.attribs;
+                 return <div className={className} {...rest}>{domToReact(domNode.children, parseOptions)}</div>;
             }
         }
     };

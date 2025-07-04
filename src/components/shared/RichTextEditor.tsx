@@ -57,7 +57,7 @@ lowlight.registerLanguage('css', css);
 lowlight.registerLanguage('html', xml);
 lowlight.registerLanguage('json', json);
 lowlight.registerLanguage('shell', shell);
-lowlight.registerLanguage('bash', shell); // Alias bash to shell
+lowlight.registerAlias('bash', 'shell'); 
 lowlight.registerLanguage('yaml', yaml);
 
 
@@ -1924,6 +1924,17 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
             </DropdownMenuContent>
         </DropdownMenu>
 
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+          className={cn("h-8 w-8", editor.isActive('codeBlock') && "bg-muted text-primary")}
+          title="Code Block"
+        >
+          <Languages className="h-4 w-4" />
+        </Button>
+
       </div>
       
       {createPortal(
@@ -2151,3 +2162,4 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
     </div>
   );
 };
+

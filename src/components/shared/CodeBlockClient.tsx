@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Copy, Check, ChevronDown, Languages } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { CopyToClipboard } from 'react-copy-to-clipboard';
 
 // This is the React component that will be injected into the static HTML.
 function CodeBlockHeaderClient({ language, codeText, isCollapsible, contentElement, title }: { language: string | null; codeText: string; isCollapsible: boolean; contentElement: HTMLElement; title: string | null }) {
@@ -26,7 +25,9 @@ function CodeBlockHeaderClient({ language, codeText, isCollapsible, contentEleme
 
   const onCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
+    navigator.clipboard.writeText(codeText);
     toast({ title: 'Copied to clipboard!' });
+    setHasCopied(true);
   };
 
   const toggleCollapse = () => {
@@ -49,11 +50,9 @@ function CodeBlockHeaderClient({ language, codeText, isCollapsible, contentEleme
         {/* Right Side */}
         <div className="flex items-center gap-1 shrink-0">
             {title && language && <span className="font-semibold uppercase text-muted-foreground text-xs">{language}</span>}
-            <CopyToClipboard text={codeText} onCopy={() => setHasCopied(true)}>
-                <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Copy code">
-                    {hasCopied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-                </Button>
-            </CopyToClipboard>
+            <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Copy code" onClick={onCopy}>
+                {hasCopied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+            </Button>
             {isCollapsible && (
                 <ChevronDown className={cn("w-4 h-4 transition-transform", !isCollapsed && "rotate-180")} />
             )}
@@ -73,9 +72,20 @@ function CodeBlockHeaderClient({ language, codeText, isCollapsible, contentEleme
 
   if (isCollapsible) {
       return (
-          <button type="button" onClick={toggleCollapse} className="w-full">
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={toggleCollapse}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleCollapse();
+              }
+            }}
+            className="w-full cursor-pointer"
+          >
               {headerContent}
-          </button>
+          </div>
       )
   }
 

@@ -165,11 +165,19 @@ export function EditProfileModal({ profile, isOpen, onOpenChange }: EditProfileM
       if (result.success && result.data?.profile) {
         toast({ title: "Profile Updated", description: "Your changes have been saved." });
         
-        localStorage.setItem('mockUser', JSON.stringify(result.data.profile));
-        window.dispatchEvent(new StorageEvent('storage', { 
-            key: 'mockUser', 
-            newValue: JSON.stringify(result.data.profile) 
-        }));
+        try {
+          localStorage.setItem('mockUser', JSON.stringify(result.data.profile));
+          window.dispatchEvent(new StorageEvent('storage', { 
+              key: 'mockUser', 
+              newValue: JSON.stringify(result.data.profile) 
+          }));
+        } catch (e: any) {
+            if (e.name === 'QuotaExceededError') {
+                console.warn("Could not update mockUser in localStorage due to quota exceeded. This is expected if a large data URI was used for an image.");
+            } else {
+                console.error("An error occurred while updating localStorage:", e);
+            }
+        }
 
         onOpenChange(false);
         router.refresh();

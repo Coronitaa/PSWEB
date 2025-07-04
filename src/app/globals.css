@@ -195,7 +195,7 @@
      h1, h2, h3, h4, h5, h6 { @apply text-primary; }
       a { @apply text-accent hover:text-accent/80; } 
      code:not(pre > code) { @apply bg-muted text-accent px-1 py-0.5 rounded-sm text-sm; }
-     pre { @apply bg-muted p-0 rounded-md overflow-hidden; }
+     pre:not(.not-prose pre) { @apply bg-muted p-0 rounded-md overflow-hidden; }
      blockquote { @apply border-l-4 border-primary pl-4 italic text-muted-foreground; }
      ul { @apply list-disc pl-6 my-4; }
      ol { @apply list-decimal pl-6 my-4; }
@@ -209,7 +209,7 @@
       a { @apply text-accent hover:text-accent/80; }
       /* strong color removed to allow inheritance for gradients */
       code:not(pre > code) { @apply bg-secondary text-accent; } 
-      pre { @apply bg-secondary; }
+      pre:not(.not-prose pre) { @apply bg-secondary; }
       blockquote { @apply border-primary; }
       ul, ol {
         li::marker {
@@ -301,7 +301,7 @@
 
   /* Custom Code Block Styles */
   .code-block-wrapper {
-      @apply rounded-md border bg-card text-card-foreground;
+      @apply rounded-md border bg-card text-card-foreground overflow-hidden;
   }
 
   .code-block-header {
@@ -309,11 +309,15 @@
   }
 
   .code-block-content {
-      @apply overflow-hidden transition-all duration-300 ease-in-out;
+      @apply overflow-auto transition-all duration-300 ease-in-out;
+      max-height: 400px;
+  }
+  .code-block-content.collapsed {
+      @apply max-h-0 !overflow-hidden;
   }
 
   .code-block-content pre {
-      @apply overflow-x-auto p-4 m-0 bg-transparent;
+      @apply p-4 m-0 bg-transparent min-h-0;
       /* Custom scrollbar for the code block */
       scrollbar-width: thin;
       scrollbar-color: hsl(var(--primary)) hsl(var(--muted));

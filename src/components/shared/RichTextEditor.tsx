@@ -47,7 +47,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { parseMediaUrl } from '@/lib/utils';
 import { ResourceImageEditor } from '@/components/admin/ResourceImageEditor';
 import { useToast } from '@/hooks/use-toast';
-import { CopyToClipboard } from 'react-copy-to-clipboard';
 import { Checkbox } from '@/components/ui/checkbox';
 
 
@@ -1511,6 +1510,12 @@ const CodeBlockComponent = (props: NodeViewProps) => {
     const { toast } = useToast();
     const [isCollapsed, setIsCollapsed] = useState(!!node.attrs.isCollapsible);
 
+    useEffect(() => {
+        if (node.attrs.isCollapsible) {
+            setIsCollapsed(true);
+        }
+    }, [node.attrs.isCollapsible]);
+
     const availableLanguages = lowlight.listLanguages();
 
     const handleLanguageChange = (language: string) => {
@@ -1533,74 +1538,79 @@ const CodeBlockComponent = (props: NodeViewProps) => {
         navigator.clipboard.writeText(node.textContent);
         toast({ title: 'Copied to clipboard!' });
     };
-
-    const ToggleWrapper = node.attrs.isCollapsible && !editor.isEditable
-        ? (props: { children: React.ReactNode }) => <button type="button" onClick={() => setIsCollapsed(!isCollapsed)} className="w-full">{props.children}</button>
-        : (props: { children: React.ReactNode }) => <>{props.children}</>;
+    
+    const handleHeaderClick = (e: React.MouseEvent) => {
+        const target = e.target as HTMLElement;
+        if (target.closest('button, input, select, label')) {
+            return;
+        }
+        if (node.attrs.isCollapsible) {
+            setIsCollapsed(!isCollapsed);
+        }
+    };
 
     return (
         <NodeViewWrapper className="not-prose code-block-wrapper my-4 relative group text-sm">
-            <div className="code-block-header">
-                <ToggleWrapper>
-                    <div className="flex justify-between items-center w-full gap-2">
-                        {/* Left Side */}
-                        <div className="flex items-center gap-2 flex-grow min-w-0">
-                            {editor.isEditable ? (
-                                <Input
-                                    className="h-6 text-xs bg-transparent border-none p-0 focus-visible:ring-0 placeholder:text-muted-foreground/80 font-medium"
-                                    placeholder="Title (e.g., config.js)..."
-                                    value={node.attrs.title || ''}
-                                    onChange={handleTitleChange}
-                                    onClick={e => e.stopPropagation()}
-                                />
+            <div 
+                className="code-block-header"
+                onClick={handleHeaderClick}
+                style={node.attrs.isCollapsible ? { cursor: 'pointer' } : {}}
+            >
+                <div className="flex justify-between items-center w-full gap-2">
+                    <div className="flex items-center gap-2 flex-grow min-w-0">
+                        {editor.isEditable ? (
+                            <Input
+                                className="h-6 text-xs bg-transparent border-none p-0 focus-visible:ring-0 placeholder:text-muted-foreground/80 font-medium"
+                                placeholder="Title (e.g., config.js)..."
+                                value={node.attrs.title || ''}
+                                onChange={handleTitleChange}
+                            />
+                        ) : (
+                            node.attrs.title ? (
+                                <span className="font-semibold text-foreground truncate">{node.attrs.title}</span>
                             ) : (
-                                node.attrs.title ? (
-                                    <span className="font-semibold text-foreground truncate">{node.attrs.title}</span>
-                                ) : (
-                                    <span className="font-semibold uppercase text-muted-foreground">{node.attrs.language || 'code'}</span>
-                                )
-                            )}
-                        </div>
-                        {/* Right Side */}
-                        <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-                            {editor.isEditable ? (
-                                <>
-                                    <div className="flex items-center space-x-2">
-                                        <Checkbox
-                                            id={`collapsible-${props.getPos()}`}
-                                            checked={node.attrs.isCollapsible}
-                                            onCheckedChange={handleCollapsibleChange}
-                                            className="h-3.5 w-3.5"
-                                        />
-                                        <Label htmlFor={`collapsible-${props.getPos()}`} className="text-xs font-normal">Collapsible</Label>
-                                    </div>
-                                    <Select value={node.attrs.language || 'auto'} onValueChange={handleLanguageChange}>
-                                        <SelectTrigger className="h-7 text-xs w-auto gap-1 pl-2 pr-1 bg-background">
-                                            <Languages className="w-3.5 h-3.5"/>
-                                            <SelectValue placeholder="Language"/>
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="auto" className="text-xs">Auto</SelectItem>
-                                            {availableLanguages.map((lang) => (
-                                                <SelectItem key={lang} value={lang} className="text-xs capitalize">{lang}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </>
-                            ) : (
-                                !node.attrs.title && <span className="font-semibold uppercase text-muted-foreground text-xs">{node.attrs.language || 'code'}</span>
-                            )}
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCopy} aria-label="Copy code">
-                                <Copy className="w-4 h-4" />
-                            </Button>
-                            {node.attrs.isCollapsible && (
-                                <ChevronDown className={cn("w-4 h-4 transition-transform", isCollapsed && "rotate-180")} />
-                            )}
-                        </div>
+                                <span className="font-semibold uppercase text-muted-foreground">{node.attrs.language || 'code'}</span>
+                            )
+                        )}
                     </div>
-                </ToggleWrapper>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                        {editor.isEditable ? (
+                            <>
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id={`collapsible-${props.getPos()}`}
+                                        checked={node.attrs.isCollapsible}
+                                        onCheckedChange={handleCollapsibleChange}
+                                        className="h-3.5 w-3.5"
+                                    />
+                                    <Label htmlFor={`collapsible-${props.getPos()}`} className="text-xs font-normal">Collapsible</Label>
+                                </div>
+                                <Select value={node.attrs.language || 'auto'} onValueChange={handleLanguageChange}>
+                                    <SelectTrigger className="h-7 text-xs w-auto gap-1 pl-2 pr-1 bg-background">
+                                        <Languages className="w-3.5 h-3.5"/>
+                                        <SelectValue placeholder="Language"/>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="auto" className="text-xs">Auto</SelectItem>
+                                        {availableLanguages.map((lang) => (
+                                            <SelectItem key={lang} value={lang} className="text-xs capitalize">{lang}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </>
+                        ) : (
+                            !node.attrs.title && <span className="font-semibold uppercase text-muted-foreground text-xs">{node.attrs.language || 'code'}</span>
+                        )}
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCopy} aria-label="Copy code">
+                            <Copy className="w-4 h-4" />
+                        </Button>
+                        {node.attrs.isCollapsible && (
+                            <ChevronDown className={cn("w-4 h-4 transition-transform", isCollapsed && "rotate-180")} />
+                        )}
+                    </div>
+                </div>
             </div>
-            <div className={cn("code-block-content", isCollapsed && "max-h-0")}>
+            <div className={cn("code-block-content", isCollapsed && "collapsed")}>
                 <pre><NodeViewContent as="code" /></pre>
             </div>
         </NodeViewWrapper>

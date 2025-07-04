@@ -10,15 +10,17 @@ import { Slider } from '@/components/ui/slider';
 import { getCroppedImg } from '@/components/user/cropImage'; // Re-use the existing helper
 import { Loader2, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 interface ResourceImageEditorProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   imageSrc: string | null;
   onSave: (croppedImage: string) => void;
+  aspectRatio?: number;
 }
 
-export function ResourceImageEditor({ isOpen, onOpenChange, imageSrc: originalImageSrc, onSave }: ResourceImageEditorProps) {
+export function ResourceImageEditor({ isOpen, onOpenChange, imageSrc: originalImageSrc, onSave, aspectRatio = 16 / 9 }: ResourceImageEditorProps) {
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
@@ -68,20 +70,22 @@ export function ResourceImageEditor({ isOpen, onOpenChange, imageSrc: originalIm
       setIsSaving(false);
     }
   };
+  
+  const aspectClass = aspectRatio === 1 ? 'aspect-square h-auto w-full max-h-[70vh]' : 'aspect-[16/9] w-full';
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl md:max-w-2xl p-0">
         <DialogHeader className="p-6 pb-2">
-          <DialogTitle>Edit Main Image</DialogTitle>
+          <DialogTitle>Edit Image</DialogTitle>
         </DialogHeader>
-        <div className="relative w-full bg-muted aspect-[16/9]">
+        <div className={cn("relative bg-muted", aspectClass)}>
           {proxiedImageSrc ? (
             <Cropper
               image={proxiedImageSrc}
               crop={crop}
               zoom={zoom}
-              aspect={16 / 9}
+              aspect={aspectRatio}
               onCropChange={setCrop}
               onZoomChange={setZoom}
               onCropComplete={onCropComplete}

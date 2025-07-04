@@ -58,7 +58,6 @@ const resourceFileSchema = z.object({
   changelogNotes: z.string().optional(),
   selectedFileTags: z.record(z.array(z.string())).optional(),
   createdAt: z.string().optional(),
-  updatedAt: z.string().optional(),
 });
 
 
@@ -193,6 +192,9 @@ export function ResourceForm({
   const [isMainImageEditorOpen, setIsMainImageEditorOpen] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   
+  const [editingGalleryIndex, setEditingGalleryIndex] = useState<number | null>(null);
+  const [galleryImageToCrop, setGalleryImageToCrop] = useState<string | null>(null);
+
   const originalImageUrlRef = useRef(initialData?.imageUrl);
 
   const defaultNewFileModalValues: ResourceFileFormData = useMemo(() => ({
@@ -205,7 +207,6 @@ export function ResourceForm({
     selectedFileTags: {},
     id: undefined,
     createdAt: undefined,
-    updatedAt: undefined,
   }), []);
 
   const [currentFileModalData, setCurrentFileModalData] = useState<ResourceFileFormData>(defaultNewFileModalValues);
@@ -256,7 +257,6 @@ export function ResourceForm({
             changelogNotes: typeof f.changelogNotes === 'string' ? f.changelogNotes : '',
             selectedFileTags: (f.selectedFileTags && typeof f.selectedFileTags === 'object' && !Array.isArray(f.selectedFileTags)) ? f.selectedFileTags : {},
             createdAt: typeof f.createdAt === 'string' ? f.createdAt : undefined,
-            updatedAt: typeof f.updatedAt === 'string' ? f.updatedAt : undefined,
           })) || [];
 
 
@@ -354,6 +354,12 @@ export function ResourceForm({
       setAutoplaySeconds(seconds);
       form.setValue('galleryAutoplayInterval', seconds === 0 ? 999999999 : seconds * 1000, { shouldDirty: true });
   };
+  
+  const numericAspectRatio = useMemo(() => {
+    if (watchedGalleryAspectRatio === '4/3') return 4 / 3;
+    if (watchedGalleryAspectRatio === '1/1') return 1;
+    return 16 / 9;
+  }, [watchedGalleryAspectRatio]);
 
   const galleryImagesForPreview = useMemo(() => {
     const gallery = watchedGallery?.map(item => item.value).filter(url => url) || [];
@@ -392,7 +398,7 @@ export function ResourceForm({
             ...f,
             channelId: f.channelId === CLEAR_SELECTION_VALUE ? null : (f.channelId || null),
             size: (f.size && typeof f.size === 'string' && f.size.trim() !== '') ? f.size.trim() : undefined,
-            selectedFileTags: f.selectedFileTags || {}
+            selectedFileTags: f.selectedFileTags || {},
           }))
         };
         const result = await saveResource(initialData?.id, resourceFormData, isNew, parentItemId, categoryId);
@@ -434,7 +440,6 @@ export function ResourceForm({
         ...defaultNewFileModalValues,
         id: undefined,
         createdAt: undefined,
-        updatedAt: undefined,
     });
     setEditingFileIndex(null);
     setIsFileModalOpen(true);
@@ -449,7 +454,6 @@ export function ResourceForm({
       changelogNotes: fileToEdit.changelogNotes || '',
       selectedFileTags: fileToEdit.selectedFileTags || {},
       createdAt: fileToEdit.createdAt,
-      updatedAt: fileToEdit.updatedAt,
     });
     setEditingFileIndex(index);
     setIsFileModalOpen(true);
@@ -562,6 +566,29 @@ export function ResourceForm({
   const handleMainImageSave = (croppedImage: string) => {
     form.setValue('imageUrl', croppedImage, { shouldDirty: true });
     setIsMainImageEditorOpen(false);
+  };
+  
+  const handleOpenGalleryImageEditor = (index: number) => {
+    const url = form.getValues(`imageGallery.${index}.value`);
+    if (!url || !(url.startsWith('http') || url.startsWith('data:image'))) {
+        toast({ title: "Invalid URL", description: "Please enter a valid image URL to edit it.", variant: "destructive" });
+        return;
+    }
+    const isGif = url.toLowerCase().endsWith('.gif');
+    if (isGif) {
+        toast({ title: "Info", description: "Animated GIFs cannot be cropped." });
+        return;
+    }
+    setEditingGalleryIndex(index);
+    setGalleryImageToCrop(url);
+  };
+
+  const handleGalleryImageSave = (croppedImage: string) => {
+    if (editingGalleryIndex !== null) {
+        form.setValue(`imageGallery.${editingGalleryIndex}.value`, croppedImage, { shouldDirty: true });
+    }
+    setEditingGalleryIndex(null);
+    setGalleryImageToCrop(null);
   };
 
 
@@ -793,6 +820,9 @@ export function ResourceForm({
                                   <GripVertical className="h-5 w-5 text-muted-foreground mr-1 opacity-50 group-hover:opacity-100 shrink-0" />
                                   <Input {...form.register(`imageGallery.${index}.value`)} placeholder="https://..." className="h-8"/>
                                   <div className="flex gap-0.5 shrink-0">
+                                    <Button type="button" size="icon" variant="ghost" onClick={() => handleOpenGalleryImageEditor(index)} className="text-blue-500 hover:text-blue-400 h-7 w-7" title="Edit Image">
+                                        <Edit className="h-4 w-4"/>
+                                    </Button>
                                     <Button type="button" size="icon" variant="ghost" onClick={() => removeGalleryField(index)} className="text-destructive/70 hover:text-destructive h-7 w-7"><X className="h-4 w-4" /></Button>
                                   </div>
                                 </div>
@@ -1065,6 +1095,20 @@ export function ResourceForm({
             onOpenChange={setIsMainImageEditorOpen}
             imageSrc={imageToCrop}
             onSave={handleMainImageSave}
+        />
+    )}
+    {galleryImageToCrop && (
+        <ResourceImageEditor
+            isOpen={editingGalleryIndex !== null}
+            onOpenChange={(open) => {
+                if (!open) {
+                    setEditingGalleryIndex(null);
+                    setGalleryImageToCrop(null);
+                }
+            }}
+            imageSrc={galleryImageToCrop}
+            onSave={handleGalleryImageSave}
+            aspectRatio={numericAspectRatio}
         />
     )}
     </>

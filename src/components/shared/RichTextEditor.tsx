@@ -36,6 +36,7 @@ import { Slider } from '@/components/ui/slider';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { parseMediaUrl } from '@/lib/utils';
 import { ResourceImageEditor } from '@/components/admin/ResourceImageEditor';
+import { useToast } from '@/hooks/use-toast';
 
 
 declare global {
@@ -546,6 +547,7 @@ const ImageCarouselModal = ({
   const [isImporting, setIsImporting] = useState(false);
   const [importText, setImportText] = useState('');
   const [draggingImageIndex, setDraggingImageIndex] = useState<number | null>(null);
+  const { toast } = useToast();
   
   const [autoplaySeconds, setAutoplaySeconds] = useState(initialAutoplayInterval === 999999999 ? 0 : initialAutoplayInterval / 1000);
 
@@ -624,9 +626,11 @@ const ImageCarouselModal = ({
   const handleOpenImageEditor = (index: number) => {
     const url = images[index];
     const media = parseMediaUrl(url);
-    const isGif = url?.toLowerCase().endsWith('.gif');
-    if (!url || !media || media.type === 'video' || isGif) {
-      return; // Button will be disabled
+    const isGif = media?.isGif || false;
+    const isVideo = media?.type === 'video';
+    if (!url || !media || isVideo || isGif) {
+        toast({ title: "Editing Not Supported", description: "Only non-animated images can be edited.", variant: "destructive" });
+        return;
     }
     setEditingImageIndex(index);
     setImageToCrop(url);
@@ -688,8 +692,8 @@ const ImageCarouselModal = ({
                           {images.map((image, index) => {
                             const url = image;
                             const media = parseMediaUrl(url);
-                            const isVideo = !!url && media?.type === 'video';
-                            const isGif = !!url && url.toLowerCase().endsWith('.gif');
+                            const isVideo = media?.type === 'video';
+                            const isGif = media?.isGif || false;
                             const isEditable = url && (url.startsWith('http') || url.startsWith('data:image')) && !isVideo && !isGif;
 
                             return (

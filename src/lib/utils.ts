@@ -157,7 +157,7 @@ export const calculateGenericItemSearchScore = (item: GenericListItem, query: st
 };
 
 
-export const parseMediaUrl = (url: string): { type: 'image' | 'video', src: string, videoId: string | null } | null => {
+export const parseMediaUrl = (url: string): { type: 'image' | 'video', src: string, videoId: string | null, isGif: boolean } | null => {
     if (!url || typeof url !== 'string') return null;
 
     // YouTube URL patterns
@@ -170,18 +170,46 @@ export const parseMediaUrl = (url: string): { type: 'image' | 'video', src: stri
     for (const regex of youtubeRegexes) {
         const match = url.match(regex);
         if (match && match[1]) {
-            return { type: 'video', src: `https://www.youtube-nocookie.com/embed/${match[1]}`, videoId: match[1] };
+            return { type: 'video', src: `https://www.youtube-nocookie.com/embed/${match[1]}`, videoId: match[1], isGif: false };
         }
     }
 
-    const imageRegex = /(\.(jpeg|jpg|gif|png|webp|svg)$)|(^data:image)/i;
-    if (imageRegex.test(url)) {
-        return { type: 'image', src: url, videoId: null };
+    if (url.startsWith('data:image')) {
+        const isGif = url.startsWith('data:image/gif');
+        return { type: 'image', src: url, videoId: null, isGif };
     }
     
     if (url.startsWith('http')) {
-        return { type: 'image', src: url, videoId: null };
-    }
+        try {
+            let urlToCheck = url;
+            // Handle proxy URLs like DuckDuckGo by looking at the 'u' query param
+            const proxiedUrl = new URL(url);
+            if (proxiedUrl.searchParams.has('u')) {
+                const innerUrl = proxiedUrl.searchParams.get('u');
+                if (innerUrl) {
+                    // Recurse with the actual URL, this will handle nested proxies too
+                    return parseMediaUrl(innerUrl);
+                }
+            }
+            
+            // For regular URLs, just check the pathname
+            const pathname = new URL(urlToCheck).pathname;
+            const isGif = pathname.toLowerCase().endsWith('.gif');
+            
+            const imageRegex = /\.(jpeg|jpg|gif|png|webp|svg)$/i;
+            if (imageRegex.test(pathname)) {
+                return { type: 'image', src: url, videoId: null, isGif };
+            }
+        } catch (e) {
+            // If URL parsing fails, it's not a standard URL.
+            // We can't safely determine its type or if it's a GIF.
+            return null;
+        }
 
+        // If it's a valid URL but has no image extension in the pathname, assume it's a non-GIF image.
+        // This maintains the previous behavior for things like `https://placehold.co/600x400`.
+        return { type: 'image', src: url, videoId: null, isGif: false };
+    }
+    
     return null;
 };

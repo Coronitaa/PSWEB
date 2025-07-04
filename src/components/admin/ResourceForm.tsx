@@ -325,7 +325,7 @@ export function ResourceForm({
   }, [initialData, defaultValues, form]);
 
 
-  const isMainImageGif = useMemo(() => watchedImageUrl?.toLowerCase().endsWith('.gif') || false, [watchedImageUrl]);
+  const isMainImageGif = useMemo(() => (watchedImageUrl ? parseMediaUrl(watchedImageUrl)?.isGif : false) || false, [watchedImageUrl]);
   
   const [autoplaySeconds, setAutoplaySeconds] = useState(
     (watchedGalleryAutoplayInterval ?? 5000) === 999999999 ? 0 : (watchedGalleryAutoplayInterval ?? 5000) / 1000
@@ -558,14 +558,14 @@ export function ResourceForm({
   const handleOpenGalleryImageEditor = (index: number) => {
     const url = form.getValues(`imageGallery.${index}.value`);
     const media = parseMediaUrl(url);
-    const isGif = url?.toLowerCase().endsWith('.gif');
+    const isGif = media?.isGif || false;
+    const isVideo = media?.type === 'video';
 
-    if (!url || !media || media.type === 'video' || isGif) {
-        toast({ title: "Invalid Media", description: "Only non-animated image URLs can be edited.", variant: "destructive" });
+    if (!url || !media || isVideo || isGif) {
+        toast({ title: "Editing Not Supported", description: "Only non-animated images can be edited.", variant: "destructive" });
         return;
     }
     
-    // We pass the current URL to the editor. The editor's proxy will handle fetching.
     setEditingGalleryIndex(index);
     setGalleryImageToCrop(url);
   };
@@ -794,9 +794,9 @@ export function ResourceForm({
                               {galleryFields.map((field, index) => {
                                 const url = form.getValues(`imageGallery.${index}.value`);
                                 const media = parseMediaUrl(url);
-                                const isVideo = !!url && media?.type === 'video';
-                                const isGif = !!url && url.toLowerCase().endsWith('.gif');
-                                const isDisabled = !url || isVideo || isGif;
+                                const isVideo = media?.type === 'video';
+                                const isGif = media?.isGif || false;
+                                const isEditable = url && (url.startsWith('http') || url.startsWith('data:image')) && !isVideo && !isGif;
                                 return (
                                 <div 
                                   key={field.id}
@@ -813,7 +813,7 @@ export function ResourceForm({
                                   <GripVertical className="h-5 w-5 text-muted-foreground mr-1 opacity-50 group-hover:opacity-100 shrink-0" />
                                   <Input {...form.register(`imageGallery.${index}.value`)} placeholder="https://..." className="h-8"/>
                                   <div className="flex gap-0.5 shrink-0">
-                                    <Button type="button" size="icon" variant="ghost" onClick={() => handleOpenGalleryImageEditor(index)} className="text-blue-500 hover:text-blue-400 h-7 w-7" title="Edit Image" disabled={isDisabled}>
+                                    <Button type="button" size="icon" variant="ghost" onClick={() => handleOpenGalleryImageEditor(index)} className="text-blue-500 hover:text-blue-400 h-7 w-7" title="Edit Image" disabled={!isEditable}>
                                         <Edit className="h-4 w-4"/>
                                     </Button>
                                     <Button type="button" size="icon" variant="ghost" onClick={() => removeGalleryField(index)} className="text-destructive/70 hover:text-destructive h-7 w-7"><X className="h-4 w-4" /></Button>

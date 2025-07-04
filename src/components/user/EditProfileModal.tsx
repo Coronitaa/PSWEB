@@ -174,6 +174,19 @@ export function EditProfileModal({ profile, isOpen, onOpenChange }: EditProfileM
         } catch (e: any) {
             if (e.name === 'QuotaExceededError') {
                 console.warn("Could not update mockUser in localStorage due to quota exceeded. This is expected if a large data URI was used for an image.");
+                toast({
+                    title: "Profile Saved (with warning)",
+                    description: "Your profile was saved, but new images might not show in the header due to browser storage limits. They will appear on your profile page and on next login.",
+                    variant: "default",
+                    duration: 8000
+                });
+                // Fallback: update localStorage without the large images so other info updates
+                const profileWithoutImages = { ...result.data.profile, avatarUrl: null, bannerUrl: null };
+                localStorage.setItem('mockUser', JSON.stringify(profileWithoutImages));
+                window.dispatchEvent(new StorageEvent('storage', { 
+                    key: 'mockUser', 
+                    newValue: JSON.stringify(profileWithoutImages) 
+                }));
             } else {
                 console.error("An error occurred while updating localStorage:", e);
             }

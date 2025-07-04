@@ -52,7 +52,7 @@ export function ResourceImageEditor({ isOpen, onOpenChange, imageSrc: originalIm
     if (!croppedAreaPixels || !proxiedImageSrc) return;
     setIsSaving(true);
     try {
-      const croppedImage = await getCroppedImg(proxiedImageSrc, croppedAreaPixels);
+      const croppedImage = await getCroppedImg(proxiedImageSrc, croppedAreaPixels, 1600);
       if (croppedImage) {
         onSave(croppedImage);
         onOpenChange(false);

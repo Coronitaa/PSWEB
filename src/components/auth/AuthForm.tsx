@@ -11,16 +11,13 @@ import { AtSign, LogIn, RefreshCw, UserCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { UserAppRole } from '@/lib/types';
+import { fetchUserProfileByUsertag } from '@/app/actions/clientWrappers';
+import type { Author } from '@/lib/types';
 
 const validUsertagsForLogin = ['@admin', '@mod', '@user'];
 
-interface MockUser {
-  id: string;
-  usertag: string;
-  name: string;
-  role: UserAppRole;
-  avatarUrl?: string;
-  bannerUrl?: string; 
+interface MockUser extends Author {
+  // MockUser can now fully extend the Author type
 }
 
 export function AuthForm() {
@@ -28,53 +25,52 @@ export function AuthForm() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsLoading(true);
 
     const normalizedInput = usertagInput.startsWith('@') ? usertagInput.toLowerCase() : `@${usertagInput.toLowerCase()}`;
-    let mockUserToStore: MockUser | null = null;
-
-    if (normalizedInput === '@admin') {
-      mockUserToStore = {
-        id: 'mock-admin-id',
-        usertag: '@admin',
-        name: 'Administrator',
-        role: 'admin',
-        avatarUrl: `https://placehold.co/128x128/E91E63/FFFFFF?text=A`,
-        bannerUrl: `https://placehold.co/1200x300/1a1a1a/E91E63?text=Admin+Banner`
-      };
-    } else if (normalizedInput === '@mod') {
-      mockUserToStore = {
-        id: 'mock-mod-id',
-        usertag: '@mod',
-        name: 'Moderator',
-        role: 'mod',
-        avatarUrl: `https://placehold.co/128x128/2196F3/FFFFFF?text=M`,
-        bannerUrl: `https://placehold.co/1200x300/1a1a1a/2196F3?text=Mod+Banner`
-      };
-    } else if (normalizedInput === '@user') {
-      mockUserToStore = {
-        id: 'mock-user-id',
-        usertag: '@user',
-        name: 'Regular User',
-        role: 'usuario',
-        avatarUrl: `https://placehold.co/128x128/4CAF50/FFFFFF?text=U`,
-        bannerUrl: `https://placehold.co/1200x300/1a1a1a/4CAF50?text=User+Banner`
-      };
+    
+    // Check if it's a valid mock login tag
+    if (!validUsertagsForLogin.includes(normalizedInput)) {
+        toast({ title: "Login Error", description: "Invalid usertag. Try @admin, @mod, or @user.", variant: "destructive" });
+        setIsLoading(false);
+        return;
     }
+    
+    // Fetch the profile from the database
+    const result = await fetchUserProfileByUsertag(normalizedInput);
 
-    if (mockUserToStore) {
-      localStorage.setItem('mockUser', JSON.stringify(mockUserToStore));
-      toast({ title: "Login Successful", description: `Welcome ${mockUserToStore.name}!` });
-      window.dispatchEvent(new StorageEvent('storage', { key: 'mockUser', newValue: JSON.stringify(mockUserToStore) }));
+    if (result.success && result.data?.profile) {
+      const profile = result.data.profile;
       
-      setTimeout(() => {
-        router.push('/'); // Always redirect to the main page
-      }, 100);
+      try {
+          localStorage.setItem('mockUser', JSON.stringify(profile));
+          window.dispatchEvent(new StorageEvent('storage', { key: 'mockUser', newValue: JSON.stringify(profile) }));
+          toast({ title: "Login Successful", description: `Welcome ${profile.name}!` });
+          
+          setTimeout(() => {
+            router.push('/');
+          }, 100);
+
+      } catch (e: any) {
+          if (e.name === 'QuotaExceededError') {
+              console.warn("Could not set mockUser in localStorage due to quota exceeded. This can happen if profile images are very large data URIs.");
+              toast({ title: "Login Warning", description: "Logged in, but some profile data (like images) might not persist correctly due to size limits.", variant: "default" });
+              // Attempt to save without images as a fallback
+              const profileWithoutImages = { ...profile, avatarUrl: null, bannerUrl: null };
+              localStorage.setItem('mockUser', JSON.stringify(profileWithoutImages));
+              window.dispatchEvent(new StorageEvent('storage', { key: 'mockUser', newValue: JSON.stringify(profileWithoutImages) }));
+               setTimeout(() => { router.push('/'); }, 100);
+          } else {
+              console.error("An error occurred during login storage:", e);
+              toast({ title: "Login Error", description: "Could not save session data.", variant: "destructive" });
+              setIsLoading(false);
+          }
+      }
 
     } else {
-      toast({ title: "Login Error", description: "Invalid usertag. Try @admin, @mod, or @user.", variant: "destructive" });
+      toast({ title: "Login Error", description: result.error || "Could not find profile data for login.", variant: "destructive" });
       setIsLoading(false);
     }
   };

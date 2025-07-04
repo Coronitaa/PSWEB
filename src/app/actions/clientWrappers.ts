@@ -166,11 +166,18 @@ export async function deleteResource(resourceId: string): Promise<ActionResult> 
 
 
 // --- Profile Action Wrappers ---
-import { updateProfileAction as serverUpdateProfileAction } from './profileActions';
+import { 
+    updateProfileAction as serverUpdateProfileAction,
+    fetchUserProfileByUsertagAction as serverFetchUserProfileByUsertagAction
+} from './profileActions';
 
 export async function updateProfile(data: ProfileUpdateFormData): Promise<ActionResult<{ profile: ProfileAuthor }>> {
   const clientMockUserId = getMockUserIdFromStorage();
   return serverUpdateProfileAction(data, clientMockUserId);
+}
+
+export async function fetchUserProfileByUsertag(usertag: string): Promise<ActionResult<{ profile: ProfileAuthor }>> {
+    return serverFetchUserProfileByUsertagAction(usertag);
 }
 
 // --- Resource Author Action Wrappers ---

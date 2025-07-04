@@ -2,7 +2,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { updateUserProfile } from '@/lib/data';
+import { updateUserProfile, getUserProfileByUsertag } from '@/lib/data';
 import type { ProfileUpdateFormData, Author } from '@/lib/types';
 
 interface ActionResult<T = null> {
@@ -38,5 +38,20 @@ export async function updateProfileAction(
   } catch (e: any) {
     console.error("[updateProfileAction ACTION] Error:", e);
     return { success: false, error: e.message || "An unknown error occurred during profile update.", errorCode: 'UNKNOWN_ERROR' };
+  }
+}
+
+export async function fetchUserProfileByUsertagAction(
+  usertag: string
+): Promise<ActionResult<{ profile: Author }>> {
+  try {
+    const profile = await getUserProfileByUsertag(usertag.startsWith('@') ? usertag.substring(1) : usertag);
+    if (!profile) {
+      return { success: false, error: "Profile not found.", errorCode: 'NOT_FOUND' };
+    }
+    return { success: true, data: { profile } };
+  } catch (e: any) {
+    console.error("[fetchUserProfileByUsertagAction ACTION] Error:", e);
+    return { success: false, error: "An unknown error occurred while fetching the profile.", errorCode: 'UNKNOWN_ERROR' };
   }
 }

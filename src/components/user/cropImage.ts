@@ -5,28 +5,37 @@ export const createImage = (url: string): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
     const image = new Image();
     image.addEventListener('load', () => resolve(image));
-    image.addEventListener('error', () => reject(new Error('Failed to load image. This may be due to a CORS issue or an invalid URL.')));
-    image.setAttribute('crossOrigin', 'anonymous'); // Needed to avoid CORS issues
+    image.addEventListener('error', (error) => reject(new Error(`Failed to load image. This may be due to a CORS issue or an invalid URL. Original error: ${error}`)));
+    image.setAttribute('crossOrigin', 'anonymous');
     image.src = url;
   });
 
 export default async function getCroppedImg(
   imageSrc: string,
-  pixelCrop: Area
+  pixelCrop: Area,
+  outputWidth?: number
 ): Promise<string | null> {
   const image = await createImage(imageSrc);
   const canvas = document.createElement('canvas');
+  
+  let targetWidth = pixelCrop.width;
+  let targetHeight = pixelCrop.height;
+
+  if (outputWidth && pixelCrop.width > outputWidth) {
+    const aspectRatio = pixelCrop.height / pixelCrop.width;
+    targetWidth = outputWidth;
+    targetHeight = Math.round(outputWidth * aspectRatio);
+  }
+
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+
   const ctx = canvas.getContext('2d');
 
   if (!ctx) {
     return null;
   }
-
-  // Set canvas size to match the cropped area
-  canvas.width = pixelCrop.width;
-  canvas.height = pixelCrop.height;
-
-  // Draw the cropped image onto the canvas
+  
   ctx.drawImage(
     image,
     pixelCrop.x,
@@ -35,11 +44,12 @@ export default async function getCroppedImg(
     pixelCrop.height,
     0,
     0,
-    pixelCrop.width,
-    pixelCrop.height
+    targetWidth,
+    targetHeight
   );
 
-  return canvas.toDataURL('image/png');
+  // Return as JPEG with quality 0.9 for smaller size
+  return canvas.toDataURL('image/jpeg', 0.9);
 }
 
 export { getCroppedImg };

@@ -7,7 +7,7 @@ import type { Point, Area } from 'react-easy-crop';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Slider } from '@/components/ui/slider';
-import { getCroppedImg } from './cropImage';
+import { getCroppedImg } from '@/components/user/cropImage'; // Re-use the existing helper
 import { Loader2, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -46,7 +46,7 @@ export function AvatarEditor({ isOpen, onOpenChange, imageSrc: originalImageSrc,
     if (!croppedAreaPixels || !proxiedImageSrc) return;
     setIsSaving(true);
     try {
-      const croppedImage = await getCroppedImg(proxiedImageSrc, croppedAreaPixels);
+      const croppedImage = await getCroppedImg(proxiedImageSrc, croppedAreaPixels, 256);
       if (croppedImage) {
         onSave(croppedImage);
         onOpenChange(false);

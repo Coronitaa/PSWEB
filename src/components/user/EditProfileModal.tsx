@@ -293,7 +293,7 @@ export function EditProfileModal({ profile, isOpen, onOpenChange }: EditProfileM
                           </div>
                           <div className="relative">
                               <Twitter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                              <Input {...form.register('socialLinks.twitter')} placeholder="Twitter/X URL" className="pl-9" disabled={isSubmitting}/>
+                              <Input {...form.register('socialLinks.twitter')} placeholder="X / Twitter URL" className="pl-9" disabled={isSubmitting}/>
                               {form.formState.errors.socialLinks?.twitter && <p className="text-xs text-destructive mt-1">{form.formState.errors.socialLinks.twitter.message}</p>}
                           </div>
                           <div className="relative">

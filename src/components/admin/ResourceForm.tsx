@@ -195,8 +195,6 @@ export function ResourceForm({
   const [editingGalleryIndex, setEditingGalleryIndex] = useState<number | null>(null);
   const [galleryImageToCrop, setGalleryImageToCrop] = useState<string | null>(null);
 
-  const originalImageUrlRef = useRef(initialData?.imageUrl);
-
   const defaultNewFileModalValues: ResourceFileFormData = useMemo(() => ({
     name: 'New File',
     url: 'https://example.com/newfile.zip',
@@ -319,18 +317,7 @@ export function ResourceForm({
   const watchedGalleryAutoplayInterval = useWatch({ control: form.control, name: 'galleryAutoplayInterval' });
 
   useEffect(() => {
-    // When the URL from the form is NOT a data URL, it's a user-provided original URL.
-    if (watchedImageUrl && !watchedImageUrl.startsWith('data:')) {
-      originalImageUrlRef.current = watchedImageUrl;
-    }
-  }, [watchedImageUrl]);
-
-  useEffect(() => {
-    // When the component loads with new initial data, reset the ref.
-    if (initialData?.imageUrl) {
-        originalImageUrlRef.current = initialData.imageUrl;
-    }
-    // Also reset the form itself
+    // When the component loads with new initial data, reset the form.
     form.reset(defaultValues);
     if(initialData?.authors) {
       setCurrentAuthors(initialData.authors);
@@ -550,9 +537,9 @@ export function ResourceForm({
   };
 
   const handleOpenMainImageEditor = () => {
-    const urlToEdit = originalImageUrlRef.current;
-    if (!urlToEdit || !urlToEdit.startsWith('http')) {
-        toast({ title: "Invalid URL", description: "Please enter a valid, original image URL to edit it.", variant: "destructive" });
+    const urlToEdit = watchedImageUrl;
+    if (!urlToEdit || !(urlToEdit.startsWith('http') || urlToEdit.startsWith('data:image'))) {
+        toast({ title: "Invalid URL", description: "Please provide a valid image URL to edit.", variant: "destructive" });
         return;
     }
     if (isMainImageGif) {

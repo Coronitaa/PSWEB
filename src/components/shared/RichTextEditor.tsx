@@ -690,7 +690,7 @@ const ImageCarouselModal = ({
                             const media = parseMediaUrl(url);
                             const isVideo = !!url && media?.type === 'video';
                             const isGif = !!url && url.toLowerCase().endsWith('.gif');
-                            const isEditable = !(!url || !media || media.type === 'video' || isGif);
+                            const isEditable = url && (url.startsWith('http') || url.startsWith('data:image')) && !isVideo && !isGif;
 
                             return (
                               <div 

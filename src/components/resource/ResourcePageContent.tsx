@@ -22,6 +22,7 @@ import { getAvailableFilterTags } from '@/lib/data';
 import { getItemTypePlural } from '@/lib/utils';
 import parse, { domToReact, Element } from 'html-react-parser';
 import { cn } from '@/lib/utils';
+import { CodeBlockClient } from '@/components/shared/CodeBlockClient';
 
 
 interface ResourcePageContentProps {
@@ -139,119 +140,122 @@ export function ResourcePageContent({ resource, relatedResources }: ResourcePage
     };
 
   return (
-    <div className="space-y-8">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem><BreadcrumbLink href="/">Home</BreadcrumbLink></BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem><BreadcrumbLink href={parentItemSectionPath}>{resource.parentItemType}</BreadcrumbLink></BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem><BreadcrumbLink href={parentItemPath}>{resource.parentItemName}</BreadcrumbLink></BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem><BreadcrumbLink href={parentCategoryPath}>{resource.categoryName}</BreadcrumbLink></BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem><BreadcrumbPage>{resource.name}</BreadcrumbPage></BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
+    <>
+      <CodeBlockClient />
+      <div className="space-y-8">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem><BreadcrumbLink href="/">Home</BreadcrumbLink></BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem><BreadcrumbLink href={parentItemSectionPath}>{resource.parentItemType}</BreadcrumbLink></BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem><BreadcrumbLink href={parentItemPath}>{resource.parentItemName}</BreadcrumbLink></BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem><BreadcrumbLink href={parentCategoryPath}>{resource.categoryName}</BreadcrumbLink></BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem><BreadcrumbPage>{resource.name}</BreadcrumbPage></BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
 
-      <div className="lg:grid lg:grid-cols-12 lg:gap-12">
-        <main className="lg:col-span-8 space-y-6">
-          <Card className="overflow-hidden shadow-xl bg-card/70 backdrop-blur-sm border-border/30">
-            {galleryImages.length > 0 ? (
-                <ImageGalleryCarousel 
-                    images={galleryImages} 
-                    className="w-full rounded-t-md" 
-                    aspectRatio={resource.galleryAspectRatio || '16/9'}
-                    autoplayInterval={resource.galleryAutoplayInterval}
-                />
-            ) : (
-                <div className="relative aspect-[16/9] bg-muted rounded-t-md flex items-center justify-center">
-                    <ImageIcon className="w-16 h-16 text-muted-foreground" />
-                </div>
-            )}
-            <CardContent className="p-6">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4">
-                <div>
-                  <CardTitle className="text-3xl md:text-4xl font-bold mb-1 text-primary drop-shadow-md">{resource.name}</CardTitle>
-                  <CardDescription className="text-base text-muted-foreground">{resource.description}</CardDescription>
-                </div>
-                <div className="flex items-center gap-2 mt-3 sm:mt-0">
-                    <Button variant="outline" size="sm" className="button-outline-glow button-follow-sheen shrink-0">
-                        <Heart className="w-4 h-4 mr-2 text-accent" /> Follow
-                    </Button>
-                    <EditResourceButtonAndModal resource={resource} />
-                </div>
-              </div>
-
-              <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-                <TabsList className="grid w-full grid-cols-4 mb-4 bg-card-foreground/5 rounded-md"> 
-                  <TabsTrigger value="overview" id="overview-tab"><Eye className="w-4 h-4 mr-1 sm:mr-2" />Overview</TabsTrigger>
-                  <TabsTrigger value="files" id="files-tab"><FileText className="w-4 h-4 mr-1 sm:mr-2" />Files</TabsTrigger>
-                  <TabsTrigger value="requirements" id="requirements-tab"><ListChecks className="w-4 h-4 mr-1 sm:mr-2" />Requirements</TabsTrigger>
-                  <TabsTrigger value="reviews" id="reviews-tab"><Star className="w-4 h-4 mr-1 sm:mr-2" />Reviews</TabsTrigger> 
-                </TabsList>
-                <TabsContent value="overview">
-                  <div
-                    className="prose prose-sm sm:prose lg:prose-lg dark:prose-invert max-w-none prose-headings:text-primary prose-a:text-accent hover:prose-a:text-accent/80 leading-relaxed"
-                  >
-                    {parse(resource.detailedDescription || '', parseOptions)}
+        <div className="lg:grid lg:grid-cols-12 lg:gap-12">
+          <main className="lg:col-span-8 space-y-6">
+            <Card className="overflow-hidden shadow-xl bg-card/70 backdrop-blur-sm border-border/30">
+              {galleryImages.length > 0 ? (
+                  <ImageGalleryCarousel 
+                      images={galleryImages} 
+                      className="w-full rounded-t-md" 
+                      aspectRatio={resource.galleryAspectRatio || '16/9'}
+                      autoplayInterval={resource.galleryAutoplayInterval}
+                  />
+              ) : (
+                  <div className="relative aspect-[16/9] bg-muted rounded-t-md flex items-center justify-center">
+                      <ImageIcon className="w-16 h-16 text-muted-foreground" />
                   </div>
-                </TabsContent>
-                <TabsContent value="files">
-                  {resource.files && resource.files.length > 0 ? (
-                    <ResourceFilesTabContent
-                        files={resource.files}
-                        resourceId={resource.id}
-                        dynamicAvailableFileTagGroups={dynamicAvailableFileTagGroups}
-                    />
-                  ) : (
-                    <p className="text-muted-foreground p-4 text-center">No files available for this resource.</p>
-                  )}
-                </TabsContent>
-                <TabsContent value="requirements">
-                  {resource.requirements ? (
-                     <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-line leading-relaxed" dangerouslySetInnerHTML={{ __html: resource.requirements.replace(/\\n/g, '<br />') }}/>
-                  ) : (
-                    <p className="text-muted-foreground p-4 text-center">No specific requirements listed for this resource.</p>
-                  )}
-                </TabsContent>
-                <TabsContent value="reviews"> 
-                  <ResourceReviewsTabContent resource={resource} />
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-        </main>
+              )}
+              <CardContent className="p-6">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4">
+                  <div>
+                    <CardTitle className="text-3xl md:text-4xl font-bold mb-1 text-primary drop-shadow-md">{resource.name}</CardTitle>
+                    <CardDescription className="text-base text-muted-foreground">{resource.description}</CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2 mt-3 sm:mt-0">
+                      <Button variant="outline" size="sm" className="button-outline-glow button-follow-sheen shrink-0">
+                          <Heart className="w-4 h-4 mr-2 text-accent" /> Follow
+                      </Button>
+                      <EditResourceButtonAndModal resource={resource} />
+                  </div>
+                </div>
 
-        <aside className="lg:col-span-4 mt-8 lg:mt-0">
-          <ResourceInfoSidebar resource={resource} />
-        </aside>
+                <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+                  <TabsList className="grid w-full grid-cols-4 mb-4 bg-card-foreground/5 rounded-md"> 
+                    <TabsTrigger value="overview" id="overview-tab"><Eye className="w-4 h-4 mr-1 sm:mr-2" />Overview</TabsTrigger>
+                    <TabsTrigger value="files" id="files-tab"><FileText className="w-4 h-4 mr-1 sm:mr-2" />Files</TabsTrigger>
+                    <TabsTrigger value="requirements" id="requirements-tab"><ListChecks className="w-4 h-4 mr-1 sm:mr-2" />Requirements</TabsTrigger>
+                    <TabsTrigger value="reviews" id="reviews-tab"><Star className="w-4 h-4 mr-1 sm:mr-2" />Reviews</TabsTrigger> 
+                  </TabsList>
+                  <TabsContent value="overview">
+                    <div
+                      className="prose prose-sm sm:prose lg:prose-lg dark:prose-invert max-w-none prose-headings:text-primary prose-a:text-accent hover:prose-a:text-accent/80 leading-relaxed"
+                    >
+                      {parse(resource.detailedDescription || '', parseOptions)}
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="files">
+                    {resource.files && resource.files.length > 0 ? (
+                      <ResourceFilesTabContent
+                          files={resource.files}
+                          resourceId={resource.id}
+                          dynamicAvailableFileTagGroups={dynamicAvailableFileTagGroups}
+                      />
+                    ) : (
+                      <p className="text-muted-foreground p-4 text-center">No files available for this resource.</p>
+                    )}
+                  </TabsContent>
+                  <TabsContent value="requirements">
+                    {resource.requirements ? (
+                       <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-line leading-relaxed" dangerouslySetInnerHTML={{ __html: resource.requirements.replace(/\\n/g, '<br />') }}/>
+                    ) : (
+                      <p className="text-muted-foreground p-4 text-center">No specific requirements listed for this resource.</p>
+                    )}
+                  </TabsContent>
+                  <TabsContent value="reviews"> 
+                    <ResourceReviewsTabContent resource={resource} />
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          </main>
+
+          <aside className="lg:col-span-4 mt-8 lg:mt-0">
+            <ResourceInfoSidebar resource={resource} />
+          </aside>
+        </div>
+
+        {relatedResources.length > 0 && (
+          <section className="pt-8 mt-8 border-t border-border/30">
+            <h2 className="text-2xl font-semibold mb-6 text-center text-primary">Related Resources</h2>
+             <Carousel
+              itemsToShow={3}
+              showArrows={relatedResources.length > 3}
+              autoplay={!carouselAllowOverflow} 
+              autoplayInterval={6000}
+              className="px-2"
+              allowOverflow={carouselAllowOverflow}
+            >
+              {relatedResources.map(related => (
+                <CarouselItem key={related.id}>
+                  <ResourceCard 
+                      resource={related} 
+                      compact 
+                      onHoverChange={handleResourceCardHover}
+                      onOverflowHoverChange={handleResourceCardOverflowHover}
+                  />
+                </CarouselItem>
+              ))}
+            </Carousel>
+          </section>
+        )}
       </div>
-
-      {relatedResources.length > 0 && (
-        <section className="pt-8 mt-8 border-t border-border/30">
-          <h2 className="text-2xl font-semibold mb-6 text-center text-primary">Related Resources</h2>
-           <Carousel
-            itemsToShow={3}
-            showArrows={relatedResources.length > 3}
-            autoplay={!carouselAllowOverflow} 
-            autoplayInterval={6000}
-            className="px-2"
-            allowOverflow={carouselAllowOverflow}
-          >
-            {relatedResources.map(related => (
-              <CarouselItem key={related.id}>
-                <ResourceCard 
-                    resource={related} 
-                    compact 
-                    onHoverChange={handleResourceCardHover}
-                    onOverflowHoverChange={handleResourceCardOverflowHover}
-                />
-              </CarouselItem>
-            ))}
-          </Carousel>
-        </section>
-      )}
-    </div>
+    </>
   );
 }

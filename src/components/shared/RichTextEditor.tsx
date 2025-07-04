@@ -1527,6 +1527,7 @@ const CodeBlockComponent = (props: NodeViewProps) => {
     };
 
     const handleCopy = () => {
+        navigator.clipboard.writeText(node.textContent);
         toast({ title: 'Copied to clipboard!' });
     };
     
@@ -1607,13 +1608,38 @@ const CustomCodeBlock = CodeBlockLowlight.extend({
             ...this.parent?.(),
             isCollapsible: {
                 default: false,
+                renderHTML: attributes => ({
+                    'data-collapsible': attributes.isCollapsible,
+                }),
+                parseHTML: element => element.getAttribute('data-collapsible') === 'true',
             },
         };
     },
+    
+    renderHTML({ node, HTMLAttributes }) {
+        return [
+          'div',
+          { 
+            'data-code-block': 'true',
+            'data-collapsible': node.attrs.isCollapsible ? 'true' : 'false',
+            class: 'code-block-wrapper my-4 text-sm'
+          },
+          [
+            'div',
+            { 'data-code-block-header': 'true', class: 'code-block-header' },
+          ],
+          [
+            'div',
+            { 'data-code-block-content': 'true' },
+            ['pre', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes), ['code', { spellcheck: 'false' }, 0]],
+          ],
+        ];
+    },
+
     addNodeView() {
         return ReactNodeViewRenderer(CodeBlockComponent);
     },
-});
+}).configure({ lowlight });
 
 const Toolbar = ({ editor }: { editor: Editor | null }) => {
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
@@ -2056,7 +2082,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ heading: false, codeBlock: false }), // Disable default code block
-      CustomCodeBlock.configure({ lowlight }),
+      CustomCodeBlock,
       TextStyle,
       FontFamily,
       FontSize.configure({
@@ -2162,4 +2188,3 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
     </div>
   );
 };
-

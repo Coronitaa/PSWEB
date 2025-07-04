@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
@@ -15,7 +16,7 @@ import TextStyle from '@tiptap/extension-text-style';
 import Underline from '@tiptap/extension-underline';
 import { 
   Bold, Italic, Link as LinkIcon, List, ListOrdered, Strikethrough, Underline as UnderlineIcon,
-  AlignLeft, AlignCenter, AlignRight, AlignJustify, Image as ImageIcon, Video, Palette, RotateCw, ImagePlus, Box, GalleryHorizontal, GripVertical, Trash2
+  AlignLeft, AlignCenter, AlignRight, AlignJustify, Image as ImageIcon, Video, Palette, RotateCw, ImagePlus, Box, GalleryHorizontal, GripVertical, Trash2, Edit
 } from 'lucide-react';
 import { GradientPicker } from './GradientPicker';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Slider } from '@/components/ui/slider';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { parseMediaUrl } from '@/lib/utils';
+import { ResourceImageEditor } from '@/components/admin/ResourceImageEditor';
+
 
 declare global {
   namespace JSX {
@@ -546,6 +549,10 @@ const ImageCarouselModal = ({
   
   const [autoplaySeconds, setAutoplaySeconds] = useState(initialAutoplayInterval === 999999999 ? 0 : initialAutoplayInterval / 1000);
 
+  // New state for image editor
+  const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+
   useEffect(() => {
     if (isOpen) {
       setImages(initialImages);
@@ -613,6 +620,32 @@ const ImageCarouselModal = ({
   const handleImageDragEnd = () => {
       setDraggingImageIndex(null);
   };
+  
+  const handleOpenImageEditor = (index: number) => {
+    const url = images[index];
+    const media = parseMediaUrl(url);
+    const isGif = url?.toLowerCase().endsWith('.gif');
+    if (!url || !media || media.type === 'video' || isGif) {
+      return; // Button will be disabled
+    }
+    setEditingImageIndex(index);
+    setImageToCrop(url);
+  };
+
+  const handleImageSave = (croppedImage: string) => {
+    if (editingImageIndex !== null) {
+      updateImage(editingImageIndex, croppedImage);
+    }
+    setEditingImageIndex(null);
+    setImageToCrop(null);
+  };
+
+  const numericAspectRatio = useMemo(() => {
+    if (aspectRatio === '4/3') return 4 / 3;
+    if (aspectRatio === '1/1') return 1;
+    return 16 / 9;
+  }, [aspectRatio]);
+
 
   const AspectRatioIcon = ({ ratio, className }: { ratio: '16:9' | '4:3' | '1:1', className?: string }) => {
       const viewBox = { '16:9': '0 0 16 9', '4:3': '0 0 16 12', '1:1': '0 0 16 16' }[ratio];
@@ -652,24 +685,33 @@ const ImageCarouselModal = ({
                       </div>
                       <ScrollArea className="border rounded-md p-2 h-40">
                           <div className="space-y-2">
-                          {images.map((image, index) => (
+                          {images.map((image, index) => {
+                            const url = image;
+                            const media = parseMediaUrl(url);
+                            const isVideo = !!url && media?.type === 'video';
+                            const isGif = !!url && url.toLowerCase().endsWith('.gif');
+                            const isEditable = !(!url || !media || media.type === 'video' || isGif);
+
+                            return (
                               <div 
-                              key={index}
-                              draggable="true"
-                              onDragStart={(e) => handleImageDragStart(e, index)}
-                              onDragOver={handleImageDragOver}
-                              onDrop={(e) => handleImageDrop(e, index)}
-                              onDragEnd={handleImageDragEnd}
-                              className={cn(
-                                  "flex items-center gap-2 p-2 rounded-md bg-muted/50 group cursor-grab",
-                                  draggingImageIndex === index && "opacity-50 bg-primary/20"
-                              )}
+                                key={index}
+                                draggable="true"
+                                onDragStart={(e) => handleImageDragStart(e, index)}
+                                onDragOver={handleImageDragOver}
+                                onDrop={(e) => handleImageDrop(e, index)}
+                                onDragEnd={handleImageDragEnd}
+                                className={cn(
+                                    "flex items-center gap-2 p-1 rounded-md bg-muted/50 group cursor-grab",
+                                    draggingImageIndex === index && "opacity-50 bg-primary/20"
+                                )}
                               >
-                              <GripVertical className="h-5 w-5 text-muted-foreground shrink-0 opacity-50 group-hover:opacity-100" />
-                              <Input value={image} onChange={(e) => updateImage(index, e.target.value)} placeholder="https://..." />
-                              <Button variant="ghost" size="icon" onClick={() => removeImage(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                <GripVertical className="h-5 w-5 text-muted-foreground shrink-0 opacity-50 group-hover:opacity-100" />
+                                <Input value={image} onChange={(e) => updateImage(index, e.target.value)} placeholder="https://..." className="h-8"/>
+                                <Button type="button" size="icon" variant="ghost" className="h-7 w-7 text-blue-500 hover:text-blue-400" onClick={() => handleOpenImageEditor(index)} disabled={!isEditable} title="Edit Image"><Edit className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeImage(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                               </div>
-                          ))}
+                            )
+                          })}
                           {images.length === 0 && <p className="text-center text-xs text-muted-foreground py-4">No media yet. Add one below.</p>}
                           </div>
                       </ScrollArea>
@@ -776,6 +818,21 @@ const ImageCarouselModal = ({
           <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
           <Button onClick={handleSave}>Save Carousel</Button>
         </DialogFooter>
+
+        {imageToCrop && (
+            <ResourceImageEditor
+                isOpen={editingImageIndex !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setEditingImageIndex(null);
+                        setImageToCrop(null);
+                    }
+                }}
+                imageSrc={imageToCrop}
+                onSave={handleImageSave}
+                aspectRatio={numericAspectRatio}
+            />
+        )}
       </DialogContent>
     </Dialog>
   );

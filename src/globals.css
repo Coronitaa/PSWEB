@@ -309,11 +309,15 @@
   }
 
   .code-block-content {
-      @apply overflow-hidden transition-all duration-300 ease-in-out;
+      @apply grid transition-[grid-template-rows] duration-300 ease-in-out;
+      grid-template-rows: 1fr;
+  }
+  .code-block-content.collapsed {
+      grid-template-rows: 0fr;
   }
 
   .code-block-content pre {
-      @apply overflow-auto max-h-[400px] p-4 m-0 bg-transparent;
+      @apply overflow-auto max-h-[400px] p-4 m-0 bg-transparent min-h-0;
       /* Custom scrollbar for the code block */
       scrollbar-width: thin;
       scrollbar-color: hsl(var(--primary)) hsl(var(--muted));

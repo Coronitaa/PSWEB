@@ -17,8 +17,11 @@ function CodeBlockHeaderClient({ language, codeText, isCollapsible, contentEleme
 
   useEffect(() => {
     if (isCollapsible) {
-      // Use scrollHeight to allow for full expansion, but the inner `pre` will handle scrolling.
-      contentElement.style.maxHeight = isCollapsed ? '0px' : `${contentElement.scrollHeight}px`;
+      if (isCollapsed) {
+        contentElement.classList.add('collapsed');
+      } else {
+        contentElement.classList.remove('collapsed');
+      }
     }
   }, [isCollapsed, isCollapsible, contentElement]);
 

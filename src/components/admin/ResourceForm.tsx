@@ -111,34 +111,67 @@ const ImagePreview = ({ watchUrl, alt, fallbackText, className }: { watchUrl?: s
     const [isValidImage, setIsValidImage] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
+    const isValidUrl = (urlString: string | undefined): boolean => {
+      if (!urlString) return false;
+      if (urlString.startsWith('data:image')) return true;
+      if (urlString.startsWith('http')) {
+          try {
+              new URL(urlString);
+              return true;
+          } catch (e) {
+              return false;
+          }
+      }
+      return false;
+    };
+
     useEffect(() => {
         setIsLoading(true);
-        if (watchUrl && watchUrl.startsWith('http')) {
-            const proxiedUrl = `/api/image-proxy?imageUrl=${encodeURIComponent(watchUrl)}`;
-            const img = new window.Image();
-            img.src = proxiedUrl;
-            img.onload = () => {
-                setIsValidImage(true);
-                setIsLoading(false);
-            };
-            img.onerror = () => {
-                setIsValidImage(false);
-                setIsLoading(false);
-            };
-        } else if (watchUrl && watchUrl.startsWith('data:image')) {
-            setIsValidImage(true);
-            setIsLoading(false);
-        } else {
+
+        if (!isValidUrl(watchUrl)) {
             setIsValidImage(false);
             setIsLoading(false);
+            return;
         }
+        
+        // We know watchUrl is valid here.
+        const img = new window.Image();
+
+        if (watchUrl!.startsWith('http')) {
+            const proxiedUrl = `/api/image-proxy?imageUrl=${encodeURIComponent(watchUrl!)}`;
+            img.src = proxiedUrl;
+        } else { // data:image
+            img.src = watchUrl!;
+        }
+        
+        img.onload = () => {
+            setIsValidImage(true);
+            setIsLoading(false);
+        };
+        img.onerror = () => {
+            setIsValidImage(false);
+            setIsLoading(false);
+        };
+
     }, [watchUrl]);
+
+    // Only render the Image component if the URL is plausible to avoid Next.js internal errors
+    const canRenderImage = !isLoading && isValidImage && isValidUrl(watchUrl);
+    
+    let imageSrc = '';
+    if (canRenderImage) {
+        if (watchUrl!.startsWith('http')) {
+            imageSrc = `/api/image-proxy?imageUrl=${encodeURIComponent(watchUrl!)}`;
+        } else {
+            imageSrc = watchUrl!;
+        }
+    }
 
     return (
         <div className={cn("relative flex items-center justify-center rounded-md border border-dashed bg-muted/50 text-muted-foreground", className)}>
             {isLoading && <Loader2 className="h-6 w-6 animate-spin text-primary" />}
-            {!isLoading && isValidImage && watchUrl ? (
-                <Image src={watchUrl.startsWith('http') ? `/api/image-proxy?imageUrl=${encodeURIComponent(watchUrl)}` : watchUrl} alt={alt} fill style={{ objectFit: 'cover' }} className="rounded-md" onDragStart={(e) => e.preventDefault()} />
+            {canRenderImage ? (
+                <Image src={imageSrc} alt={alt} fill style={{ objectFit: 'cover' }} className="rounded-md" onDragStart={(e) => e.preventDefault()} />
             ) : null}
             {!isLoading && !isValidImage ? (
                 <span className="p-4 text-xs text-center">{fallbackText}</span>

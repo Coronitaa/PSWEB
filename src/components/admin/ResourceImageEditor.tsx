@@ -71,15 +71,13 @@ export function ResourceImageEditor({ isOpen, onOpenChange, imageSrc: originalIm
     }
   };
   
-  const aspectClass = aspectRatio === 1 ? 'aspect-square h-auto w-full max-h-[70vh]' : 'aspect-[16/9] w-full';
-
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl md:max-w-2xl p-0">
         <DialogHeader className="p-6 pb-2">
           <DialogTitle>Edit Image</DialogTitle>
         </DialogHeader>
-        <div className={cn("relative bg-muted", aspectClass)}>
+        <div className="relative bg-muted w-full max-h-[70vh]" style={{ aspectRatio }}>
           {proxiedImageSrc ? (
             <Cropper
               image={proxiedImageSrc}

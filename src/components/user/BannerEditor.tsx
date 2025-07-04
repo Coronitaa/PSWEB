@@ -75,7 +75,7 @@ export function BannerEditor({ isOpen, onOpenChange, imageSrc: originalImageSrc,
         <DialogHeader className="p-6 pb-2">
           <DialogTitle>Edit Banner</DialogTitle>
         </DialogHeader>
-        <div className="relative h-64 w-full bg-muted">
+        <div className="relative aspect-[4/1] w-full bg-muted">
           {proxiedImageSrc ? (
             <Cropper
               image={proxiedImageSrc}

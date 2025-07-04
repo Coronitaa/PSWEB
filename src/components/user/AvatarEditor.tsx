@@ -69,7 +69,7 @@ export function AvatarEditor({ isOpen, onOpenChange, imageSrc: originalImageSrc,
         <DialogHeader className="p-6 pb-2">
           <DialogTitle>Edit Avatar</DialogTitle>
         </DialogHeader>
-        <div className="relative h-80 w-full bg-muted">
+        <div className="relative aspect-square w-full bg-muted">
           {proxiedImageSrc ? (
             <Cropper
               image={proxiedImageSrc}

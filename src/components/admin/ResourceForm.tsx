@@ -551,8 +551,8 @@ export function ResourceForm({
 
   const handleOpenMainImageEditor = () => {
     const urlToEdit = originalImageUrlRef.current;
-    if (!urlToEdit || !(urlToEdit.startsWith('http') || urlToEdit.startsWith('data:image'))) {
-        toast({ title: "Invalid URL", description: "Please enter a valid image URL to edit it.", variant: "destructive" });
+    if (!urlToEdit || !urlToEdit.startsWith('http')) {
+        toast({ title: "Invalid URL", description: "Please enter a valid, original image URL to edit it.", variant: "destructive" });
         return;
     }
     if (isMainImageGif) {
@@ -570,15 +570,15 @@ export function ResourceForm({
   
   const handleOpenGalleryImageEditor = (index: number) => {
     const url = form.getValues(`imageGallery.${index}.value`);
-    if (!url || !(url.startsWith('http') || url.startsWith('data:image'))) {
-        toast({ title: "Invalid URL", description: "Please enter a valid image URL to edit it.", variant: "destructive" });
+    const media = parseMediaUrl(url);
+    const isGif = url?.toLowerCase().endsWith('.gif');
+
+    if (!url || !media || media.type === 'video' || isGif) {
+        toast({ title: "Invalid Media", description: "Only non-animated image URLs can be edited.", variant: "destructive" });
         return;
     }
-    const isGif = url.toLowerCase().endsWith('.gif');
-    if (isGif) {
-        toast({ title: "Info", description: "Animated GIFs cannot be cropped." });
-        return;
-    }
+    
+    // We pass the current URL to the editor. The editor's proxy will handle fetching.
     setEditingGalleryIndex(index);
     setGalleryImageToCrop(url);
   };
@@ -804,7 +804,13 @@ export function ResourceForm({
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                         <div className="lg:col-span-7">
                             <div className="border rounded-md bg-muted/30 p-2 space-y-2 h-[250px] overflow-y-auto custom-scrollbar">
-                              {galleryFields.map((field, index) => (
+                              {galleryFields.map((field, index) => {
+                                const url = form.getValues(`imageGallery.${index}.value`);
+                                const media = parseMediaUrl(url);
+                                const isVideo = !!url && media?.type === 'video';
+                                const isGif = !!url && url.toLowerCase().endsWith('.gif');
+                                const isDisabled = !url || isVideo || isGif;
+                                return (
                                 <div 
                                   key={field.id}
                                   draggable="true"
@@ -820,13 +826,13 @@ export function ResourceForm({
                                   <GripVertical className="h-5 w-5 text-muted-foreground mr-1 opacity-50 group-hover:opacity-100 shrink-0" />
                                   <Input {...form.register(`imageGallery.${index}.value`)} placeholder="https://..." className="h-8"/>
                                   <div className="flex gap-0.5 shrink-0">
-                                    <Button type="button" size="icon" variant="ghost" onClick={() => handleOpenGalleryImageEditor(index)} className="text-blue-500 hover:text-blue-400 h-7 w-7" title="Edit Image">
+                                    <Button type="button" size="icon" variant="ghost" onClick={() => handleOpenGalleryImageEditor(index)} className="text-blue-500 hover:text-blue-400 h-7 w-7" title="Edit Image" disabled={isDisabled}>
                                         <Edit className="h-4 w-4"/>
                                     </Button>
                                     <Button type="button" size="icon" variant="ghost" onClick={() => removeGalleryField(index)} className="text-destructive/70 hover:text-destructive h-7 w-7"><X className="h-4 w-4" /></Button>
                                   </div>
                                 </div>
-                              ))}
+                              )})}
                                {galleryFields.length === 0 && <p className="text-center text-xs text-muted-foreground py-4">No media added to the gallery.</p>}
                             </div>
                             <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => appendGalleryField({ value: '' })}>

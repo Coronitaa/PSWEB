@@ -136,6 +136,12 @@ export function ResourcePageContent({ resource, relatedResources }: ResourcePage
                     console.error("Failed to parse carousel images:", e);
                 }
             }
+
+            // Exclude code blocks from prose styling
+            if (domNode instanceof Element && domNode.attribs && domNode.attribs['data-code-block'] === 'true') {
+                 // The CodeBlockClient component will handle hydration. We just render the structure.
+                 return <div {...domNode.attribs}>{domToReact(domNode.children, parseOptions)}</div>;
+            }
         }
     };
 

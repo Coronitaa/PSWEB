@@ -1,34 +1,32 @@
 
+
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
-import { Copy, Check, ChevronDown } from 'lucide-react';
+import { Copy, Check, ChevronDown, Languages } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { CopyToClipboard } from 'react-copy-to-clipboard';
 
 // This is the React component that will be injected into the static HTML.
-function CodeBlockHeaderClient({ language, codeText, isCollapsible, contentElement }: { language: string | null; codeText: string; isCollapsible: boolean; contentElement: HTMLElement }) {
+function CodeBlockHeaderClient({ language, codeText, isCollapsible, contentElement, title }: { language: string | null; codeText: string; isCollapsible: boolean; contentElement: HTMLElement; title: string | null }) {
   const [hasCopied, setHasCopied] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(isCollapsible); // Start collapsed if it's collapsible
   const { toast } = useToast();
 
   useEffect(() => {
     if (isCollapsible) {
-      contentElement.style.maxHeight = isCollapsed ? '0px' : '400px';
-      // Add a transition class for smooth collapse/expand
-      contentElement.classList.add('transition-all', 'duration-300', 'ease-in-out', 'overflow-hidden');
+      // Use scrollHeight to allow for full expansion, but the inner `pre` will handle scrolling.
+      contentElement.style.maxHeight = isCollapsed ? '0px' : `${contentElement.scrollHeight}px`;
     }
   }, [isCollapsed, isCollapsible, contentElement]);
 
 
   const onCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
-    navigator.clipboard.writeText(codeText);
-    setHasCopied(true);
     toast({ title: 'Copied to clipboard!' });
-    setTimeout(() => setHasCopied(false), 2000);
   };
 
   const toggleCollapse = () => {
@@ -38,22 +36,44 @@ function CodeBlockHeaderClient({ language, codeText, isCollapsible, contentEleme
   };
 
   const headerContent = (
-    <>
-        <span className="font-semibold uppercase text-muted-foreground">{language || 'code'}</span>
-        <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onCopy} aria-label="Copy code">
-                {hasCopied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-            </Button>
+      <div className="flex justify-between items-center w-full gap-2">
+        {/* Left Side */}
+        <div className="flex items-center gap-2 flex-grow min-w-0">
+          <Languages className="w-4 h-4 text-muted-foreground shrink-0" />
+          {title ? (
+              <span className="font-semibold text-foreground truncate" title={title}>{title}</span>
+          ) : (
+              <span className="font-semibold uppercase text-muted-foreground">{language || 'code'}</span>
+          )}
+        </div>
+        {/* Right Side */}
+        <div className="flex items-center gap-1 shrink-0">
+            {title && language && <span className="font-semibold uppercase text-muted-foreground text-xs">{language}</span>}
+            <CopyToClipboard text={codeText} onCopy={() => setHasCopied(true)}>
+                <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Copy code">
+                    {hasCopied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                </Button>
+            </CopyToClipboard>
             {isCollapsible && (
                 <ChevronDown className={cn("w-4 h-4 transition-transform", !isCollapsed && "rotate-180")} />
             )}
         </div>
-    </>
+    </div>
   );
+
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    if (hasCopied) {
+      timeout = setTimeout(() => {
+        setHasCopied(false);
+      }, 2000);
+    }
+    return () => clearTimeout(timeout);
+  }, [hasCopied]);
 
   if (isCollapsible) {
       return (
-          <button type="button" onClick={toggleCollapse} className="flex justify-between items-center w-full">
+          <button type="button" onClick={toggleCollapse} className="w-full">
               {headerContent}
           </button>
       )
@@ -68,33 +88,32 @@ export function CodeBlockClient() {
   const [hydratedBlocks, setHydratedBlocks] = useState<Element[]>([]);
 
   useEffect(() => {
-    // Need a small delay to ensure the parsed HTML is in the DOM
     const timer = setTimeout(() => {
         const codeBlocks = Array.from(document.querySelectorAll('div[data-code-block="true"]'));
         setHydratedBlocks(codeBlocks);
-    }, 100); // 100ms delay might be enough
+    }, 100);
     
     return () => clearTimeout(timer);
-  }, []); // Re-run if path changes, maybe? No, empty array is fine. It will re-mount on navigation.
+  }, []);
 
   return (
     <>
       {hydratedBlocks.map((element) => {
         const headerElement = element.querySelector<HTMLElement>('div[data-code-block-header="true"]');
-        const preElement = element.querySelector('pre');
-        const codeElement = element.querySelector('pre > code');
         const contentElement = element.querySelector<HTMLElement>('div[data-code-block-content="true"]');
+        const preElement = contentElement?.querySelector('pre');
+        const codeElement = preElement?.querySelector('code');
         
-        if (!headerElement || !preElement || !codeElement || !contentElement) {
+        if (!headerElement || !contentElement || !preElement || !codeElement) {
           return null;
         }
 
-        const language = preElement.dataset.language || null;
+        const language = preElement.getAttribute('data-language') || null;
         const codeText = codeElement.textContent || '';
         const isCollapsible = element.getAttribute('data-collapsible') === 'true';
+        const title = element.getAttribute('data-title') || null;
         
-        // Use element's unique ID or generate one for the key
-        const key = element.id || `code-block-${Math.random()}`;
+        const key = element.id || `code-block-${preElement.className}-${Math.random()}`;
 
         return createPortal(
           <CodeBlockHeaderClient 
@@ -103,6 +122,7 @@ export function CodeBlockClient() {
             codeText={codeText}
             isCollapsible={isCollapsible}
             contentElement={contentElement}
+            title={title}
           />,
           headerElement
         );

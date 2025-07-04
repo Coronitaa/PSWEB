@@ -3,7 +3,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useEditor, EditorContent, BubbleMenu, type Editor, NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps, Node, mergeAttributes } from '@tiptap/react';
+import { useEditor, EditorContent, BubbleMenu, type Editor, NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps, Node, mergeAttributes, NodeViewContent } from '@tiptap/react';
 import { Extension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -14,9 +14,19 @@ import TextAlign from '@tiptap/extension-text-align';
 import { Color } from '@tiptap/extension-color';
 import TextStyle from '@tiptap/extension-text-style';
 import Underline from '@tiptap/extension-underline';
+import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight';
+import { lowlight } from 'lowlight/lib/core';
+import javascript from 'highlight.js/lib/languages/javascript';
+import typescript from 'highlight.js/lib/languages/typescript';
+import css from 'highlight.js/lib/languages/css';
+import xml from 'highlight.js/lib/languages/xml'; // for HTML
+import json from 'highlight.js/lib/languages/json';
+import shell from 'highlight.js/lib/languages/shell';
+import yaml from 'highlight.js/lib/languages/yaml';
 import { 
   Bold, Italic, Link as LinkIcon, List, ListOrdered, Strikethrough, Underline as UnderlineIcon,
-  AlignLeft, AlignCenter, AlignRight, AlignJustify, Image as ImageIcon, Video, Palette, RotateCw, ImagePlus, Box, GalleryHorizontal, GripVertical, Trash2, Edit
+  AlignLeft, AlignCenter, AlignRight, AlignJustify, Image as ImageIcon, Video, Palette, RotateCw, ImagePlus, Box, GalleryHorizontal, GripVertical, Trash2, Edit,
+  Languages, Copy, ChevronDown
 } from 'lucide-react';
 import { GradientPicker } from './GradientPicker';
 import { Button } from '@/components/ui/button';
@@ -37,6 +47,18 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { parseMediaUrl } from '@/lib/utils';
 import { ResourceImageEditor } from '@/components/admin/ResourceImageEditor';
 import { useToast } from '@/hooks/use-toast';
+import { CopyToClipboard } from 'react-copy-to-clipboard';
+import { Checkbox } from '@/components/ui/checkbox';
+
+
+lowlight.registerLanguage('js', javascript);
+lowlight.registerLanguage('ts', typescript);
+lowlight.registerLanguage('css', css);
+lowlight.registerLanguage('html', xml);
+lowlight.registerLanguage('json', json);
+lowlight.registerLanguage('shell', shell);
+lowlight.registerLanguage('bash', shell); // Alias bash to shell
+lowlight.registerLanguage('yaml', yaml);
 
 
 declare global {
@@ -790,10 +812,11 @@ const ImageCarouselModal = ({
                     <Carousel itemsToShow={1} showArrows={images.filter(url => url).length > 1} autoplay>
                         {images.filter(url => url).map((url, i) => {
                             const media = parseMediaUrl(url);
+                            if (!media) return null;
                             return (
                                 <CarouselItem key={i}>
                                     <div className="relative w-full h-full bg-black rounded-md overflow-hidden">
-                                        {media?.type === 'video' ? (
+                                        {media.type === 'video' ? (
                                             <iframe
                                                 src={media.src}
                                                 title={`Preview ${i + 1}`}
@@ -803,7 +826,7 @@ const ImageCarouselModal = ({
                                                 allowFullScreen
                                             />
                                         ) : (
-                                            <img src={media?.src || 'https://placehold.co/800x450/211F25/EBEAF2?text=Invalid+URL'} alt={`Preview ${i + 1}`} className="w-full h-full object-cover" />
+                                            <img src={media.src || 'https://placehold.co/800x450/211F25/EBEAF2?text=Invalid+URL'} alt={`Preview ${i + 1}`} className="w-full h-full object-cover" />
                                         )}
                                     </div>
                                 </CarouselItem>
@@ -1483,6 +1506,114 @@ const CustomIframe = Node.create({
   },
 });
 
+const CodeBlockComponent = (props: NodeViewProps) => {
+    const { node, updateAttributes, editor } = props;
+    const { toast } = useToast();
+    // Default to false if the attribute is not set.
+    const [isCollapsed, setIsCollapsed] = useState(!!node.attrs.isCollapsible);
+
+    const availableLanguages = lowlight.listLanguages();
+
+    const handleLanguageChange = (language: string) => {
+        updateAttributes({ language: language === 'auto' ? null : language });
+    };
+
+    const handleCollapsibleChange = (checked: boolean) => {
+        updateAttributes({ isCollapsible: checked });
+        // If the block is no longer collapsible, it must be expanded.
+        if (!checked) {
+            setIsCollapsed(false);
+        }
+    };
+
+    const handleCopy = () => {
+        toast({ title: 'Copied to clipboard!' });
+    };
+    
+    // In non-editable mode, the entire header acts as a toggle if collapsible
+    const ToggleWrapper = node.attrs.isCollapsible && !editor.isEditable 
+        ? (props: { children: React.ReactNode }) => <button type="button" onClick={() => setIsCollapsed(!isCollapsed)} className="w-full">{props.children}</button>
+        : (props: { children: React.ReactNode }) => <>{props.children}</>;
+
+    return (
+        <NodeViewWrapper className="code-block-wrapper my-4 relative group text-sm">
+            <div className="code-block-header flex items-center justify-between text-xs px-2 py-1.5 bg-muted border-b">
+                <ToggleWrapper>
+                    <div className="flex items-center justify-between w-full">
+                        {/* Left side: Language */}
+                        <div className="flex items-center gap-2">
+                            {editor.isEditable ? (
+                                <Select value={node.attrs.language || 'auto'} onValueChange={handleLanguageChange}>
+                                    <SelectTrigger className="h-7 text-xs w-auto gap-1 pl-2 pr-1 bg-background">
+                                        <Languages className="w-3.5 h-3.5"/>
+                                        <SelectValue placeholder="Language"/>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="auto" className="text-xs">Auto</SelectItem>
+                                        {availableLanguages.map((lang) => (
+                                            <SelectItem key={lang} value={lang} className="text-xs capitalize">{lang}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            ) : (
+                                <span className="font-semibold uppercase text-muted-foreground">{node.attrs.language || 'code'}</span>
+                            )}
+                        </div>
+
+                        {/* Right side: Controls */}
+                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                            {editor.isEditable && (
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id={`collapsible-${props.getPos()}`}
+                                        checked={node.attrs.isCollapsible}
+                                        onCheckedChange={handleCollapsibleChange}
+                                        className="h-3.5 w-3.5"
+                                    />
+                                    <Label htmlFor={`collapsible-${props.getPos()}`} className="text-xs font-normal">Collapsible</Label>
+                                </div>
+                            )}
+
+                            <CopyToClipboard text={node.textContent} onCopy={handleCopy}>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Copy code">
+                                    <Copy className="w-4 h-4" />
+                                </Button>
+                            </CopyToClipboard>
+                            
+                            {node.attrs.isCollapsible && editor.isEditable && (
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setIsCollapsed(!isCollapsed)} aria-label={isCollapsed ? "Expand code" : "Collapse code"}>
+                                    <ChevronDown className={cn("w-4 h-4 transition-transform", isCollapsed && "-rotate-90")} />
+                                </Button>
+                            )}
+                            
+                            {node.attrs.isCollapsible && !editor.isEditable && (
+                                <ChevronDown className={cn("w-4 h-4 transition-transform", isCollapsed && "-rotate-90")} />
+                            )}
+                        </div>
+                    </div>
+                </ToggleWrapper>
+            </div>
+
+            <div className={cn("code-block-content", isCollapsed ? "max-h-0" : "max-h-[400px]")}>
+                <pre><NodeViewContent as="code" /></pre>
+            </div>
+        </NodeViewWrapper>
+    );
+};
+
+const CustomCodeBlock = CodeBlockLowlight.extend({
+    addAttributes() {
+        return {
+            ...this.parent?.(),
+            isCollapsible: {
+                default: false,
+            },
+        };
+    },
+    addNodeView() {
+        return ReactNodeViewRenderer(CodeBlockComponent);
+    },
+});
 
 const Toolbar = ({ editor }: { editor: Editor | null }) => {
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
@@ -1913,7 +2044,8 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
   
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ heading: false }),
+      StarterKit.configure({ heading: false, codeBlock: false }), // Disable default code block
+      CustomCodeBlock.configure({ lowlight }),
       TextStyle,
       FontFamily,
       FontSize.configure({

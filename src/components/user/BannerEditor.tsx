@@ -52,7 +52,7 @@ export function BannerEditor({ isOpen, onOpenChange, imageSrc: originalImageSrc,
     if (!croppedAreaPixels || !proxiedImageSrc) return;
     setIsSaving(true);
     try {
-      const croppedImage = await getCroppedImg(proxiedImageSrc, croppedAreaPixels, 1200);
+      const croppedImage = await getCroppedImg(proxiedImageSrc, croppedAreaPixels, 1024);
       if (croppedImage) {
         onSave(croppedImage);
         onOpenChange(false);

@@ -46,7 +46,7 @@ export function AvatarEditor({ isOpen, onOpenChange, imageSrc: originalImageSrc,
     if (!croppedAreaPixels || !proxiedImageSrc) return;
     setIsSaving(true);
     try {
-      const croppedImage = await getCroppedImg(proxiedImageSrc, croppedAreaPixels, 256);
+      const croppedImage = await getCroppedImg(proxiedImageSrc, croppedAreaPixels, 128);
       if (croppedImage) {
         onSave(croppedImage);
         onOpenChange(false);

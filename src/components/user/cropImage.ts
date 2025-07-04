@@ -48,8 +48,8 @@ export default async function getCroppedImg(
     targetHeight
   );
 
-  // Return as JPEG with quality 0.9 for smaller size
-  return canvas.toDataURL('image/jpeg', 0.9);
+  // Return as JPEG with quality 0.8 for smaller size
+  return canvas.toDataURL('image/jpeg', 0.8);
 }
 
 export { getCroppedImg };

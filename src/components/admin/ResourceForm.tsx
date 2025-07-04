@@ -602,7 +602,7 @@ export function ResourceForm({
           <div className="space-y-6 p-6 pt-2">
               <TabsContent value="general" className="space-y-6 m-0">
                 <CardTitle className="text-xl mb-4 flex items-center"><IconForType className="w-5 h-5 mr-2 text-primary" />Basic Information</CardTitle>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <Label htmlFor="name">Resource Name</Label>
                     <Input id="name" {...form.register('name')} />
@@ -613,12 +613,8 @@ export function ResourceForm({
                     <Input id="slug" {...form.register('slug')} placeholder="auto-generated" />
                     {form.formState.errors.slug && <p className="text-xs text-destructive mt-1">{form.formState.errors.slug.message}</p>}
                   </div>
-                  <div>
-                    <Label htmlFor="version">Overall Version</Label>
-                    <Input id="version" {...form.register('version')} />
-                    {form.formState.errors.version && <p className="text-xs text-destructive mt-1">{form.formState.errors.version.message}</p>}
-                  </div>
                 </div>
+                <input type="hidden" {...form.register('version')} />
                 <div>
                   <Label htmlFor="description">Short Description</Label>
                   <Textarea id="description" {...form.register('description')} />
@@ -1101,7 +1097,6 @@ export function ResourceForm({
             }}
             imageSrc={galleryImageToCrop}
             onSave={handleGalleryImageSave}
-            aspectRatio={numericAspectRatio}
         />
     )}
     </>

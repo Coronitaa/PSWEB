@@ -42,8 +42,8 @@ import { Checkbox } from '../ui/checkbox';
 import { RichTextEditor } from '../shared/RichTextEditor';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Slider } from '@/components/ui/slider';
-import { ResourceAuthorsManager } from './ResourceAuthorsManager';
-import { ResourceImageEditor } from './ResourceImageEditor';
+import { ResourceAuthorsManager } from '../admin/ResourceAuthorsManager';
+import { ResourceImageEditor } from '../admin/ResourceImageEditor';
 
 
 const CLEAR_SELECTION_VALUE = "__CLEAR_SELECTION__";
@@ -192,7 +192,8 @@ export function ResourceForm({
   const [isMainImageEditorOpen, setIsMainImageEditorOpen] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   
-  const originalImageUrlRef = useRef(initialData?.imageUrl);
+  const [editingGalleryIndex, setEditingGalleryIndex] = useState<number | null>(null);
+  const [galleryImageToCrop, setGalleryImageToCrop] = useState<string | null>(null);
 
   const defaultNewFileModalValues: ResourceFileFormData = useMemo(() => ({
     name: 'New File',
@@ -316,18 +317,7 @@ export function ResourceForm({
   const watchedGalleryAutoplayInterval = useWatch({ control: form.control, name: 'galleryAutoplayInterval' });
 
   useEffect(() => {
-    // When the URL from the form is NOT a data URL, it's a user-provided original URL.
-    if (watchedImageUrl && !watchedImageUrl.startsWith('data:')) {
-      originalImageUrlRef.current = watchedImageUrl;
-    }
-  }, [watchedImageUrl]);
-
-  useEffect(() => {
-    // When the component loads with new initial data, reset the ref.
-    if (initialData?.imageUrl) {
-        originalImageUrlRef.current = initialData.imageUrl;
-    }
-    // Also reset the form itself
+    // When the component loads with new initial data, reset the form.
     form.reset(defaultValues);
     if(initialData?.authors) {
       setCurrentAuthors(initialData.authors);
@@ -335,7 +325,7 @@ export function ResourceForm({
   }, [initialData, defaultValues, form]);
 
 
-  const isMainImageGif = useMemo(() => watchedImageUrl?.toLowerCase().endsWith('.gif') || false, [watchedImageUrl]);
+  const isMainImageGif = useMemo(() => (watchedImageUrl ? parseMediaUrl(watchedImageUrl)?.isGif : false) || false, [watchedImageUrl]);
   
   const [autoplaySeconds, setAutoplaySeconds] = useState(
     (watchedGalleryAutoplayInterval ?? 5000) === 999999999 ? 0 : (watchedGalleryAutoplayInterval ?? 5000) / 1000
@@ -351,6 +341,12 @@ export function ResourceForm({
       setAutoplaySeconds(seconds);
       form.setValue('galleryAutoplayInterval', seconds === 0 ? 999999999 : seconds * 1000, { shouldDirty: true });
   };
+  
+  const numericAspectRatio = useMemo(() => {
+    if (watchedGalleryAspectRatio === '4/3') return 4 / 3;
+    if (watchedGalleryAspectRatio === '1/1') return 1;
+    return 16 / 9;
+  }, [watchedGalleryAspectRatio]);
 
   const galleryImagesForPreview = useMemo(() => {
     const gallery = watchedGallery?.map(item => item.value).filter(url => url) || [];
@@ -541,9 +537,9 @@ export function ResourceForm({
   };
 
   const handleOpenMainImageEditor = () => {
-    const urlToEdit = originalImageUrlRef.current;
+    const urlToEdit = watchedImageUrl;
     if (!urlToEdit || !(urlToEdit.startsWith('http') || urlToEdit.startsWith('data:image'))) {
-        toast({ title: "Invalid URL", description: "Please enter a valid image URL to edit it.", variant: "destructive" });
+        toast({ title: "Invalid URL", description: "Please provide a valid image URL to edit.", variant: "destructive" });
         return;
     }
     if (isMainImageGif) {
@@ -557,6 +553,29 @@ export function ResourceForm({
   const handleMainImageSave = (croppedImage: string) => {
     form.setValue('imageUrl', croppedImage, { shouldDirty: true });
     setIsMainImageEditorOpen(false);
+  };
+  
+  const handleOpenGalleryImageEditor = (index: number) => {
+    const url = form.getValues(`imageGallery.${index}.value`);
+    const media = parseMediaUrl(url);
+    const isGif = media?.isGif || false;
+    const isVideo = media?.type === 'video';
+
+    if (!url || !media || isVideo || isGif) {
+        toast({ title: "Editing Not Supported", description: "Only non-animated images can be edited.", variant: "destructive" });
+        return;
+    }
+    
+    setEditingGalleryIndex(index);
+    setGalleryImageToCrop(url);
+  };
+
+  const handleGalleryImageSave = (croppedImage: string) => {
+    if (editingGalleryIndex !== null) {
+        form.setValue(`imageGallery.${editingGalleryIndex}.value`, croppedImage, { shouldDirty: true });
+    }
+    setEditingGalleryIndex(null);
+    setGalleryImageToCrop(null);
   };
 
 
@@ -583,7 +602,7 @@ export function ResourceForm({
           <div className="space-y-6 p-6 pt-2">
               <TabsContent value="general" className="space-y-6 m-0">
                 <CardTitle className="text-xl mb-4 flex items-center"><IconForType className="w-5 h-5 mr-2 text-primary" />Basic Information</CardTitle>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <Label htmlFor="name">Resource Name</Label>
                     <Input id="name" {...form.register('name')} />
@@ -594,12 +613,8 @@ export function ResourceForm({
                     <Input id="slug" {...form.register('slug')} placeholder="auto-generated" />
                     {form.formState.errors.slug && <p className="text-xs text-destructive mt-1">{form.formState.errors.slug.message}</p>}
                   </div>
-                  <div>
-                    <Label htmlFor="version">Overall Version</Label>
-                    <Input id="version" {...form.register('version')} />
-                    {form.formState.errors.version && <p className="text-xs text-destructive mt-1">{form.formState.errors.version.message}</p>}
-                  </div>
                 </div>
+                <input type="hidden" {...form.register('version')} />
                 <div>
                   <Label htmlFor="description">Short Description</Label>
                   <Textarea id="description" {...form.register('description')} />
@@ -772,7 +787,13 @@ export function ResourceForm({
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                         <div className="lg:col-span-7">
                             <div className="border rounded-md bg-muted/30 p-2 space-y-2 h-[250px] overflow-y-auto custom-scrollbar">
-                              {galleryFields.map((field, index) => (
+                              {galleryFields.map((field, index) => {
+                                const url = form.getValues(`imageGallery.${index}.value`);
+                                const media = parseMediaUrl(url);
+                                const isVideo = media?.type === 'video';
+                                const isGif = media?.isGif || false;
+                                const isEditable = url && (url.startsWith('http') || url.startsWith('data:image')) && !isVideo && !isGif;
+                                return (
                                 <div 
                                   key={field.id}
                                   draggable="true"
@@ -788,10 +809,13 @@ export function ResourceForm({
                                   <GripVertical className="h-5 w-5 text-muted-foreground mr-1 opacity-50 group-hover:opacity-100 shrink-0" />
                                   <Input {...form.register(`imageGallery.${index}.value`)} placeholder="https://..." className="h-8"/>
                                   <div className="flex gap-0.5 shrink-0">
+                                    <Button type="button" size="icon" variant="ghost" onClick={() => handleOpenGalleryImageEditor(index)} className="text-blue-500 hover:text-blue-400 h-7 w-7" title="Edit Image" disabled={!isEditable}>
+                                        <Edit className="h-4 w-4"/>
+                                    </Button>
                                     <Button type="button" size="icon" variant="ghost" onClick={() => removeGalleryField(index)} className="text-destructive/70 hover:text-destructive h-7 w-7"><X className="h-4 w-4" /></Button>
                                   </div>
                                 </div>
-                              ))}
+                              )})}
                                {galleryFields.length === 0 && <p className="text-center text-xs text-muted-foreground py-4">No media added to the gallery.</p>}
                             </div>
                             <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => appendGalleryField({ value: '' })}>
@@ -1060,6 +1084,19 @@ export function ResourceForm({
             onOpenChange={setIsMainImageEditorOpen}
             imageSrc={imageToCrop}
             onSave={handleMainImageSave}
+        />
+    )}
+    {galleryImageToCrop && (
+        <ResourceImageEditor
+            isOpen={editingGalleryIndex !== null}
+            onOpenChange={(open) => {
+                if (!open) {
+                    setEditingGalleryIndex(null);
+                    setGalleryImageToCrop(null);
+                }
+            }}
+            imageSrc={galleryImageToCrop}
+            onSave={handleGalleryImageSave}
         />
     )}
     </>

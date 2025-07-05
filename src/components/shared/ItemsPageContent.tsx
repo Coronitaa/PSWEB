@@ -6,23 +6,31 @@ import type { ItemWithDetails, GenericListItem, ItemType } from '@/lib/types';
 import { ItemCard } from '@/components/shared/ItemCard';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, ListFilter } from 'lucide-react';
+import { Search, ListFilter, Gamepad2, Code, TabletSmartphone, Music } from 'lucide-react';
 import { calculateGenericItemSearchScore, getItemTypePlural } from '@/lib/utils';
 
 type SortOption = 'popularity' | 'name_asc' | 'name_desc' | 'created_desc' | 'created_asc' | 'updated_desc' | 'default';
+
+const itemTypeIcons: Record<ItemType, React.ElementType> = {
+  game: Gamepad2,
+  web: Code,
+  app: TabletSmartphone,
+  'art-music': Music,
+};
 
 interface ItemsPageContentProps {
   initialItems: ItemWithDetails[];
   itemType: ItemType;
   title: string;
   description: string;
-  icon: React.ElementType;
 }
 
-export function ItemsPageContent({ initialItems, itemType, title, description, icon: Icon }: ItemsPageContentProps) {
+export function ItemsPageContent({ initialItems, itemType, title, description }: ItemsPageContentProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('default');
+  
+  const Icon = itemTypeIcons[itemType];
 
   useEffect(() => {
     const handler = setTimeout(() => {

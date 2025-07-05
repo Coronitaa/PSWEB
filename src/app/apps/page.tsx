@@ -2,7 +2,6 @@
 import { getAppItemsWithDetails } from '@/lib/data';
 import type { ItemWithDetails } from '@/lib/types';
 import { ItemsPageContent } from '@/components/shared/ItemsPageContent';
-import { TabletSmartphone } from 'lucide-react';
 
 export default async function AppsPage() {
   const appItemsWithDetails: ItemWithDetails[] = await getAppItemsWithDetails();
@@ -12,7 +11,6 @@ export default async function AppsPage() {
       itemType="app"
       title="Apps"
       description="Discover powerful applications for various platforms and needs."
-      icon={TabletSmartphone}
     />
   );
 }

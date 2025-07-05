@@ -3,12 +3,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { getAppItemBySlug, getCategoriesForItemGeneric, getHighlightedResources, getItemStatsGeneric } from '@/lib/data';
-import { formatNumberWithSuffix } from '@/lib/utils';
+import { formatNumberWithSuffix, getItemTypePlural } from '@/lib/utils';
 import type { AppItem, Category, Resource } from '@/lib/types';
 import { TagBadge } from '@/components/shared/TagBadge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AppItemPageContent } from './AppItemPageContent';
+import { ItemPageContent } from '@/components/shared/ItemPageContent';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Layers, Download, Heart, Package, TabletSmartphone, ExternalLink } from 'lucide-react';
 
@@ -134,7 +134,7 @@ export default async function AppItemPage({ params: paramsPromise }: AppItemPage
         </section>
       )}
 
-      <AppItemPageContent
+      <ItemPageContent
         item={appItem}
         categories={categories}
         initialCategoryResources={initialCategoryResources}

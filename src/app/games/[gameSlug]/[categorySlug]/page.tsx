@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { getGameBySlug, getCategoryDetails, getResources, getAvailableFilterTags, getCategoriesForItemGeneric } from '@/lib/data';
 import type { Game, Category, ItemType, DynamicAvailableFilterTags } from '@/lib/types';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { CategoryPageContent } from './CategoryPageContent';
+import { CategoryPageContent } from '@/components/shared/CategoryPageContent';
 
 const RESOURCES_PER_PAGE = 20;
 const MAX_VISIBLE_CATEGORY_TABS = 5;

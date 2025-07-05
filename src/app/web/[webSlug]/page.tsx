@@ -8,7 +8,7 @@ import type { WebItem, Category, Resource } from '@/lib/types';
 import { TagBadge } from '@/components/shared/TagBadge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { WebItemPageContent } from './WebItemPageContent';
+import { ItemPageContent } from '@/components/shared/ItemPageContent';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Layers, Download, Heart, Package, Code, ExternalLink } from 'lucide-react';
 
@@ -134,7 +134,7 @@ export default async function WebItemPage({ params: paramsPromise }: WebItemPage
         </section>
       )}
 
-      <WebItemPageContent
+      <ItemPageContent
         item={webItem}
         categories={categories}
         initialCategoryResources={initialCategoryResources}

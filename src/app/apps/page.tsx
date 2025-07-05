@@ -1,12 +1,19 @@
 
-import { getAppItemsWithDetails } from '@/lib/data'; // This function will now only fetch published items
+import { getAppItemsWithDetails } from '@/lib/data';
 import type { ItemWithDetails } from '@/lib/types';
-import { AppItemsPageContent } from './AppItemsPageContent';
+import { ItemsPageContent } from '@/components/shared/ItemsPageContent';
+import { TabletSmartphone } from 'lucide-react';
 
 export default async function AppsPage() {
   const appItemsWithDetails: ItemWithDetails[] = await getAppItemsWithDetails();
   return (
-    <AppItemsPageContent initialItems={appItemsWithDetails} />
+    <ItemsPageContent 
+      initialItems={appItemsWithDetails} 
+      itemType="app"
+      title="Apps"
+      description="Discover powerful applications for various platforms and needs."
+      icon={TabletSmartphone}
+    />
   );
 }
 

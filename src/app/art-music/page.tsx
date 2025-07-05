@@ -1,12 +1,19 @@
 
-import { getArtMusicItemsWithDetails } from '@/lib/data'; // This function will now only fetch published items
+import { getArtMusicItemsWithDetails } from '@/lib/data';
 import type { ItemWithDetails } from '@/lib/types';
-import { ArtMusicItemsPageContent } from './ArtMusicItemsPageContent';
+import { ItemsPageContent } from '@/components/shared/ItemsPageContent';
+import { Music } from 'lucide-react';
 
 export default async function ArtMusicPage() {
   const artMusicItemsWithDetails: ItemWithDetails[] = await getArtMusicItemsWithDetails();
   return (
-    <ArtMusicItemsPageContent initialItems={artMusicItemsWithDetails} />
+    <ItemsPageContent 
+      initialItems={artMusicItemsWithDetails} 
+      itemType="art-music"
+      title="Art & Music"
+      description="Immerse yourself in stunning visuals and captivating sounds."
+      icon={Music}
+    />
   );
 }
 

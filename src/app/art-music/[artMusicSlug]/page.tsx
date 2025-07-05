@@ -7,7 +7,7 @@ import { formatNumberWithSuffix } from '@/lib/utils';
 import type { ArtMusicItem, Category, Resource } from '@/lib/types';
 import { TagBadge } from '@/components/shared/TagBadge';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArtMusicItemPageContent } from './ArtMusicItemPageContent';
+import { ItemPageContent } from '@/components/shared/ItemPageContent';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Layers, Download, Heart, Package, Music, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -134,7 +134,7 @@ export default async function ArtMusicItemPage({ params: paramsPromise }: ArtMus
         </section>
       )}
 
-      <ArtMusicItemPageContent
+      <ItemPageContent
         item={artMusicItem}
         categories={categories}
         initialCategoryResources={initialCategoryResources}

@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
@@ -7,7 +8,7 @@ import type { Category, Game, Resource } from '@/lib/types';
 import { TagBadge } from '@/components/shared/TagBadge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { GamePageContent } from './GamePageContent';
+import { ItemPageContent } from '@/components/shared/ItemPageContent';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Layers, Download, Heart, Package, ExternalLink } from 'lucide-react';
 
@@ -15,8 +16,8 @@ interface GamePageProps {
   params: Promise<{ gameSlug: string }>;
 }
 
-const CAROUSEL_ITEMS_TO_SHOW_ON_GAME_PAGE = 5;
-const FETCH_ITEMS_FOR_GAME_PAGE_CAROUSEL = CAROUSEL_ITEMS_TO_SHOW_ON_GAME_PAGE + 5;
+const CAROUSEL_ITEMS_TO_SHOW_ON_ITEM_PAGE = 5;
+const FETCH_ITEMS_FOR_ITEM_PAGE_CAROUSEL = CAROUSEL_ITEMS_TO_SHOW_ON_ITEM_PAGE + 5;
 
 export default async function GamePage({ params: paramsPromise }: GamePageProps) {
   const params = await paramsPromise;
@@ -33,7 +34,7 @@ export default async function GamePage({ params: paramsPromise }: GamePageProps)
     for (const category of categories) {
       if (category && typeof category.slug === 'string') {
         try {
-          initialCategoryResources[category.slug] = await getHighlightedResources(game.slug, 'game', category.slug, FETCH_ITEMS_FOR_GAME_PAGE_CAROUSEL);
+          initialCategoryResources[category.slug] = await getHighlightedResources(game.slug, 'game', category.slug, FETCH_ITEMS_FOR_ITEM_PAGE_CAROUSEL);
         } catch (error) {
           console.error(`Error fetching highlighted resources for category ${category.slug} in game ${game.slug}:`, error);
           initialCategoryResources[category.slug] = [];
@@ -56,7 +57,6 @@ export default async function GamePage({ params: paramsPromise }: GamePageProps)
         </BreadcrumbList>
       </Breadcrumb>
 
-      {/* SECCIÓN MODIFICADA */}
       <section className="relative group -mt-8">
         <div className="relative h-64 md:h-80 lg:h-96 w-screen -translate-x-1/2 left-1/2 overflow-hidden">
           <Image
@@ -132,8 +132,8 @@ export default async function GamePage({ params: paramsPromise }: GamePageProps)
         </section>
       )}
 
-      <GamePageContent
-        game={game}
+      <ItemPageContent
+        item={game}
         categories={categories}
         initialCategoryResources={initialCategoryResources}
       />

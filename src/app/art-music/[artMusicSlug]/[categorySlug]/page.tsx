@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Layers, PlusCircle, Music } from 'lucide-react';
-import { CategoryPageContent } from '@/app/games/[gameSlug]/[categorySlug]/CategoryPageContent'; // Re-using the generic component
+import { CategoryPageContent } from '@/components/shared/CategoryPageContent';
 import { cn } from '@/lib/utils';
 
 const RESOURCES_PER_PAGE = 20;

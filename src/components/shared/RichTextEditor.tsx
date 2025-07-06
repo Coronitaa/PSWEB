@@ -3,7 +3,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useEditor, EditorContent, BubbleMenu, type Editor, NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps, Node, mergeAttributes } from '@tiptap/react';
+import { useEditor, EditorContent, BubbleMenu, type Editor, NodeViewWrapper, NodeViewContent, ReactNodeViewRenderer, type NodeViewProps, Node, mergeAttributes } from '@tiptap/react';
 import { Extension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -14,9 +14,17 @@ import TextAlign from '@tiptap/extension-text-align';
 import { Color } from '@tiptap/extension-color';
 import TextStyle from '@tiptap/extension-text-style';
 import Underline from '@tiptap/extension-underline';
+import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import { lowlight } from 'lowlight/lib/core';
+import javascript from 'highlight.js/lib/languages/javascript';
+import typescript from 'highlight.js/lib/languages/typescript';
+import css from 'highlight.js/lib/languages/css';
+import xml from 'highlight.js/lib/languages/xml';
+import json from 'highlight.js/lib/languages/json';
+import bash from 'highlight.js/lib/languages/bash';
 import { 
   Bold, Italic, Link as LinkIcon, List, ListOrdered, Strikethrough, Underline as UnderlineIcon,
-  AlignLeft, AlignCenter, AlignRight, AlignJustify, Image as ImageIcon, Video, Palette, RotateCw, ImagePlus, Box, GalleryHorizontal, GripVertical, Trash2, Edit
+  AlignLeft, AlignCenter, AlignRight, AlignJustify, Image as ImageIcon, Video, Palette, RotateCw, ImagePlus, Box, GalleryHorizontal, GripVertical, Trash2, Edit, Code as CodeIcon, ClipboardCopy, Settings
 } from 'lucide-react';
 import { GradientPicker } from './GradientPicker';
 import { Button } from '@/components/ui/button';
@@ -24,6 +32,7 @@ import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -37,6 +46,14 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { parseMediaUrl } from '@/lib/utils';
 import { ResourceImageEditor } from '@/components/admin/ResourceImageEditor';
 import { useToast } from '@/hooks/use-toast';
+
+// Register languages for syntax highlighting
+lowlight.registerLanguage('javascript', javascript);
+lowlight.registerLanguage('typescript', typescript);
+lowlight.registerLanguage('css', css);
+lowlight.registerLanguage('xml', xml); // For HTML
+lowlight.registerLanguage('json', json);
+lowlight.registerLanguage('bash', bash);
 
 
 declare global {
@@ -79,6 +96,9 @@ declare module '@tiptap/core' {
     imageCarousel: {
       setImageCarousel: (options: { images: string[], width?: string, aspectRatio?: string, autoplayInterval?: number }) => ReturnType,
     }
+    // Add command for custom code block
+    setCustomCodeBlock: (attributes?: { language?: string; title?: string; maxHeight?: string }) => ReturnType,
+    toggleCustomCodeBlock: (attributes?: { language?: string; title?: string; maxHeight?: string }) => ReturnType,
   }
 }
 
@@ -524,6 +544,121 @@ const MediaResizeComponent = (props: NodeViewProps) => {
     </NodeViewWrapper>
   );
 };
+
+// --- Custom Code Block Components ---
+const CodeBlockComponent = (props: NodeViewProps) => {
+    const { node, updateAttributes, editor } = props;
+    const [isCopied, setIsCopied] = useState(false);
+    
+    const handleCopy = () => {
+        navigator.clipboard.writeText(node.textContent).then(() => {
+            setIsCopied(true);
+            setTimeout(() => setIsCopied(false), 2000);
+        });
+    };
+
+    const languages = lowlight.listLanguages();
+
+    return (
+        <NodeViewWrapper className="not-prose my-4 relative group/code-block">
+            <div 
+                className="relative bg-muted/30 border border-border rounded-lg overflow-hidden" 
+                data-custom-code-block 
+                data-title={node.attrs.title}
+            >
+                <div className="flex items-center justify-between bg-card-foreground/5 px-2 py-1.5 border-b border-border text-xs">
+                    <input 
+                        className="bg-transparent text-muted-foreground outline-none placeholder:text-muted-foreground/70 text-xs w-full mr-2" 
+                        placeholder="Filename (optional)"
+                        value={node.attrs.title || ''}
+                        onChange={(e) => updateAttributes({ title: e.target.value })}
+                    />
+                    <div className="flex items-center gap-1">
+                        <Select 
+                            value={node.attrs.language || 'auto'}
+                            onValueChange={language => updateAttributes({ language })}
+                        >
+                            <SelectTrigger className="h-6 text-xs w-28 border-0 bg-transparent focus:ring-0 focus:ring-offset-0">
+                                <SelectValue placeholder="Language"/>
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="auto">Auto</SelectItem>
+                                {languages.map(lang => (
+                                    <SelectItem key={lang} value={lang}>{lang}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-6 w-6"><Settings className="w-3.5 h-3.5"/></Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-64 p-2" align="end">
+                                <div className="space-y-2">
+                                    <Label className="text-xs">Max Height (e.g., 400px)</Label>
+                                    <Input 
+                                        className="h-8 text-xs" 
+                                        placeholder="e.g., 400px"
+                                        value={node.attrs.maxHeight || ''}
+                                        onChange={e => updateAttributes({ maxHeight: e.target.value || null })}
+                                    />
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleCopy}>
+                            {isCopied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <ClipboardCopy className="w-3.5 h-3.5" />}
+                        </Button>
+                    </div>
+                </div>
+                <pre 
+                    className="tiptap-code-block" 
+                    style={{ maxHeight: node.attrs.maxHeight || 'none', overflowY: node.attrs.maxHeight ? 'auto' : 'visible' }}
+                >
+                    <NodeViewContent as="code" />
+                </pre>
+            </div>
+        </NodeViewWrapper>
+    );
+};
+
+const CustomCodeBlock = CodeBlockLowlight.extend({
+    name: 'customCodeBlock',
+
+    addAttributes() {
+        return {
+            ...this.parent?.(),
+            title: {
+                default: null,
+                parseHTML: element => element.getAttribute('data-title'),
+                renderHTML: attributes => (attributes.title ? { 'data-title': attributes.title } : {}),
+            },
+            maxHeight: {
+                default: '400px',
+                parseHTML: element => element.querySelector('pre')?.style.maxHeight || null,
+                renderHTML: attributes => {
+                    return {} // handled by node view
+                },
+            },
+        };
+    },
+
+    parseHTML() {
+      return [
+        {
+          tag: 'div[data-custom-code-block] > pre',
+          preserveWhitespace: 'full',
+        },
+      ]
+    },
+
+    renderHTML({ node, HTMLAttributes }) {
+      return ['div', { 'data-custom-code-block': '' }, ['pre', HTMLAttributes, ['code', 0]]]
+    },
+
+    addNodeView() {
+        return ReactNodeViewRenderer(CodeBlockComponent);
+    }
+}).configure({ lowlight });
+
 
 // --- Custom Image Carousel Node and Components ---
 const ImageCarouselModal = ({ 
@@ -1778,6 +1913,9 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => editor.chain().focus().toggleCustomCodeBlock().run()} className={cn(editor.isActive('customCodeBlock') && 'bg-muted')}>
+                    <CodeIcon className="h-4 w-4 mr-2" /> Embed Code Block
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleMediaModalOpen('image')}>
                     <ImageIcon className="h-4 w-4 mr-2" /> Embed Image
                 </DropdownMenuItem>
@@ -1913,7 +2051,11 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
   
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ heading: false }),
+      StarterKit.configure({
+         heading: false,
+         codeBlock: false, // Disable the default to use our custom one
+      }),
+      CustomCodeBlock,
       TextStyle,
       FontFamily,
       FontSize.configure({
@@ -1933,7 +2075,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
       CustomModelViewer,
       CustomIframe,
       ImageCarouselNode,
-      TextAlign.configure({ types: ['paragraph', 'image', 'youtube', 'modelViewer', 'iframe', 'imageCarousel'] }),
+      TextAlign.configure({ types: ['paragraph', 'image', 'youtube', 'modelViewer', 'iframe', 'imageCarousel', 'customCodeBlock'] }),
       Color,
       Underline,
     ],
@@ -1964,7 +2106,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
             const { from: selectionFrom, to: selectionTo } = editor.state.selection;
             let isMediaSelection = false;
             editor.state.doc.nodesBetween(selectionFrom, selectionTo, (node) => {
-              if (['image', 'youtube', 'modelViewer', 'iframe', 'imageCarousel'].includes(node.type.name)) {
+              if (['image', 'youtube', 'modelViewer', 'iframe', 'imageCarousel', 'customCodeBlock'].includes(node.type.name)) {
                 isMediaSelection = true;
               }
             });

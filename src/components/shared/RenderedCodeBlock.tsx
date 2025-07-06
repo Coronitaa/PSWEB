@@ -10,13 +10,14 @@ import xml from 'highlight.js/lib/languages/xml';
 import json from 'highlight.js/lib/languages/json';
 import bash from 'highlight.js/lib/languages/bash';
 import python from 'highlight.js/lib/languages/python';
-import java, { transpile } from 'highlight.js/lib/languages/java';
+import java from 'highlight.js/lib/languages/java';
 import cpp from 'highlight.js/lib/languages/cpp';
+import plaintext from 'highlight.js/lib/languages/plaintext';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Check, ClipboardCopy } from 'lucide-react';
 
-const lowlight = createLowlight({ javascript, typescript, css, xml, json, bash, python, java, cpp });
+const lowlight = createLowlight({ javascript, typescript, css, xml, json, bash, python, java, cpp, plaintext });
 
 interface RenderedCodeBlockProps {
   codeContent: string;
@@ -36,6 +37,9 @@ export const RenderedCodeBlock: React.FC<RenderedCodeBlockProps> = ({
 
   useEffect(() => {
     try {
+      if (!lowlight.registered(language)) {
+        throw new Error(`Language '${language}' not registered.`);
+      }
       const highlighted = lowlight.highlight(language, codeContent);
       setHighlightedHtml(highlighted.value);
     } catch (error) {

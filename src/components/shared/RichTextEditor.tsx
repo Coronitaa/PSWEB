@@ -23,8 +23,9 @@ import xml from 'highlight.js/lib/languages/xml';
 import json from 'highlight.js/lib/languages/json';
 import bash from 'highlight.js/lib/languages/bash';
 import python from 'highlight.js/lib/languages/python';
-import java, { transpile } from 'highlight.js/lib/languages/java';
+import java from 'highlight.js/lib/languages/java';
 import cpp from 'highlight.js/lib/languages/cpp';
+import plaintext from 'highlight.js/lib/languages/plaintext';
 import { 
   Bold, Italic, Link as LinkIcon, List, ListOrdered, Strikethrough, Underline as UnderlineIcon,
   AlignLeft, AlignCenter, AlignRight, AlignJustify, Image as ImageIcon, Video, Palette, RotateCw, ImagePlus, Box, GalleryHorizontal, GripVertical, Trash2, Edit, Code as CodeIcon, ClipboardCopy, Settings, Check
@@ -50,7 +51,7 @@ import { parseMediaUrl } from '@/lib/utils';
 import { ResourceImageEditor } from '@/components/admin/ResourceImageEditor';
 import { useToast } from '@/hooks/use-toast';
 
-const lowlight = createLowlight({ javascript, typescript, css, xml, json, bash, python, java, cpp });
+const lowlight = createLowlight({ javascript, typescript, css, xml, json, bash, python, java, cpp, plaintext });
 
 
 declare global {
@@ -1234,7 +1235,7 @@ const ImageCarouselComponent = (props: NodeViewProps) => {
             menuPosition === 'top' ? "top-0 -translate-y-[calc(100%+12px)]" : "bottom-0 translate-y-[calc(100%+12px)]"
           )}>
               <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => setIsModalOpen(true)} title="Edit Carousel">
-                <ImageIcon className="w-4 h-4" />
+                <ImageIcon className="h-4 w-4" />
               </Button>
               <div className="w-px h-5 bg-border mx-1 self-center" />
               <Button type="button" size="icon" variant={float === 'left' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('left')} title="Align left"><AlignLeft className="w-4 h-4" /></Button>

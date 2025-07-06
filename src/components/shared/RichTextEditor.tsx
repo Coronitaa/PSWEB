@@ -46,14 +46,14 @@ import { parseMediaUrl } from '@/lib/utils';
 import { ResourceImageEditor } from '@/components/admin/ResourceImageEditor';
 import { useToast } from '@/hooks/use-toast';
 
-const lowlight = createLowlight({
-  javascript,
-  typescript,
-  css,
-  xml, // For HTML
-  json,
-  bash,
-});
+const lowlight = createLowlight();
+lowlight.register('javascript', javascript);
+lowlight.register('typescript', typescript);
+lowlight.register('css', css);
+lowlight.register('xml', xml);
+lowlight.register('json', json);
+lowlight.register('bash', bash);
+
 
 declare global {
   namespace JSX {
@@ -638,6 +638,17 @@ const CustomCodeBlock = CodeBlockLowlight.extend({
                 },
             },
         };
+    },
+    
+    addCommands() {
+        return {
+          setCustomCodeBlock: attributes => ({ commands }) => {
+            return commands.setNode(this.name, attributes)
+          },
+          toggleCustomCodeBlock: attributes => ({ commands }) => {
+            return commands.toggleNode(this.name, 'paragraph', attributes)
+          },
+        }
     },
 
     parseHTML() {

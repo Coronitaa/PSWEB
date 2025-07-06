@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
@@ -15,7 +14,7 @@ import { Color } from '@tiptap/extension-color';
 import TextStyle from '@tiptap/extension-text-style';
 import Underline from '@tiptap/extension-underline';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
-import { lowlight } from 'lowlight/lib/core';
+import { createLowlight } from 'lowlight';
 import javascript from 'highlight.js/lib/languages/javascript';
 import typescript from 'highlight.js/lib/languages/typescript';
 import css from 'highlight.js/lib/languages/css';
@@ -24,7 +23,7 @@ import json from 'highlight.js/lib/languages/json';
 import bash from 'highlight.js/lib/languages/bash';
 import { 
   Bold, Italic, Link as LinkIcon, List, ListOrdered, Strikethrough, Underline as UnderlineIcon,
-  AlignLeft, AlignCenter, AlignRight, AlignJustify, Image as ImageIcon, Video, Palette, RotateCw, ImagePlus, Box, GalleryHorizontal, GripVertical, Trash2, Edit, Code as CodeIcon, ClipboardCopy, Settings
+  AlignLeft, AlignCenter, AlignRight, AlignJustify, Image as ImageIcon, Video, Palette, RotateCw, ImagePlus, Box, GalleryHorizontal, GripVertical, Trash2, Edit, Code as CodeIcon, ClipboardCopy, Settings, Check
 } from 'lucide-react';
 import { GradientPicker } from './GradientPicker';
 import { Button } from '@/components/ui/button';
@@ -47,14 +46,14 @@ import { parseMediaUrl } from '@/lib/utils';
 import { ResourceImageEditor } from '@/components/admin/ResourceImageEditor';
 import { useToast } from '@/hooks/use-toast';
 
-// Register languages for syntax highlighting
-lowlight.registerLanguage('javascript', javascript);
-lowlight.registerLanguage('typescript', typescript);
-lowlight.registerLanguage('css', css);
-lowlight.registerLanguage('xml', xml); // For HTML
-lowlight.registerLanguage('json', json);
-lowlight.registerLanguage('bash', bash);
-
+const lowlight = createLowlight({
+  javascript,
+  typescript,
+  css,
+  xml, // For HTML
+  json,
+  bash,
+});
 
 declare global {
   namespace JSX {
@@ -1521,6 +1520,7 @@ const CustomModelViewer = Node.create({
           return 0;
         },
       },
+      class: { default: 'rich-text-media-node' },
     };
   },
   

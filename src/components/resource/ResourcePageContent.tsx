@@ -30,6 +30,14 @@ interface ResourcePageContentProps {
   relatedResources: Resource[];
 }
 
+function getText(node: any): string {
+  if (node.type === 'text') return node.data;
+  if (node.children && node.children.length > 0) {
+    return node.children.map(getText).join('');
+  }
+  return '';
+}
+
 export function ResourcePageContent({ resource, relatedResources }: ResourcePageContentProps) {
     const resolvedSearchParamsHook = useNextSearchParams(); 
     const router = useRouter();
@@ -144,22 +152,20 @@ export function ResourcePageContent({ resource, relatedResources }: ResourcePage
                     const preElement = domNode.children.find((child: any) => child.name === 'pre') as Element | undefined;
                     const codeElement = preElement?.children.find((child: any) => child.name === 'code') as Element | undefined;
                     
-                    if (codeElement && codeElement.children.length > 0) {
+                    if (codeElement) {
                         const title = domNode.attribs['data-title'] || '';
                         const language = codeElement.attribs['class']?.replace('language-', '') || 'plaintext';
                         const maxHeight = domNode.attribs['data-max-height'] || '400px';
-                        // Extract text content from all child text nodes
-                        const codeContent = codeElement.children
-                            .filter((child: any) => child.type === 'text')
-                            .map((child: any) => child.data)
-                            .join('');
+                        const rawCodeContent = getText(codeElement);
 
                         return <RenderedCodeBlock
                             title={title}
                             language={language}
                             maxHeight={maxHeight}
-                            codeContent={codeContent}
-                        />;
+                            rawCodeContent={rawCodeContent}
+                        >
+                            {domToReact(codeElement.children, parseOptions)}
+                        </RenderedCodeBlock>;
                     }
                 }
             }

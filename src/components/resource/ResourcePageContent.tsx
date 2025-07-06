@@ -22,6 +22,7 @@ import { getAvailableFilterTags } from '@/lib/data';
 import { getItemTypePlural } from '@/lib/utils';
 import parse, { domToReact, Element } from 'html-react-parser';
 import { cn } from '@/lib/utils';
+import { RenderedCodeBlock } from '@/components/shared/RenderedCodeBlock';
 
 
 interface ResourcePageContentProps {
@@ -95,44 +96,71 @@ export function ResourcePageContent({ resource, relatedResources }: ResourcePage
 
     const parseOptions = {
         replace: (domNode: any) => {
-            if (domNode instanceof Element && domNode.attribs && domNode.attribs['data-image-carousel'] !== undefined) {
-                try {
-                    const { 
-                        ['data-image-carousel']: _,
-                        ['data-images']: imagesJson,
-                        ['data-aspect-ratio']: aspectRatio,
-                        ['data-autoplay-interval']: autoplayIntervalStr,
-                        style,
-                        class: className,
-                        ...restAttribs 
-                    } = domNode.attribs;
+            if (domNode instanceof Element && domNode.attribs) {
+                // Carousel parser
+                if (domNode.attribs['data-image-carousel'] !== undefined) {
+                    try {
+                        const { 
+                            ['data-image-carousel']: _,
+                            ['data-images']: imagesJson,
+                            ['data-aspect-ratio']: aspectRatio,
+                            ['data-autoplay-interval']: autoplayIntervalStr,
+                            style,
+                            class: className,
+                            ...restAttribs 
+                        } = domNode.attribs;
 
-                    const images = JSON.parse(imagesJson || '[]');
-                    const autoplayInterval = autoplayIntervalStr ? parseInt(autoplayIntervalStr, 10) : 5000;
-                    const finalAspectRatio = aspectRatio || '16/9';
+                        const images = JSON.parse(imagesJson || '[]');
+                        const autoplayInterval = autoplayIntervalStr ? parseInt(autoplayIntervalStr, 10) : 5000;
+                        const finalAspectRatio = aspectRatio || '16/9';
 
-                    const styleString = style || '';
-                    const styleObject = styleString.split(';').reduce((acc: React.CSSProperties, styleRule: string) => {
-                      const [key, value] = styleRule.split(':');
-                      if (key && value) {
-                        const camelCasedKey = key.trim().replace(/-(\w)/g, (_, letter) => letter.toUpperCase());
-                        (acc as any)[camelCasedKey] = value.trim();
-                      }
-                      return acc;
-                    }, {} as React.CSSProperties);
+                        const styleString = style || '';
+                        const styleObject = styleString.split(';').reduce((acc: React.CSSProperties, styleRule: string) => {
+                          const [key, value] = styleRule.split(':');
+                          if (key && value) {
+                            const camelCasedKey = key.trim().replace(/-(\w)/g, (_, letter) => letter.toUpperCase());
+                            (acc as any)[camelCasedKey] = value.trim();
+                          }
+                          return acc;
+                        }, {} as React.CSSProperties);
+                        
+                        return (
+                            <div {...restAttribs} style={styleObject} className={cn("rich-text-media-node", className)}> 
+                                <ImageGalleryCarousel
+                                  images={images}
+                                  aspectRatio={finalAspectRatio}
+                                  autoplayInterval={autoplayInterval}
+                                />
+                            </div>
+                        );
+
+                    } catch (e) {
+                        console.error("Failed to parse carousel images:", e);
+                    }
+                }
+                
+                // Code Block parser
+                if (domNode.attribs['data-custom-code-block'] !== undefined) {
+                    const preElement = domNode.children.find((child: any) => child.name === 'pre') as Element | undefined;
+                    const codeElement = preElement?.children.find((child: any) => child.name === 'code') as Element | undefined;
                     
-                    return (
-                        <div {...restAttribs} style={styleObject} className={cn("rich-text-media-node", className)}> 
-                            <ImageGalleryCarousel
-                              images={images}
-                              aspectRatio={finalAspectRatio}
-                              autoplayInterval={autoplayInterval}
-                            />
-                        </div>
-                    );
+                    if (codeElement && codeElement.children.length > 0) {
+                        const title = domNode.attribs['data-title'] || '';
+                        const language = codeElement.attribs['class']?.replace('language-', '') || 'plaintext';
+                        const maxHeight = domNode.attribs['data-max-height'] || '400px';
+                        // Extract text content from all child text nodes
+                        const codeContent = codeElement.children
+                            .filter((child: any) => child.type === 'text')
+                            .map((child: any) => child.data)
+                            .join('');
 
-                } catch (e) {
-                    console.error("Failed to parse carousel images:", e);
+                        return <RenderedCodeBlock
+                            title={title}
+                            language={language}
+                            maxHeight={maxHeight}
+                            codeContent={codeContent}
+                        />;
+                    }
                 }
             }
         }

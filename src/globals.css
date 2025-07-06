@@ -1,0 +1,412 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Dark Violet Base & Core Text */
+    --background: 270 10% 10%; /* Slightly lighter dark violet #1A181C */
+    --foreground: 270 15% 95%; /* Brighter off-white for general text #F0EEF5 */
+
+    /* Cards & Popovers - slightly differentiated from main background */
+    --card: 270 9% 14%; /* Darker violet for cards #211F25 */
+    --card-foreground: 270 15% 92%; /* Slightly softer white for card text #EBEAF2 */
+
+    --popover: 270 8% 12%; /* Even darker for popovers for depth #1D1B20 */
+    --popover-foreground: 270 15% 95%; /* #F0EEF5 */
+
+    /* Primary Color - Magenta/Pink */
+    --primary: 330 80% 55%; /* Magenta/Pink #E64A8B */
+    --primary-foreground: 0 0% 100%; /* Pure white #FFFFFF for max contrast on primary */
+
+    /* Secondary Elements - Muted Violet */
+    --secondary: 270 8% 20%; /* Mid-tone violet for secondary elements #2F2C35 */
+    --secondary-foreground: 270 10% 80%; /* #C7C3D1 */
+
+    /* Muted States - Desaturated Violet */
+    --muted: 270 6% 25%; /* Softer violet for muted backgrounds/elements #3C3941 */
+    --muted-foreground: 270 8% 60%; /* #928DA0 - Muted text color */
+
+    /* Accent Colors - Vibrant Pink (Magenta family) */
+    --accent: 325 85% 60%; /* Vivid Pink #F252A2 */
+    --accent-foreground: 325 60% 25%; /* Darker Pink/Magenta for text on accent #8C2A5C */
+    
+    --pastel-pink: 330 80% 85%; /* #F8C4D8 */
+    --pastel-green: 145 60% 80%; /* #B7E4C7 */
+    --pastel-yellow: 50 100% 80%; /* #FFE599 */
+    --pastel-lavender: 260 70% 88%; /* #D9D0F3 */
+
+    /* Destructive States - Standard Red */
+    --destructive: 0 72% 51%; /* #E53E3E */
+    --destructive-foreground: 0 0% 98%; /* #FAFAFA */
+
+    /* Borders, Inputs, Rings */
+    --border: 270 8% 30%; /* Violet-tinted border #484450 */
+    --input: 270 7% 28%; /* Slightly lighter input background #43404A */
+    --ring: hsl(var(--primary)); /* Primary color for focus rings (Magenta/Pink) */
+
+    /* Corner Radius */
+    --radius: 0.85rem; /* Slightly more rounded corners */
+
+    /* Chart Colors - Using new primary, accent, and pastels */
+    --chart-1: hsl(var(--primary));      /* Magenta/Pink */
+    --chart-2: hsl(var(--accent));       /* Vivid Pink */
+    --chart-3: hsl(var(--pastel-pink));  /* Pastel Pink */
+    --chart-4: hsl(var(--pastel-green)); /* Pastel Green */
+    --chart-5: hsl(var(--pastel-yellow));/* Pastel Yellow */
+
+    /* Sidebar specific colors - can inherit or be distinct */
+    --sidebar-background: 270 8% 13%; /* #1F1D23 */
+    --sidebar-foreground: 270 12% 88%; /* #DCD8E6 */
+    --sidebar-primary: hsl(var(--primary)); /* Use main primary */
+    --sidebar-primary-foreground: hsl(var(--primary-foreground));
+    --sidebar-accent: hsl(var(--accent)); /* Use main accent */
+    --sidebar-accent-foreground: hsl(var(--accent-foreground));
+    --sidebar-border: 270 7% 25%; /* #3C3941 */
+    --sidebar-ring: hsl(var(--ring));
+  }
+
+  .dark {
+    /* For PinkStar, :root IS the dark theme. .dark can be identical or offer slight variations if needed later. */
+    --background: 270 10% 10%;
+    --foreground: 270 15% 95%;
+    --card: 270 9% 14%;
+    --card-foreground: 270 15% 92%;
+    --popover: 270 8% 12%;
+    --popover-foreground: 270 15% 95%;
+    --primary: 330 80% 55%; /* Magenta/Pink */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 270 8% 20%;
+    --secondary-foreground: 270 10% 80%;
+    --muted: 270 6% 25%;
+    --muted-foreground: 270 8% 60%;
+    --accent: 325 85% 60%; /* Vivid Pink */
+    --accent-foreground: 325 60% 25%;
+    --pastel-pink: 330 80% 85%;
+    --pastel-green: 145 60% 80%;
+    --pastel-yellow: 50 100% 80%;
+    --pastel-lavender: 260 70% 88%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 270 8% 30%;
+    --input: 270 7% 28%;
+    --ring: hsl(var(--primary)); /* Magenta/Pink */
+    
+    --chart-1: hsl(var(--primary));
+    --chart-2: hsl(var(--accent));
+    --chart-3: hsl(var(--pastel-pink));
+    --chart-4: hsl(var(--pastel-green));
+    --chart-5: hsl(var(--pastel-yellow));
+
+    --sidebar-background: 270 8% 13%;
+    --sidebar-foreground: 270 12% 88%;
+    --sidebar-primary: hsl(var(--primary));
+    --sidebar-primary-foreground: hsl(var(--primary-foreground));
+    --sidebar-accent: hsl(var(--accent));
+    --sidebar-accent-foreground: hsl(var(--accent-foreground));
+    --sidebar-border: 270 7% 25%;
+    --sidebar-ring: hsl(var(--ring));
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border transition-colors duration-200 ease-in-out; 
+  }
+  body {
+    @apply text-foreground antialiased;
+    font-family: var(--font-geist-sans), sans-serif;
+    background-image: linear-gradient(160deg, hsl(var(--background)) 0%, hsl(265, 12%, 7%) 100%); /* Darker violet gradient */
+    background-attachment: fixed;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    caret-color: hsl(var(--primary)); /* Make caret visible on gradient text */
+  }
+
+  /* Improved scrollbar aesthetics */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background) / 0.5);
+    border-radius: var(--radius);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--primary) / 0.6); /* Primary color scrollbar thumb */
+    border-radius: var(--radius);
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary)); /* Brighter primary on hover */
+  }
+
+  /* Custom styles for Rich Text Editor Media */
+  .ProseMirror .rich-text-media-node, .prose .rich-text-media-node {
+    display: inline-block; /* Changed to allow shrink-wrapping for rotation calculations */
+    position: relative;
+    line-height: 0;
+    margin: 1em 0; /* Add some vertical spacing */
+    max-width: 100%;
+    clear: both; /* Ensure floated content doesn't wrap around it incorrectly */
+  }
+  .ProseMirror .rich-text-media-node[data-float="left"], .prose .rich-text-media-node[data-float="left"] {
+    float: left;
+    margin-right: 1em;
+    margin-left: 0;
+  }
+  .ProseMirror .rich-text-media-node[data-float="right"], .prose .rich-text-media-node[data-float="right"] {
+    float: right;
+    margin-left: 1em;
+    margin-right: 0;
+  }
+  .ProseMirror .rich-text-media-node[data-float="center"], .prose .rich-text-media-node[data-float="center"] {
+    display: block; /* Center needs to be block to use auto margins */
+    float: none;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  /* Ensure content after a floated element clears properly */
+  .ProseMirror > :last-child::after, .prose > :last-child::after {
+    content: "";
+    display: table;
+    clear: both;
+  }
+}
+
+/* General component enhancements */
+@layer components {
+  .card-interactive {
+    @apply bg-card/70 backdrop-blur-sm shadow-lg hover:shadow-primary/30 transition-all duration-300 ease-in-out border border-border/30 hover:border-primary/50 transform hover:-translate-y-px;
+  }
+  .button-primary-glow {
+     @apply bg-primary text-primary-foreground hover:bg-primary/90 shadow-md hover:shadow-primary/50 focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background transition-all duration-200;
+  }
+   .button-outline-glow {
+     @apply border border-primary/60 text-primary hover:bg-primary/10 hover:text-primary/90 shadow-sm hover:shadow-primary/20 focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background transition-all duration-200;
+   }
+
+   /* Prose styles for markdown content */
+    .prose {
+     @apply overflow-x-hidden break-words;
+     h1, h2, h3, h4, h5, h6 { @apply text-primary; }
+      a { @apply text-accent hover:text-accent/80; } 
+     code:not([class*="language-"]) { @apply bg-muted text-accent px-1 py-0.5 rounded-sm text-sm; }
+     pre { @apply bg-muted p-4 rounded-md overflow-x-auto; }
+     blockquote { @apply border-l-4 border-primary pl-4 italic text-muted-foreground; }
+     ul { @apply list-disc pl-6 my-4; }
+     ol { @apply list-decimal pl-6 my-4; }
+     li { @apply my-2; }
+    }
+    .prose .rich-text-media-node {
+       
+    }
+    .dark .prose-invert {
+      h1, h2, h3, h4, h5, h6 { @apply text-primary; } 
+      a { @apply text-accent hover:text-accent/80; }
+      /* strong color removed to allow inheritance for gradients */
+      code:not([class*="language-"]) { @apply bg-secondary text-accent; } 
+      pre:not([class*="language-"]) { @apply bg-secondary; }
+      blockquote { @apply border-primary; }
+      ul, ol {
+        li::marker {
+          @apply text-foreground/80;
+        }
+      }
+    }
+    
+    .dark .prose-invert .has-text-gradient[style*="background-image"] u,
+    .dark .prose-invert .has-text-gradient[style*="background-image"] s {
+        text-decoration-color: var(--first-gradient-color, hsl(var(--accent)));
+        text-decoration-thickness: 1px;
+    }
+
+    .dark .prose-invert .has-text-gradient[style*="background-image"] strong u,
+    .dark .prose-invert .has-text-gradient[style*="background-image"] b u,
+    .dark .prose-invert .has-text-gradient[style*="background-image"] strong s,
+    .dark .prose-invert .has-text-gradient[style*="background-image"] b s {
+        text-decoration-thickness: 2px;
+    }
+
+
+  /* Sheen effect for Follow button (and other buttons if class is applied) */
+  .button-follow-sheen {
+    @apply relative overflow-hidden;
+  }
+
+  .button-follow-sheen::before {
+    content: '';
+    display: block;
+    position: absolute;
+    top: 0;
+    left: -75px; 
+    width: 60px; 
+    height: 100%;
+    background: linear-gradient(
+      to right,
+      hsla(var(--primary-foreground), 0) 0%,
+      hsla(var(--primary-foreground), 0.6) 50%, 
+      hsla(var(--primary-foreground), 0) 100%
+    );
+    transform: skewX(-25deg);
+    opacity: 0; 
+    pointer-events: none;
+  }
+
+  .button-follow-sheen:hover::before {
+    animation: sh02 0.6s ease-in-out; 
+  }
+
+  .download-card-glow {
+    @apply relative overflow-hidden shadow-lg;
+    animation: subtlePrimaryPulse 2.5s infinite ease-in-out;
+  }
+
+  .download-card-glow::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: conic-gradient(from 180deg at 50% 50%, hsla(var(--primary),0.1) 0deg, hsla(var(--primary),0.7) 180deg, hsla(var(--primary),0.1) 360deg);
+    -webkit-mask: 
+        linear-gradient(#fff 0 0) content-box, 
+        linear-gradient(#fff 0 0);
+    mask: 
+        linear-gradient(#fff 0 0) content-box, 
+        linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    animation: subtleBorderGlow 2.5s infinite ease-in-out;
+    animation-delay: 0.5s;
+    pointer-events: none; /* Added to prevent click interception */
+    z-index: -1; /* Added to ensure it's behind content */
+  }
+
+  .button-3d-effect {
+    @apply shadow-md hover:shadow-lg active:shadow-sm transition-all duration-150;
+    transform-style: preserve-3d; /* Needed for 3D effects */
+  }
+  .button-3d-effect:hover {
+    transform: translateY(-1px) translateZ(1px); /* Slight lift */
+  }
+  .button-3d-effect:active {
+    transform: translateY(1px) translateZ(-1px); /* Simulate press */
+    filter: brightness(0.95);
+  }
+
+  .code-block-resizer {
+    @apply absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-16 h-2 bg-primary/50 rounded-full cursor-ns-resize z-20 opacity-0 group-hover/code-block:opacity-100 transition-opacity;
+  }
+  .code-block-resizer:hover {
+    @apply bg-primary;
+  }
+}
+
+@keyframes sh02 {
+  0% {
+    left: -75px;
+    opacity: 0;
+  }
+  20% { 
+    opacity: 1;
+  }
+  80% { 
+    opacity: 1;
+  }
+  100% {
+    left: calc(100% + 75px); 
+    opacity: 0; 
+  }
+}
+
+@keyframes subtlePrimaryPulse {
+  0%, 100% { box-shadow: 0 0 10px hsla(var(--primary), 0.2), 0 0 20px hsla(var(--primary), 0.1); }
+  50% { box-shadow: 0 0 20px hsla(var(--primary), 0.4), 0 0 40px hsla(var(--primary), 0.2); }
+}
+
+@keyframes subtleBorderGlow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+
+/* Syntax Highlighting theme: Atom One Dark */
+/* Base editor styles */
+.tiptap-code-block {
+    position: relative;
+}
+.tiptap-code-block pre {
+    margin: 0;
+}
+
+/* Atom One Dark styles */
+.hljs {
+    color: #abb2bf;
+    background: #282c34;
+    display: block;
+    overflow-x: auto;
+    padding: 0.5em;
+}
+.hljs-comment,
+.hljs-quote {
+    color: #5c6370;
+    font-style: italic;
+}
+.hljs-doctag,
+.hljs-keyword,
+.hljs-formula {
+    color: #c678dd;
+}
+.hljs-section,
+.hljs-name,
+.hljs-selector-tag,
+.hljs-deletion,
+.hljs-subst {
+    color: #e06c75;
+}
+.hljs-literal {
+    color: #56b6c2;
+}
+.hljs-string,
+.hljs-regexp,
+.hljs-addition,
+.hljs-attribute,
+.hljs-meta-string {
+    color: #98c379;
+}
+.hljs-built_in,
+.hljs-class .hljs-title {
+    color: #e6c07b;
+}
+.hljs-attr,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-type,
+.hljs-selector-class,
+.hljs-selector-attr,
+.hljs-selector-pseudo,
+.hljs-number {
+    color: #d19a66;
+}
+.hljs-symbol,
+.hljs-bullet,
+.hljs-link,
+.hljs-meta,
+.hljs-selector-id,
+.hljs-title {
+    color: #61afef;
+}
+.hljs-emphasis {
+    font-style: italic;
+}
+.hljs-strong {
+    font-weight: bold;
+}
+.hljs-link {
+    text-decoration: underline;
+}

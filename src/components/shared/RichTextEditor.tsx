@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
@@ -21,6 +22,9 @@ import css from 'highlight.js/lib/languages/css';
 import xml from 'highlight.js/lib/languages/xml';
 import json from 'highlight.js/lib/languages/json';
 import bash from 'highlight.js/lib/languages/bash';
+import python from 'highlight.js/lib/languages/python';
+import java, { transpile } from 'highlight.js/lib/languages/java';
+import cpp from 'highlight.js/lib/languages/cpp';
 import { 
   Bold, Italic, Link as LinkIcon, List, ListOrdered, Strikethrough, Underline as UnderlineIcon,
   AlignLeft, AlignCenter, AlignRight, AlignJustify, Image as ImageIcon, Video, Palette, RotateCw, ImagePlus, Box, GalleryHorizontal, GripVertical, Trash2, Edit, Code as CodeIcon, ClipboardCopy, Settings, Check
@@ -46,13 +50,7 @@ import { parseMediaUrl } from '@/lib/utils';
 import { ResourceImageEditor } from '@/components/admin/ResourceImageEditor';
 import { useToast } from '@/hooks/use-toast';
 
-const lowlight = createLowlight();
-lowlight.register('javascript', javascript);
-lowlight.register('typescript', typescript);
-lowlight.register('css', css);
-lowlight.register('xml', xml);
-lowlight.register('json', json);
-lowlight.register('bash', bash);
+const lowlight = createLowlight({ javascript, typescript, css, xml, json, bash, python, java, cpp });
 
 
 declare global {
@@ -548,6 +546,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
 const CodeBlockComponent = (props: NodeViewProps) => {
     const { node, updateAttributes, editor } = props;
     const [isCopied, setIsCopied] = useState(false);
+    const preRef = useRef<HTMLPreElement>(null);
     
     const handleCopy = () => {
         navigator.clipboard.writeText(node.textContent).then(() => {
@@ -556,14 +555,34 @@ const CodeBlockComponent = (props: NodeViewProps) => {
         });
     };
 
+    const handleResizeMouseDown = (e: React.MouseEvent) => {
+        e.preventDefault();
+        const preElement = preRef.current;
+        if (!preElement) return;
+
+        const startY = e.clientY;
+        const startHeight = preElement.offsetHeight;
+
+        const handleMouseMove = (moveEvent: MouseEvent) => {
+            const newHeight = startHeight + (moveEvent.clientY - startY);
+            updateAttributes({ maxHeight: `${Math.max(80, newHeight)}px` });
+        };
+
+        const handleMouseUp = () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+    };
+
     const languages = lowlight.listLanguages();
 
     return (
         <NodeViewWrapper className="not-prose my-4 relative group/code-block">
             <div 
                 className="relative bg-muted/30 border border-border rounded-lg overflow-hidden" 
-                data-custom-code-block 
-                data-title={node.attrs.title}
             >
                 <div className="flex items-center justify-between bg-card-foreground/5 px-2 py-1.5 border-b border-border text-xs">
                     <input 
@@ -587,34 +606,24 @@ const CodeBlockComponent = (props: NodeViewProps) => {
                                 ))}
                             </SelectContent>
                         </Select>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-6 w-6"><Settings className="w-3.5 h-3.5"/></Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-64 p-2" align="end">
-                                <div className="space-y-2">
-                                    <Label className="text-xs">Max Height (e.g., 400px)</Label>
-                                    <Input 
-                                        className="h-8 text-xs" 
-                                        placeholder="e.g., 400px"
-                                        value={node.attrs.maxHeight || ''}
-                                        onChange={e => updateAttributes({ maxHeight: e.target.value || null })}
-                                    />
-                                </div>
-                            </PopoverContent>
-                        </Popover>
                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleCopy}>
                             {isCopied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <ClipboardCopy className="w-3.5 h-3.5" />}
                         </Button>
                     </div>
                 </div>
                 <pre 
+                    ref={preRef}
                     className="tiptap-code-block" 
-                    style={{ maxHeight: node.attrs.maxHeight || 'none', overflowY: node.attrs.maxHeight ? 'auto' : 'visible' }}
+                    style={{ maxHeight: node.attrs.maxHeight, overflowY: node.attrs.maxHeight ? 'auto' : 'visible' }}
                 >
                     <NodeViewContent as="code" />
                 </pre>
             </div>
+            <div
+                className="code-block-resizer"
+                onMouseDown={handleResizeMouseDown}
+                title="Drag to resize"
+            />
         </NodeViewWrapper>
     );
 };
@@ -632,16 +641,15 @@ const CustomCodeBlock = CodeBlockLowlight.extend({
             },
             maxHeight: {
                 default: '400px',
-                parseHTML: element => element.querySelector('pre')?.style.maxHeight || null,
-                renderHTML: attributes => {
-                    return {} // handled by node view
-                },
+                parseHTML: element => element.getAttribute('data-max-height') || '400px',
+                renderHTML: attributes => (attributes.maxHeight ? { 'data-max-height': attributes.maxHeight } : {}),
             },
         };
     },
     
     addCommands() {
         return {
+          ...this.parent?.(),
           setCustomCodeBlock: attributes => ({ commands }) => {
             return commands.setNode(this.name, attributes)
           },
@@ -661,7 +669,7 @@ const CustomCodeBlock = CodeBlockLowlight.extend({
     },
 
     renderHTML({ node, HTMLAttributes }) {
-      return ['div', { 'data-custom-code-block': '' }, ['pre', HTMLAttributes, ['code', 0]]]
+      return ['div', { 'data-custom-code-block': '', 'data-title': node.attrs.title, 'data-max-height': node.attrs.maxHeight }, ['pre', HTMLAttributes, ['code', 0]]]
     },
 
     addNodeView() {

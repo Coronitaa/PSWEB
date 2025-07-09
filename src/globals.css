@@ -298,16 +298,6 @@
     transform: translateY(1px) translateZ(-1px); /* Simulate press */
     filter: brightness(0.95);
   }
-
-  .code-block-resizer {
-    @apply absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-16 h-2 bg-primary/50 rounded-full cursor-ns-resize z-20 opacity-0 group-hover/code-block:opacity-100 transition-opacity;
-  }
-  .ProseMirror .ProseMirror-selectednode .code-block-resizer {
-    @apply opacity-100;
-  }
-  .code-block-resizer:hover {
-    @apply bg-primary;
-  }
 }
 
 @keyframes sh02 {
@@ -338,16 +328,20 @@
 }
 
 
-/* Syntax Highlighting theme: Atom One Dark */
-/* Base editor styles */
-.tiptap-code-block {
-    position: relative;
+/* -- CUSTOM EDITOR STYLES -- */
+/* Resizer handle for custom code blocks */
+.ProseMirror-selectednode .code-block-resizer {
+  @apply opacity-100;
 }
-.tiptap-code-block pre {
-    margin: 0;
+.code-block-resizer {
+  @apply absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-16 h-2 bg-primary/50 rounded-full cursor-ns-resize z-20 opacity-0 transition-opacity;
+}
+.code-block-resizer:hover {
+  @apply bg-primary;
 }
 
-/* Atom One Dark styles */
+
+/* Syntax Highlighting theme: Atom One Dark */
 .hljs {
     color: #abb2bf;
     background: #282c34;

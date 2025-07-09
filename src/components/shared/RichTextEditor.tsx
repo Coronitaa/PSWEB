@@ -581,7 +581,7 @@ const CodeBlockComponent = (props: NodeViewProps) => {
     const languages = lowlight.listLanguages();
 
     return (
-        <NodeViewWrapper className="not-prose my-4 relative group/code-block">
+        <NodeViewWrapper className="not-prose my-4 relative">
             <div 
                 className="relative bg-muted/30 border border-border rounded-lg overflow-hidden" 
             >
@@ -620,8 +620,8 @@ const CodeBlockComponent = (props: NodeViewProps) => {
                 </div>
                 <pre 
                     ref={preRef}
-                    className="tiptap-code-block" 
-                    style={{ maxHeight: node.attrs.maxHeight, overflowY: node.attrs.maxHeight ? 'auto' : 'visible' }}
+                    className="hljs m-0" 
+                    style={{ maxHeight: node.attrs.maxHeight, overflowY: 'auto' }}
                 >
                     <NodeViewContent as="code" />
                 </pre>

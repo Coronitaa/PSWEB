@@ -586,13 +586,16 @@ const CodeBlockComponent = (props: NodeViewProps) => {
                 className="relative bg-muted/30 border border-border rounded-lg overflow-hidden" 
             >
                 <div className="flex items-center justify-between bg-card-foreground/5 px-2 py-1.5 border-b border-border text-xs">
-                    <input 
-                        className="bg-transparent text-muted-foreground outline-none placeholder:text-muted-foreground/70 text-xs w-full mr-2" 
-                        placeholder="Filename (optional)"
-                        value={node.attrs.title || ''}
-                        onChange={(e) => updateAttributes({ title: e.target.value })}
-                    />
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-2 flex-grow" data-drag-handle>
+                        <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab shrink-0" />
+                        <input 
+                            className="bg-transparent text-muted-foreground outline-none placeholder:text-muted-foreground/70 text-xs w-full" 
+                            placeholder="Filename (optional)"
+                            value={node.attrs.title || ''}
+                            onChange={(e) => updateAttributes({ title: e.target.value })}
+                        />
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
                         <Select 
                             value={node.attrs.language || 'auto'}
                             onValueChange={language => updateAttributes({ language })}
@@ -609,6 +612,9 @@ const CodeBlockComponent = (props: NodeViewProps) => {
                         </Select>
                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleCopy}>
                             {isCopied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <ClipboardCopy className="w-3.5 h-3.5" />}
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive/70 hover:text-destructive" onClick={() => editor.chain().focus().deleteNode('customCodeBlock').run()} title="Delete block">
+                            <Trash2 className="w-3.5 h-3.5" />
                         </Button>
                     </div>
                 </div>
@@ -631,6 +637,7 @@ const CodeBlockComponent = (props: NodeViewProps) => {
 
 const CustomCodeBlock = CodeBlockLowlight.extend({
     name: 'customCodeBlock',
+    draggable: true,
 
     addAttributes() {
         return {

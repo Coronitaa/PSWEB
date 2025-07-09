@@ -302,6 +302,9 @@
   .code-block-resizer {
     @apply absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-16 h-2 bg-primary/50 rounded-full cursor-ns-resize z-20 opacity-0 group-hover/code-block:opacity-100 transition-opacity;
   }
+  .ProseMirror .ProseMirror-selectednode .code-block-resizer {
+    @apply opacity-100;
+  }
   .code-block-resizer:hover {
     @apply bg-primary;
   }

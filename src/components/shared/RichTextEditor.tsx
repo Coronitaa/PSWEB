@@ -667,6 +667,22 @@ const CustomCodeBlock = CodeBlockLowlight.extend({
         }
     },
 
+    addKeyboardShortcuts() {
+        return {
+            ...this.parent?.(),
+            Backspace: () => {
+                const { empty, $anchor } = this.editor.state.selection
+                if (!empty || $anchor.parent.type.name !== this.name) {
+                    return false
+                }
+                if ($anchor.parentOffset === 0) {
+                    return true
+                }
+                return false
+            },
+        }
+    },
+
     parseHTML() {
       return [
         {
@@ -1245,7 +1261,7 @@ const ImageCarouselComponent = (props: NodeViewProps) => {
                 <ImageIcon className="h-4 w-4" />
               </Button>
               <div className="w-px h-5 bg-border mx-1 self-center" />
-              <Button type="button" size="icon" variant={float === 'left' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('left')} title="Align left"><AlignLeft className="w-4 h-4" /></Button>
+              <Button type="button" size="icon" variant={float === 'left' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('left')} title="Align left"><AlignLeft className="h-4 w-4" /></Button>
               <Button type="button" size="icon" variant={!float || float === 'center' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('center')} title="Align center"><AlignCenter className="w-4 h-4" /></Button>
               <Button type="button" size="icon" variant={float === 'right' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('right')} title="Align right"><AlignRight className="w-4 h-4" /></Button>
               <div className="w-px h-5 bg-border mx-1 self-center" />

@@ -28,7 +28,7 @@ import cpp from 'highlight.js/lib/languages/cpp';
 import plaintext from 'highlight.js/lib/languages/plaintext';
 import { 
   Bold, Italic, Link as LinkIcon, List, ListOrdered, Strikethrough, Underline as UnderlineIcon,
-  AlignLeft, AlignCenter, AlignRight, AlignJustify, Image as ImageIcon, Video, Palette, RotateCw, ImagePlus, Box, GalleryHorizontal, GripVertical, Trash2, Edit, Code as CodeIcon, ClipboardCopy, Settings, Check
+  AlignLeft, AlignCenter, AlignRight, AlignJustify, Image as ImageIcon, Video, Palette, RotateCw, ImagePlus, Box, GalleryHorizontal, GripVertical, Trash2, Edit, Code as CodeIcon, ClipboardCopy, Settings, Check, ChevronUp, ChevronDown
 } from 'lucide-react';
 import { GradientPicker } from './GradientPicker';
 import { Button } from '@/components/ui/button';
@@ -50,6 +50,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { parseMediaUrl } from '@/lib/utils';
 import { ResourceImageEditor } from '@/components/admin/ResourceImageEditor';
 import { useToast } from '@/hooks/use-toast';
+import { Checkbox } from '../ui/checkbox';
 
 const lowlight = createLowlight({ javascript, typescript, css, xml, json, bash, python, java, cpp, plaintext });
 
@@ -613,6 +614,35 @@ const CodeBlockComponent = (props: NodeViewProps) => {
                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleCopy}>
                             {isCopied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <ClipboardCopy className="w-3.5 h-3.5" />}
                         </Button>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-6 w-6" title="Block settings">
+                                    <Settings className="h-3.5 w-3.5" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-2" side="bottom" align="end">
+                                <div className="space-y-2 text-sm">
+                                    <div className="flex items-center space-x-2">
+                                        <Checkbox
+                                            id="collapsible-check"
+                                            checked={node.attrs.isCollapsible}
+                                            onCheckedChange={(checked) => updateAttributes({ isCollapsible: checked })}
+                                        />
+                                        <Label htmlFor="collapsible-check">Enable collapsible</Label>
+                                    </div>
+                                    {node.attrs.isCollapsible && (
+                                        <div className="flex items-center space-x-2 pl-4">
+                                            <Checkbox
+                                                id="collapsed-check"
+                                                checked={node.attrs.isCollapsed}
+                                                onCheckedChange={(checked) => updateAttributes({ isCollapsed: checked })}
+                                            />
+                                            <Label htmlFor="collapsed-check">Start collapsed</Label>
+                                        </div>
+                                    )}
+                                </div>
+                            </PopoverContent>
+                        </Popover>
                         <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive/70 hover:text-destructive" onClick={() => editor.chain().focus().deleteNode('customCodeBlock').run()} title="Delete block">
                             <Trash2 className="w-3.5 h-3.5" />
                         </Button>
@@ -620,7 +650,7 @@ const CodeBlockComponent = (props: NodeViewProps) => {
                 </div>
                 <pre 
                     ref={preRef}
-                    className="hljs m-0 px-2 pb-2" 
+                    className="tiptap-code-block m-0" 
                     style={{ maxHeight: node.attrs.maxHeight, overflowY: 'auto' }}
                 >
                     <NodeViewContent as="code" />
@@ -651,6 +681,16 @@ const CustomCodeBlock = CodeBlockLowlight.extend({
                 default: '400px',
                 parseHTML: element => element.getAttribute('data-max-height') || '400px',
                 renderHTML: attributes => (attributes.maxHeight ? { 'data-max-height': attributes.maxHeight } : {}),
+            },
+            isCollapsible: {
+                default: false,
+                parseHTML: element => element.getAttribute('data-is-collapsible') === 'true',
+                renderHTML: attributes => (attributes.isCollapsible ? { 'data-is-collapsible': 'true' } : {}),
+            },
+            isCollapsed: {
+                default: false,
+                parseHTML: element => element.getAttribute('data-is-collapsed') === 'true',
+                renderHTML: attributes => (attributes.isCollapsed ? { 'data-is-collapsed': 'true' } : {}),
             },
         };
     },
@@ -695,7 +735,7 @@ const CustomCodeBlock = CodeBlockLowlight.extend({
     },
 
     renderHTML({ node, HTMLAttributes }) {
-      return ['div', { 'data-custom-code-block': '', 'data-title': node.attrs.title, 'data-max-height': node.attrs.maxHeight }, ['pre', HTMLAttributes, ['code', 0]]]
+      return ['div', { 'data-custom-code-block': '', 'data-title': node.attrs.title, 'data-max-height': node.attrs.maxHeight, 'data-is-collapsible': node.attrs.isCollapsible, 'data-is-collapsed': node.attrs.isCollapsed }, ['pre', HTMLAttributes, ['code', 0]]]
     },
 
     addNodeView() {

@@ -581,7 +581,7 @@ const CodeBlockComponent = (props: NodeViewProps) => {
     const languages = lowlight.listLanguages();
 
     return (
-        <NodeViewWrapper className="not-prose my-4 relative">
+        <NodeViewWrapper className="not-prose my-4 relative group/code-block">
             <div 
                 className="relative bg-muted/30 border border-border rounded-lg overflow-hidden" 
             >
@@ -620,7 +620,7 @@ const CodeBlockComponent = (props: NodeViewProps) => {
                 </div>
                 <pre 
                     ref={preRef}
-                    className="hljs m-0" 
+                    className="hljs m-0 px-2 pb-2" 
                     style={{ maxHeight: node.attrs.maxHeight, overflowY: 'auto' }}
                 >
                     <NodeViewContent as="code" />
@@ -676,7 +676,9 @@ const CustomCodeBlock = CodeBlockLowlight.extend({
                     return false
                 }
                 if ($anchor.parentOffset === 0) {
-                    return true
+                    if ($anchor.parent.textContent.length > 0) {
+                        return true;
+                    }
                 }
                 return false
             },
@@ -1261,7 +1263,7 @@ const ImageCarouselComponent = (props: NodeViewProps) => {
                 <ImageIcon className="h-4 w-4" />
               </Button>
               <div className="w-px h-5 bg-border mx-1 self-center" />
-              <Button type="button" size="icon" variant={float === 'left' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('left')} title="Align left"><AlignLeft className="h-4 w-4" /></Button>
+              <Button type="button" size="icon" variant={float === 'left' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('left')} title="Align left"><AlignLeft className="w-4 h-4" /></Button>
               <Button type="button" size="icon" variant={!float || float === 'center' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('center')} title="Align center"><AlignCenter className="w-4 h-4" /></Button>
               <Button type="button" size="icon" variant={float === 'right' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('right')} title="Align right"><AlignRight className="w-4 h-4" /></Button>
               <div className="w-px h-5 bg-border mx-1 self-center" />

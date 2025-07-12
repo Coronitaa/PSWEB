@@ -3,7 +3,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useEditor, EditorContent, BubbleMenu, type Editor, NodeViewWrapper, NodeViewContent, ReactNodeViewRenderer, type NodeViewProps, Node, mergeAttributes, type ChainedCommands, type RawCommands } from '@tiptap/react';
+import { useEditor, EditorContent, BubbleMenu, type Editor, NodeViewWrapper, NodeViewContent, ReactNodeViewRenderer, type NodeViewProps, Node, mergeAttributes, type ChainedCommands, type RawCommands, CommandProps } from '@tiptap/react';
 import { Extension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -63,7 +63,7 @@ declare global {
         alt?: string;
         'camera-controls'?: boolean;
         'auto-rotate'?: boolean;
-        class?: string; // Add class for compatibility
+        class?: string;
       }, HTMLElement>;
     }
   }
@@ -220,13 +220,12 @@ export const TextGradient = Extension.create<any>({
                     renderHTML: attributes => {
                         if (!attributes.textGradient) return {};
                         
-                        // Regular expression to find the first color (hex, rgb, rgba, hsl, hsla)
                         const regex = /(?:#[\da-f]{3,8}|(?:rgb|hsl)a?\([^)]+\))/i;
                         const matches = attributes.textGradient.match(regex);
-                        const firstColor = matches ? matches[0] : 'hsl(var(--accent))'; // Fallback to accent color
+                        const firstColor = matches ? matches[0] : 'hsl(var(--accent))'; 
 
                         return {
-                            class: 'has-text-gradient', // Add a class
+                            class: 'has-text-gradient',
                             style: `background-image: ${attributes.textGradient}; --first-gradient-color: ${firstColor}; color: transparent; -webkit-background-clip: text; background-clip: text;`,
                         };
                     },
@@ -236,11 +235,11 @@ export const TextGradient = Extension.create<any>({
     },
     addCommands() {
       return {
-        setTextGradient: (gradient: string) => ({ chain, editor }: { chain: ChainedCommands, editor: Editor }) => {
+        setTextGradient: (gradient: string) => ({ chain, editor }: CommandProps) => {
           const { fontFamily, fontSize } = editor.getAttributes('textStyle');
           return chain().setMark('textStyle', { textGradient: gradient, fontFamily, fontSize }).run();
         },
-        unsetTextGradient: () => ({ chain, editor }: { chain: ChainedCommands, editor: Editor }) => {
+        unsetTextGradient: () => ({ chain, editor }: CommandProps) => {
           const { fontFamily, fontSize } = editor.getAttributes('textStyle');
           // @ts-ignore
           return chain().setMark('textStyle', { textGradient: null, fontFamily, fontSize }).removeEmptyTextStyle().run()
@@ -263,7 +262,6 @@ const handles = [
 ];
 
 const getDynamicCursor = (handleDirection: string, objectRotation: number): string => {
-    // Base angle for the visual representation of the cursor arrow
     const baseCursorAngles: { [key: string]: number } = {
         'top': 90, 'bottom': 90,
         'left': 0, 'right': 0,
@@ -273,8 +271,6 @@ const getDynamicCursor = (handleDirection: string, objectRotation: number): stri
 
     const rotation = baseCursorAngles[handleDirection] + objectRotation;
 
-    // A two-headed arrow SVG that we will rotate.
-    // Stroke is white with a thin black outline for visibility on any background.
     const svg = `
         <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
             <g transform="rotate(${rotation} 16 16)">
@@ -285,7 +281,6 @@ const getDynamicCursor = (handleDirection: string, objectRotation: number): stri
     `.replace(/>\s+</g, '><').replace(/\s\s+/g, ' ').trim();
 
     const encodedSvg = encodeURIComponent(svg);
-    // The cursor hotspot is the center of the SVG (16, 16)
     return `url('data:image/svg+xml;charset=UTF-8,${encodedSvg}') 16 16, auto`;
 };
 
@@ -455,7 +450,6 @@ const MediaResizeComponent = (props: NodeViewProps) => {
         ref={containerRef}
         className={cn(
           "relative w-full",
-          // Changed to solid border for a clearer edge
           selected && 'border-2 border-primary border-solid'
         )}
         style={{
@@ -783,7 +777,6 @@ const ImageCarouselModal = ({
   
   const [autoplaySeconds, setAutoplaySeconds] = useState(initialAutoplayInterval === 999999999 ? 0 : initialAutoplayInterval / 1000);
 
-  // New state for image editor
   const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
 
@@ -793,7 +786,7 @@ const ImageCarouselModal = ({
       setAspectRatio(initialAspectRatio);
       const initialSeconds = initialAutoplayInterval === 999999999 ? 0 : initialAutoplayInterval / 1000;
       setAutoplaySeconds(initialSeconds);
-      setAutoplayInterval(initialAutoplayInterval); // Make sure the ms state is also in sync
+      setAutoplayInterval(initialAutoplayInterval); 
       setIsImporting(false);
       setImportText('');
     }
@@ -1318,7 +1311,7 @@ const ImageCarouselComponent = (props: NodeViewProps) => {
               <div className="w-px h-5 bg-border mx-1 self-center" />
               <Button type="button" size="icon" variant={float === 'left' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('left')} title="Align left"><AlignLeft className="h-4 w-4" /></Button>
               <Button type="button" size="icon" variant={!float || float === 'center' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('center')} title="Align center"><AlignCenter className="w-4 h-4" /></Button>
-              <Button type="button" size="icon" variant={float === 'right' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('right')} title="Align right"><AlignRight className="w-4 h-4" /></Button>
+              <Button type="button" size="icon" variant={float === 'right' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('right')} title="Align right"><AlignRight className="w-4 w-4" /></Button>
               <div className="w-px h-5 bg-border mx-1 self-center" />
               <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => rotateByAxis(90)} title="Rotate 90°">
                   <RotateCw className="w-4 h-4" />
@@ -1394,9 +1387,7 @@ const ImageCarouselNode = Node.create({
   },
 
   renderHTML({ HTMLAttributes }) {
-    // Combine multiple style properties into a single style string
     const styles: string[] = [];
-    // Ensure width and rotate are included in the style attribute
     if (HTMLAttributes.width) styles.push(`width: ${HTMLAttributes.width}`);
     if (HTMLAttributes.height) styles.push(`height: ${HTMLAttributes.height}`);
     if (HTMLAttributes.rotate) styles.push(`transform: rotate(${HTMLAttributes.rotate}deg)`);
@@ -1405,7 +1396,6 @@ const ImageCarouselNode = Node.create({
     if (styles.length) {
       finalAttrs.style = styles.join('; ');
     }
-    // Clean up attributes that are now in the style string
     delete finalAttrs.width;
     delete finalAttrs.height;
     delete finalAttrs.rotate;
@@ -1519,12 +1509,12 @@ const CustomImage = TiptapImage.extend({
 
   renderHTML({ HTMLAttributes }) {
     const { href, target, ...imgAttributes } = HTMLAttributes;
-    const imgTag: any = ['img', imgAttributes]; // DOMOutputSpec for img
+    const imgTag: any = ['img', imgAttributes]; 
 
     if (href) {
-      return ['a', { href, target, rel: 'noopener noreferrer nofollow' }, imgTag]; // DOMOutputSpec for a tag containing img
+      return ['a', { href, target, rel: 'noopener noreferrer nofollow' }, imgTag]; 
     }
-    return imgTag; // DOMOutputSpec for img
+    return imgTag; 
   },
 
   addNodeView() {
@@ -1729,7 +1719,7 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
   useEffect(() => {
     const handler = setTimeout(() => {
         setDebouncedUrl(url);
-    }, 500); // 500ms debounce
+    }, 500); 
     return () => clearTimeout(handler);
   }, [url]);
 
@@ -1850,8 +1840,6 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
     } else if (url.match(/\.(glb|gltf)$/i)) {
       editor.chain().focus().setModelViewer({ src: url }).run();
     } else {
-        // Fallback for other URLs, maybe try iframe? Or show error.
-        // For now, let's just insert as a generic iframe.
         editor.chain().focus().setIframe({ src: url }).run();
     }
 
@@ -2151,7 +2139,7 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
     extensions: [
       StarterKit.configure({
          heading: false,
-         codeBlock: false, // Disable the default to use our custom one
+         codeBlock: false, 
       }),
       CustomCodeBlock,
       TextStyle,
@@ -2259,5 +2247,3 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
     </div>
   );
 };
-
-

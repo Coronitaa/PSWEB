@@ -3,7 +3,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useEditor, EditorContent, BubbleMenu, type Editor, NodeViewWrapper, NodeViewContent, ReactNodeViewRenderer, type NodeViewProps, Node, mergeAttributes } from '@tiptap/react';
+import { useEditor, EditorContent, BubbleMenu, type Editor, NodeViewWrapper, NodeViewContent, ReactNodeViewRenderer, type NodeViewProps, Node, mergeAttributes, type ChainedCommands, type PartialRawCommands } from '@tiptap/react';
 import { Extension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -63,6 +63,7 @@ declare global {
         alt?: string;
         'camera-controls'?: boolean;
         'auto-rotate'?: boolean;
+        class?: string; // Add class for compatibility
       }, HTMLElement>;
     }
   }
@@ -95,9 +96,14 @@ declare module '@tiptap/core' {
     imageCarousel: {
       setImageCarousel: (options: { images: string[], width?: string, aspectRatio?: string, autoplayInterval?: number }) => ReturnType,
     }
-    // Add command for custom code block
-    setCustomCodeBlock: (attributes?: { language?: string; title?: string; maxHeight?: string }) => ReturnType,
-    toggleCustomCodeBlock: (attributes?: { language?: string; title?: string; maxHeight?: string }) => ReturnType,
+    customCodeBlock: {
+      setCustomCodeBlock: (attributes?: { language?: string; title?: string; maxHeight?: string }) => ReturnType,
+      toggleCustomCodeBlock: (attributes?: { language?: string; title?: string; maxHeight?: string }) => ReturnType,
+    }
+    textGradient: {
+      setTextGradient: (gradient: string) => ReturnType,
+      unsetTextGradient: () => ReturnType,
+    }
   }
 }
 
@@ -229,16 +235,17 @@ export const TextGradient = Extension.create<any>({
         }];
     },
     addCommands() {
-        return {
-            setTextGradient: (gradient) => ({ chain }) => {
-              const { fontFamily, fontSize } = chain().getAttributes('textStyle');
-              return chain().setMark('textStyle', { textGradient: gradient, fontFamily, fontSize }).run();
-            },
-            unsetTextGradient: () => ({ chain }) => {
-              const { fontFamily, fontSize } = chain().getAttributes('textStyle');
-              return chain().setMark('textStyle', { textGradient: null, fontFamily, fontSize }).removeEmptyTextStyle().run()
-            },
-        };
+      return {
+        setTextGradient: (gradient: string) => ({ chain }: { chain: ChainedCommands }) => {
+          const { fontFamily, fontSize } = chain().getAttributes('textStyle');
+          return chain().setMark('textStyle', { textGradient: gradient, fontFamily, fontSize }).run();
+        },
+        unsetTextGradient: () => ({ chain }: { chain: ChainedCommands }) => {
+          const { fontFamily, fontSize } = chain().getAttributes('textStyle');
+          // @ts-ignore
+          return chain().setMark('textStyle', { textGradient: null, fontFamily, fontSize }).removeEmptyTextStyle().run()
+        },
+      } as Partial<PartialRawCommands>;
     },
 });
 
@@ -489,7 +496,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
                 alt="A 3D model"
                 camera-controls
                 auto-rotate
-                class="w-full h-full rounded-md"
+                className="w-full h-full rounded-md"
               ></model-viewer>
               {editor.isEditable && (
                   <div 
@@ -644,7 +651,7 @@ const CodeBlockComponent = (props: NodeViewProps) => {
                             </PopoverContent>
                         </Popover>
                         <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive/70 hover:text-destructive" onClick={() => editor.chain().focus().deleteNode('customCodeBlock').run()} title="Delete block">
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-3.5 w-3.5" />
                         </Button>
                     </div>
                 </div>
@@ -660,13 +667,19 @@ const CodeBlockComponent = (props: NodeViewProps) => {
                 className="code-block-resizer"
                 onMouseDown={handleResizeMouseDown}
                 title="Drag to resize"
-            />
+            >
+              <div className="w-full h-full bg-primary/30 group-hover/code-block:bg-primary/50 transition-colors rounded-full" />
+            </div>
         </NodeViewWrapper>
     );
 };
 
 const CustomCodeBlock = CodeBlockLowlight.extend({
     name: 'customCodeBlock',
+    group: 'block',
+    content: 'text*',
+    marks: '',
+    defining: true,
     draggable: true,
 
     addAttributes() {
@@ -698,13 +711,13 @@ const CustomCodeBlock = CodeBlockLowlight.extend({
     addCommands() {
         return {
           ...this.parent?.(),
-          setCustomCodeBlock: attributes => ({ commands }) => {
+          setCustomCodeBlock: (attributes?: { language?: string; title?: string; maxHeight?: string }) => ({ commands }: { commands: any }) => {
             return commands.setNode(this.name, attributes)
           },
-          toggleCustomCodeBlock: attributes => ({ commands }) => {
+          toggleCustomCodeBlock: (attributes?: { language?: string; title?: string; maxHeight?: string }) => ({ commands }: { commands: any }) => {
             return commands.toggleNode(this.name, 'paragraph', attributes)
           },
-        }
+        } as Partial<PartialRawCommands>;
     },
 
     addKeyboardShortcuts() {

@@ -1,4 +1,5 @@
 
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -330,14 +331,15 @@
 
 /* -- CUSTOM EDITOR STYLES -- */
 /* Resizer handle for custom code blocks */
-.ProseMirror-selectednode .code-block-resizer {
+.ProseMirror-selectednode .code-block-resizer,
+.group-hover\/code-block .code-block-resizer {
   @apply opacity-100;
 }
 .code-block-resizer {
-  @apply absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-16 h-2 bg-primary/50 rounded-full cursor-ns-resize z-20 opacity-0 transition-opacity;
+  @apply absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize z-20 opacity-0 transition-opacity p-0.5;
 }
 .code-block-resizer:hover {
-  @apply bg-primary;
+  /* No hover effect on the outer container */
 }
 
 
@@ -407,3 +409,4 @@
 .hljs-link {
     text-decoration: underline;
 }
+

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -5,8 +6,8 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Check, ClipboardCopy, ChevronUp, ChevronDown } from 'lucide-react';
 
-// Sintaxis de importación corregida para compatibilidad
-import * as lowlight from 'lowlight/lib/core';
+// Corrected import syntax for lowlight v3+
+import { createLowlight } from 'lowlight';
 import { toHtml } from 'hast-util-to-html';
 
 import javascript from 'highlight.js/lib/languages/javascript';
@@ -17,17 +18,18 @@ import css from 'highlight.js/lib/languages/css';
 import json from 'highlight.js/lib/languages/json';
 import bash from 'highlight.js/lib/languages/bash';
 
-// Importa los estilos del tema que deseas usar
+// Import the stylesheet for the theme
 import 'highlight.js/styles/github-dark.css';
 
-// Registro de lenguajes en la instancia de lowlight
-lowlight.registerLanguage('js', javascript);
-lowlight.registerLanguage('ts', typescript);
-lowlight.registerLanguage('py', python);
-lowlight.registerLanguage('html', xml);
-lowlight.registerLanguage('css', css);
-lowlight.registerLanguage('json', json);
-lowlight.registerLanguage('bash', bash);
+// Create and configure the lowlight instance
+const lowlight = createLowlight();
+lowlight.register('js', javascript);
+lowlight.register('ts', typescript);
+lowlight.register('py', python);
+lowlight.register('html', xml);
+lowlight.register('css', css);
+lowlight.register('json', json);
+lowlight.register('bash', bash);
 
 interface RenderedCodeBlockProps {
   rawCodeContent: string;
@@ -62,10 +64,11 @@ export const RenderedCodeBlock: React.FC<RenderedCodeBlockProps> = ({
         const tree = lowlight.highlight(language, rawCodeContent);
         return toHtml(tree);
       }
-      return rawCodeContent;
+      // Fallback for unregistered languages
+      return rawCodeContent.replace(/</g, "&lt;").replace(/>/g, "&gt;");
     } catch (error) {
       console.error('Highlighting error:', error);
-      return rawCodeContent;
+      return rawCodeContent.replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
   }, [language, rawCodeContent]);
 

@@ -234,13 +234,13 @@ export const TextGradient = Extension.create<any>({
             },
         }];
     },
-    addCommands(): Partial<RawCommands> {
+    addCommands() {
       return {
-        setTextGradient: (gradient: string) => ({ chain, editor }) => {
+        setTextGradient: (gradient: string) => ({ chain, editor }: { chain: ChainedCommands, editor: Editor }) => {
           const { fontFamily, fontSize } = editor.getAttributes('textStyle');
           return chain().setMark('textStyle', { textGradient: gradient, fontFamily, fontSize }).run();
         },
-        unsetTextGradient: () => ({ chain, editor }) => {
+        unsetTextGradient: () => ({ chain, editor }: { chain: ChainedCommands, editor: Editor }) => {
           const { fontFamily, fontSize } = editor.getAttributes('textStyle');
           // @ts-ignore
           return chain().setMark('textStyle', { textGradient: null, fontFamily, fontSize }).removeEmptyTextStyle().run()
@@ -1316,7 +1316,7 @@ const ImageCarouselComponent = (props: NodeViewProps) => {
                 <ImageIcon className="h-4 w-4" />
               </Button>
               <div className="w-px h-5 bg-border mx-1 self-center" />
-              <Button type="button" size="icon" variant={float === 'left' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('left')} title="Align left"><AlignLeft className="w-4 h-4" /></Button>
+              <Button type="button" size="icon" variant={float === 'left' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('left')} title="Align left"><AlignLeft className="h-4 w-4" /></Button>
               <Button type="button" size="icon" variant={!float || float === 'center' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('center')} title="Align center"><AlignCenter className="w-4 h-4" /></Button>
               <Button type="button" size="icon" variant={float === 'right' ? 'default' : 'ghost'} className="h-7 w-7" onClick={() => setAlignment('right')} title="Align right"><AlignRight className="w-4 h-4" /></Button>
               <div className="w-px h-5 bg-border mx-1 self-center" />
@@ -2259,4 +2259,5 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
     </div>
   );
 };
+
 

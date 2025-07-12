@@ -3,7 +3,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useEditor, EditorContent, BubbleMenu, type Editor, NodeViewWrapper, NodeViewContent, ReactNodeViewRenderer, type NodeViewProps, Node, mergeAttributes, type ChainedCommands, type PartialRawCommands } from '@tiptap/react';
+import { useEditor, EditorContent, BubbleMenu, type Editor, NodeViewWrapper, NodeViewContent, ReactNodeViewRenderer, type NodeViewProps, Node, mergeAttributes, type ChainedCommands, type RawCommands } from '@tiptap/react';
 import { Extension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -234,18 +234,18 @@ export const TextGradient = Extension.create<any>({
             },
         }];
     },
-    addCommands() {
+    addCommands(): Partial<RawCommands> {
       return {
-        setTextGradient: (gradient: string) => ({ chain }: { chain: ChainedCommands }) => {
+        setTextGradient: (gradient: string) => ({ chain }) => {
           const { fontFamily, fontSize } = chain().getAttributes('textStyle');
           return chain().setMark('textStyle', { textGradient: gradient, fontFamily, fontSize }).run();
         },
-        unsetTextGradient: () => ({ chain }: { chain: ChainedCommands }) => {
+        unsetTextGradient: () => ({ chain }) => {
           const { fontFamily, fontSize } = chain().getAttributes('textStyle');
           // @ts-ignore
           return chain().setMark('textStyle', { textGradient: null, fontFamily, fontSize }).removeEmptyTextStyle().run()
         },
-      } as Partial<PartialRawCommands>;
+      }
     },
 });
 
@@ -496,7 +496,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
                 alt="A 3D model"
                 camera-controls
                 auto-rotate
-                className="w-full h-full rounded-md"
+                class="w-full h-full rounded-md"
               ></model-viewer>
               {editor.isEditable && (
                   <div 
@@ -708,16 +708,16 @@ const CustomCodeBlock = CodeBlockLowlight.extend({
         };
     },
     
-    addCommands() {
+    addCommands(): Partial<RawCommands> {
         return {
           ...this.parent?.(),
-          setCustomCodeBlock: (attributes?: { language?: string; title?: string; maxHeight?: string }) => ({ commands }: { commands: any }) => {
+          setCustomCodeBlock: (attributes) => ({ commands }) => {
             return commands.setNode(this.name, attributes)
           },
-          toggleCustomCodeBlock: (attributes?: { language?: string; title?: string; maxHeight?: string }) => ({ commands }: { commands: any }) => {
+          toggleCustomCodeBlock: (attributes) => ({ commands }) => {
             return commands.toggleNode(this.name, 'paragraph', attributes)
           },
-        } as Partial<PartialRawCommands>;
+        }
     },
 
     addKeyboardShortcuts() {

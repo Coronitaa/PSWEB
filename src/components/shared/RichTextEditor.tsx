@@ -236,12 +236,12 @@ export const TextGradient = Extension.create<any>({
     },
     addCommands(): Partial<RawCommands> {
       return {
-        setTextGradient: (gradient: string) => ({ chain }) => {
-          const { fontFamily, fontSize } = chain().getAttributes('textStyle');
+        setTextGradient: (gradient: string) => ({ chain, editor }) => {
+          const { fontFamily, fontSize } = editor.getAttributes('textStyle');
           return chain().setMark('textStyle', { textGradient: gradient, fontFamily, fontSize }).run();
         },
-        unsetTextGradient: () => ({ chain }) => {
-          const { fontFamily, fontSize } = chain().getAttributes('textStyle');
+        unsetTextGradient: () => ({ chain, editor }) => {
+          const { fontFamily, fontSize } = editor.getAttributes('textStyle');
           // @ts-ignore
           return chain().setMark('textStyle', { textGradient: null, fontFamily, fontSize }).removeEmptyTextStyle().run()
         },
@@ -496,7 +496,7 @@ const MediaResizeComponent = (props: NodeViewProps) => {
                 alt="A 3D model"
                 camera-controls
                 auto-rotate
-                class="w-full h-full rounded-md"
+                className="w-full h-full rounded-md"
               ></model-viewer>
               {editor.isEditable && (
                   <div 
@@ -624,7 +624,7 @@ const CodeBlockComponent = (props: NodeViewProps) => {
                         <Popover>
                             <PopoverTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-6 w-6" title="Block settings">
-                                    <Settings className="h-3.5 w-3.5" />
+                                    <Settings className="h-3.5 h-3.5" />
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-2" side="bottom" align="end">
@@ -2259,3 +2259,4 @@ export const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps
     </div>
   );
 };
+

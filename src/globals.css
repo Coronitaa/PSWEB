@@ -338,8 +338,8 @@
 .code-block-resizer {
   @apply absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize z-20 opacity-0 transition-opacity p-0.5;
 }
-.code-block-resizer:hover {
-  /* No hover effect on the outer container */
+.code-block-resizer > div {
+  @apply w-full h-full;
 }
 
 
@@ -409,4 +409,5 @@
 .hljs-link {
     text-decoration: underline;
 }
+
 
